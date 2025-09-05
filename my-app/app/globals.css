@@ -20,14 +20,15 @@ body {
   padding: 0;
 }
 
-/* 🔒 Hide horizontal scrollbars */
-.no-scrollbar::-webkit-scrollbar {
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
 }
+
 
 /* 🔽 Safe bottom padding for mobile navbars */
 :root {

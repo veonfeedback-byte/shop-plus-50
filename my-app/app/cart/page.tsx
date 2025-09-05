@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CartItem, Order } from "@/app/lib/types"; // ✅ already includes OrderStatus
+import { CartItem, Order } from "@/app/lib/types";
 
 export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -15,7 +15,6 @@ export default function CartPage() {
     try {
       const stored = JSON.parse(localStorage.getItem("cart") || "[]");
       if (Array.isArray(stored)) {
-        // ✅ ensure numbers
         setItems(
           stored.map((it) => ({
             ...it,
@@ -64,7 +63,7 @@ export default function CartPage() {
       phone,
       address,
       items,
-      status: "pending", // ✅ type-safe, matches union in types.ts
+      status: "pending",
       created_at: new Date().toISOString(),
       notes: "COD only. Delivery ~7 days after approval.",
     };
@@ -96,7 +95,21 @@ export default function CartPage() {
           <div className="flex-1">
             <div className="font-medium">{it.title}</div>
             {it.code && <div className="text-sm text-gray-500">{it.code}</div>}
-            <div className="font-semibold">
+
+            {/* 🔹 Show size/color/note if available */}
+            {it.size && (
+              <div className="text-sm text-gray-700">Size: {it.size}</div>
+            )}
+            {it.color && (
+              <div className="text-sm text-gray-700">Color: {it.color}</div>
+            )}
+            {it.note && (
+              <div className="text-sm text-gray-700 italic">
+                Note: {it.note}
+              </div>
+            )}
+
+            <div className="font-semibold mt-1">
               Rs {it.price} × {it.qty} = Rs {it.price * it.qty}
             </div>
             <div className="flex gap-2 mt-2">
