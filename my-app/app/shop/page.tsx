@@ -27,8 +27,8 @@ export default function ShopPage() {
     <main className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
       {categories.map((cat: Category) => (
         <Link
-          key={cat.name}
-          href={`/shop/${encodeURIComponent(cat.name)}`}
+          key={cat.slug}
+          href={`/shop/${cat.slug}`}
           className="flex flex-col items-center space-y-2"
         >
           <div className="w-20 h-20 flex items-center justify-center rounded-full bg-gray-100 text-3xl shadow">

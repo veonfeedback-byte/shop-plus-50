@@ -1,46 +1,78 @@
-// app/page.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import Catalog, { Product, Category, Subcategory } from "./lib/catalog";
 
+// ✅ Build product link
+function productUrl(p: Product): string {
+  for (const cat of Catalog.getCategories()) {
+    for (const sub of cat.subcategories ?? []) {
+      if (sub.products?.some((x) => x.id === p.id)) {
+        return `/shop/${cat.name.trim().replace(/\s+/g, "-")}/${sub.name
+          .trim()
+          .replace(/\s+/g, "-")}/${p.id}`;
+      }
+    }
+  }
+  return `/shop/${p.id}`;
+}
+
+// ✅ Build subcategory link
+function subcategoryUrl(cat: Category, sub: Subcategory): string {
+  return `/shop/${cat.name.trim().replace(/\s+/g, "-")}/${sub.name
+    .trim()
+    .replace(/\s+/g, "-")}`;
+}
+
 export default function Home() {
-  // ✅ Use Catalog default export functions
   const trending: Product[] = Catalog.getTrending();
   const allProducts: Product[] = Catalog.getProducts();
   const categories: Category[] = Catalog.getCategories();
 
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
 
-  // ✅ Suggestions for dropdown
+  // ✅ Debounce search (fast on mobile)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 200);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // ✅ Suggestions (only when >= 2 chars)
   const suggestions: Product[] = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return allProducts
-      .filter((p) => p.title.toLowerCase().includes(q))
-      .slice(0, 8);
-  }, [query, allProducts]);
+    const q = debouncedQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return allProducts.filter((p) =>
+      p.title.toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [debouncedQuery, allProducts]);
 
   // ✅ Full search results
   const searchResults: Product[] | null = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     if (!q) return null;
     return allProducts.filter((p) => p.title.toLowerCase().includes(q));
-  }, [query, allProducts]);
+  }, [debouncedQuery, allProducts]);
 
-  // ✅ Subcategories (2 products each)
+  // ✅ Subcategories (25 products each, horizontal scroll)
   const subcategoryBlocks = useMemo(() => {
-    const blocks: { key: string; title: string; products: Product[] }[] = [];
+    const blocks: {
+      key: string;
+      title: string;
+      products: Product[];
+      url: string;
+    }[] = [];
     categories.forEach((cat: Category) => {
       (cat.subcategories ?? []).forEach((sub: Subcategory) => {
-        const prods = (sub.products ?? []).slice(0, 2);
+        const prods = (sub.products ?? []).slice(0, 25);
         if (prods.length) {
           blocks.push({
             key: `${cat.name}::${sub.name}`,
             title: sub.name,
             products: prods,
+            url: subcategoryUrl(cat, sub),
           });
         }
       });
@@ -59,6 +91,11 @@ export default function Home() {
           onChange={(e) => {
             setQuery(e.target.value);
             setShowSuggestions(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              setShowSuggestions(false);
+            }
           }}
           className="w-full rounded-xl border p-3 shadow focus:outline-none"
         />
@@ -92,7 +129,7 @@ export default function Home() {
               {searchResults.map((p) => (
                 <Link
                   key={p.id}
-                  href={`/shop/${p.id}`}
+                  href={productUrl(p)}
                   className="rounded-xl shadow p-2 bg-white block"
                 >
                   {p.img && (
@@ -122,7 +159,7 @@ export default function Home() {
               {trending.map((p) => (
                 <Link
                   key={p.id}
-                  href={`/shop/${p.id}`}
+                  href={productUrl(p)}
                   className="rounded-xl shadow p-2 bg-white block"
                 >
                   {p.img && (
@@ -143,17 +180,17 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Subcategories (2 products each) */}
-          <section className="space-y-6">
+          {/* Subcategories (horizontal scroll + "Show more" card) */}
+          <section className="space-y-10">
             {subcategoryBlocks.map((block) => (
               <div key={block.key}>
                 <h2 className="text-xl font-semibold mb-2">{block.title}</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                   {block.products.map((p) => (
                     <Link
                       key={p.id}
-                      href={`/shop/${p.id}`}
-                      className="rounded-xl shadow p-2 bg-white block"
+                      href={productUrl(p)}
+                      className="min-w-[150px] max-w-[180px] rounded-xl shadow p-2 bg-white flex-shrink-0"
                     >
                       {p.img && (
                         <div className="relative w-full aspect-square mb-2">
@@ -170,6 +207,14 @@ export default function Home() {
                       </div>
                     </Link>
                   ))}
+
+                  {/* Show more card */}
+                  <Link
+                    href={block.url}
+                    className="min-w-[150px] max-w-[180px] flex items-center justify-center text-blue-600 font-medium border rounded-xl bg-white shadow flex-shrink-0"
+                  >
+                    Show more →
+                  </Link>
                 </div>
               </div>
             ))}

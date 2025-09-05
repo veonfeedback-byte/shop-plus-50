@@ -1,6 +1,4 @@
-// app/shop/[category]/[subcategory]/page.tsx 
-"use client";
-
+// app/shop/[category]/[subcategory]/page.tsx
 import Link from "next/link";
 import Image from "next/image";
 import Catalog, { Product } from "@/app/lib/catalog";
@@ -10,29 +8,29 @@ export default function SubcategoryPage({
 }: {
   params: { category: string; subcategory: string };
 }) {
-  const categoryName = decodeURIComponent(params.category);
-  const subcategoryName = decodeURIComponent(params.subcategory);
-  const products: Product[] = Catalog.getProducts(categoryName, subcategoryName);
+  const { category, subcategory } = params;
+
+  const products: Product[] = Catalog.getProducts(category, subcategory);
 
   if (products.length === 0) {
     return (
       <main className="p-4">
-        <h1 className="text-xl font-bold mb-2">{subcategoryName}</h1>
-        <div className="text-gray-500">No products found in this subcategory.</div>
+        <h1 className="text-xl font-bold mb-2">{subcategory}</h1>
+        <div className="text-gray-500">
+          No products found in this subcategory.
+        </div>
       </main>
     );
   }
 
   return (
     <main className="p-4">
-      <h1 className="text-2xl font-bold mb-4">{subcategoryName}</h1>
+      <h1 className="text-2xl font-bold mb-4">{subcategory}</h1>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {products.map((p: Product) => (
           <Link
             key={p.id}
-            href={`/shop/${encodeURIComponent(categoryName)}/${encodeURIComponent(
-              subcategoryName
-            )}/${encodeURIComponent(p.id)}`}
+            href={`/shop/${category}/${subcategory}/${p.id}`}
             className="border rounded-lg p-2 shadow hover:shadow-lg transition block bg-white"
           >
             {p.img && (
@@ -54,3 +52,4 @@ export default function SubcategoryPage({
     </main>
   );
 }
+
