@@ -13,18 +13,22 @@ export type Product = {
   images: string[];
   link: string;
   description?: string;
+
+  // ✅ new fields for navigation
+  category: string;
+  subcategory: string;
 };
 
 export type Subcategory = {
   name: string;
-  slug: string; // ✅ added
+  slug: string;
   url: string;
   products: Product[];
 };
 
 export type Category = {
   name: string;
-  slug: string; // ✅ added
+  slug: string;
   url: string;
   subcategories: Subcategory[];
 };
@@ -108,7 +112,11 @@ function safePlus50(input: unknown): string {
   return String(plus50(n));
 }
 
-export function normalizeProduct(p: any): Product {
+export function normalizeProduct(
+  p: any,
+  category: string,
+  subcategory: string
+): Product {
   return {
     id: String(p.id ?? ""),
     title: String(p.title ?? "Untitled"),
@@ -119,21 +127,25 @@ export function normalizeProduct(p: any): Product {
     images: Array.isArray(p.images) ? p.images : p.image ? [p.image] : [],
     link: String(p.link ?? "#"),
     description: p.description ?? "",
+    category,
+    subcategory,
   };
 }
 
-/** ============= Build merged catalog with slugs ============= */
+/** ============= Build merged catalog with slugs + product context ============= */
 const A: Catalog = ensureCatalog(rawCatalog);
 
 const MERGED: Catalog = {
   ...A,
   categories: (A.categories || []).map((c) => ({
     ...c,
-    slug: slugify(c.name), // ✅ inject slug
+    slug: slugify(c.name),
     subcategories: (c.subcategories || []).map((s) => ({
       ...s,
-      slug: slugify(s.name), // ✅ inject slug
-      products: (s.products || []).map(normalizeProduct),
+      slug: slugify(s.name),
+      products: (s.products || []).map((p) =>
+        normalizeProduct(p, slugify(c.name), slugify(s.name))
+      ),
     })),
   })),
 };
@@ -175,7 +187,7 @@ export function getProduct(id: string): Product | null {
   for (const c of MERGED.categories) {
     for (const s of c.subcategories) {
       const found = s.products.find((p) => p.id === id);
-      if (found) return normalizeProduct(found);
+      if (found) return found; // already normalized with category+subcategory
     }
   }
   return null;
