@@ -1,19 +1,21 @@
 // app/lib/types.ts
 
-// Cart items in localStorage
 export type CartItem = {
   id: string;
   code?: string;
   title: string;
-  image?: string;
-  price: number; // always number
+  image: string;
+  price: number;
   qty: number;
+
+  // 🔹 add these optional fields
+  note?: string;
+  size?: string | null;
+  color?: string | null;
 };
 
-// Allowed order statuses
-export type OrderStatus = "pending" | "approved" | "dropped" | "return_requested";
+export type OrderStatus = "pending" | "approved" | "rejected" | "delivered";
 
-// Orders saved in localStorage
 export type Order = {
   id: string;
   user_name: string;
@@ -22,5 +24,5 @@ export type Order = {
   items: CartItem[];
   status: OrderStatus;
   created_at: string;
-  notes: string;
+  notes?: string;
 };
