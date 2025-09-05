@@ -1,3 +1,4 @@
+// app/shop/[category]/[subcategory]/[productId]/page.tsx
 "use client";
 
 import Catalog, { Product } from "@/app/lib/catalog";
@@ -10,14 +11,13 @@ export default function ProductPage({
   params: { category: string; subcategory: string; productId: string };
 }) {
   const router = useRouter();
-
   const found = Catalog.getProduct(params.productId);
+
   if (!found) {
     return <div className="p-4">Not found</div>;
   }
 
-  // ✅ non-null now
-  const product: Product = found!;
+  const product: Product = found;
 
   function addToCart(goCheckout = false) {
     const cart: CartItem[] = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -31,7 +31,7 @@ export default function ProductPage({
         code: product.code,
         title: product.title,
         image: product.images?.[0] ?? "",
-        price: Number(product.price), // ensure number
+        price: Number(product.price),
         qty: 1,
       });
     }
@@ -42,7 +42,6 @@ export default function ProductPage({
 
   return (
     <div className="space-y-4 p-4">
-      {/* Images */}
       {product.images?.length ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {product.images.map((src: string, i: number) => (
@@ -85,3 +84,4 @@ export default function ProductPage({
     </div>
   );
 }
+

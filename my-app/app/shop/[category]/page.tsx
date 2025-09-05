@@ -1,16 +1,13 @@
 // app/shop/[category]/page.tsx
-"use client";
-
 import Link from "next/link";
 import Catalog, { Subcategory, Category } from "@/app/lib/catalog";
 
-export default async function CategoryPage({
+export default function CategoryPage({
   params,
 }: {
-  params: Promise<{ category: string }>;
+  params: { category: string };
 }) {
-  // ✅ Await params before using
-  const { category } = await params;
+  const { category } = params;
 
   const categoryObj: Category | undefined = Catalog.getCategoryBySlug(category);
   const subs: Subcategory[] = Catalog.getSubcategories(category);
@@ -34,8 +31,8 @@ export default async function CategoryPage({
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {subs.map((s: Subcategory) => (
           <Link
-            key={s.name}
-            href={`/shop/${encodeURIComponent(categoryObj.name)}/${encodeURIComponent(s.name)}`}
+            key={s.slug}
+            href={`/shop/${categoryObj.slug}/${s.slug}`}
             className="border rounded-lg p-4 shadow bg-white hover:shadow-lg transition text-center"
           >
             <div className="text-2xl">📦</div>

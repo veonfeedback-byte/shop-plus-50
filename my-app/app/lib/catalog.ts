@@ -17,12 +17,14 @@ export type Product = {
 
 export type Subcategory = {
   name: string;
+  slug: string; // ✅ added
   url: string;
   products: Product[];
 };
 
 export type Category = {
   name: string;
+  slug: string; // ✅ added
   url: string;
   subcategories: Subcategory[];
 };
@@ -40,8 +42,15 @@ function ensureCatalog(data: any): Catalog {
   return { scrapedAt: "", categories: [] };
 }
 
-const A: Catalog = ensureCatalog(rawCatalog);
+function slugify(name: string): string {
+  return (name || "")
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9-]/g, "");
+}
 
+// normalize input for fuzzy matching
 function norm(s: string): string {
   const cleaned = (s || "")
     .toLowerCase()
@@ -113,8 +122,21 @@ export function normalizeProduct(p: any): Product {
   };
 }
 
-/** ============= Catalog (no merge needed) ============= */
-const MERGED: Catalog = A;
+/** ============= Build merged catalog with slugs ============= */
+const A: Catalog = ensureCatalog(rawCatalog);
+
+const MERGED: Catalog = {
+  ...A,
+  categories: (A.categories || []).map((c) => ({
+    ...c,
+    slug: slugify(c.name), // ✅ inject slug
+    subcategories: (c.subcategories || []).map((s) => ({
+      ...s,
+      slug: slugify(s.name), // ✅ inject slug
+      products: (s.products || []).map(normalizeProduct),
+    })),
+  })),
+};
 
 /** ============= Exports used by pages ============= */
 export function getCategories(): Category[] {
@@ -122,42 +144,37 @@ export function getCategories(): Category[] {
 }
 
 export function getCategoryBySlug(slug: string): Category | undefined {
-  return MERGED.categories.find((c) => norm(c.name) === norm(decodeURIComponent(slug)));
+  return MERGED.categories.find((c) => c.slug === slugify(decodeURIComponent(slug)));
 }
 
-export function getSubcategories(categoryName: string): Subcategory[] {
-  const cat = getCategoryBySlug(categoryName) || findCategory(MERGED, categoryName);
-  return (cat?.subcategories ?? []).map((s) => ({
-    ...s,
-    products: (s.products ?? []).map(normalizeProduct),
-  }));
+export function getSubcategories(categorySlug: string): Subcategory[] {
+  const cat = getCategoryBySlug(categorySlug) || findCategory(MERGED, categorySlug);
+  return cat?.subcategories ?? [];
 }
 
-export function getProducts(category?: string, subcategory?: string): Product[] {
-  if (!category && !subcategory) {
-    return MERGED.categories.flatMap((c) =>
-      c.subcategories.flatMap((s) => s.products.map(normalizeProduct))
-    );
+export function getProducts(categorySlug?: string, subcategorySlug?: string): Product[] {
+  if (!categorySlug && !subcategorySlug) {
+    return MERGED.categories.flatMap((c) => c.subcategories.flatMap((s) => s.products));
   }
 
-  const cat = (category && getCategoryBySlug(category)) || (category && findCategory(MERGED, category));
+  const cat = categorySlug && getCategoryBySlug(categorySlug);
   if (!cat) return [];
 
-  if (!subcategory) {
-    return cat.subcategories.flatMap((s) => s.products.map(normalizeProduct));
+  if (!subcategorySlug) {
+    return cat.subcategories.flatMap((s) => s.products);
   }
 
   const sub =
-    findSubcategory(cat, subcategory) ||
-    cat.subcategories.find((s) => norm(s.name) === norm(decodeURIComponent(subcategory)));
+    cat.subcategories.find((s) => s.slug === slugify(subcategorySlug)) ||
+    findSubcategory(cat, subcategorySlug);
 
-  return (sub?.products ?? []).map(normalizeProduct);
+  return sub?.products ?? [];
 }
 
 export function getProduct(id: string): Product | null {
   for (const c of MERGED.categories) {
     for (const s of c.subcategories) {
-      const found = (s.products ?? []).find((p) => p.id === id);
+      const found = s.products.find((p) => p.id === id);
       if (found) return normalizeProduct(found);
     }
   }
@@ -168,10 +185,10 @@ export function getTrending(limit = 20): Product[] {
   const all: Product[] = [];
   for (const cat of MERGED.categories) {
     for (const sub of cat.subcategories ?? []) {
-      all.push(...(sub.products ?? []));
+      all.push(...sub.products);
     }
   }
-  return all.slice(0, limit).map(normalizeProduct);
+  return all.slice(0, limit);
 }
 
 // ✅ Export as object
