@@ -2,12 +2,12 @@
 import Link from "next/link";
 import Catalog, { Subcategory, Category } from "@/app/lib/catalog";
 
-export default function CategoryPage({
+export default async function CategoryPage({
   params,
 }: {
-  params: { category: string };
+  params: Promise<{ category: string }>;
 }) {
-  const { category } = params;
+  const { category } = await params; // 👈 await params
 
   const categoryObj: Category | undefined = Catalog.getCategoryBySlug(category);
   const subs: Subcategory[] = Catalog.getSubcategories(category);

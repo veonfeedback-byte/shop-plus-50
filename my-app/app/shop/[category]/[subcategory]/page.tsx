@@ -3,12 +3,12 @@ import Link from "next/link";
 import Image from "next/image";
 import Catalog, { Product } from "@/app/lib/catalog";
 
-export default function SubcategoryPage({
+export default async function SubcategoryPage({
   params,
 }: {
-  params: { category: string; subcategory: string };
+  params: Promise<{ category: string; subcategory: string }>;
 }) {
-  const { category, subcategory } = params;
+  const { category, subcategory } = await params; // 👈 await params
 
   const products: Product[] = Catalog.getProducts(category, subcategory);
 
@@ -52,4 +52,3 @@ export default function SubcategoryPage({
     </main>
   );
 }
-

@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "cheerio": "^1.1.2",
+    "framer-motion": "^12.23.12",
+    "fuse.js": "^7.1.0",
     "next": "15.5.2",
     "node-fetch": "^3.3.2",
     "puppeteer": "^24.18.0",

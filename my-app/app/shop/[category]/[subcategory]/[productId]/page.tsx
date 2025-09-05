@@ -1,6 +1,6 @@
-// app/shop/[category]/[subcategory]/[productId]/page.tsx
 "use client";
 
+import React, { use } from "react";
 import Catalog, { Product } from "@/app/lib/catalog";
 import { useRouter } from "next/navigation";
 import { CartItem } from "@/app/lib/types";
@@ -8,11 +8,14 @@ import { CartItem } from "@/app/lib/types";
 export default function ProductPage({
   params,
 }: {
-  params: { category: string; subcategory: string; productId: string };
+  params: Promise<{ category: string; subcategory: string; productId: string }>;
 }) {
   const router = useRouter();
-  const found = Catalog.getProduct(params.productId);
 
+  // ✅ unwrap the params Promise
+  const { category, subcategory, productId } = use(params);
+
+  const found = Catalog.getProduct(productId);
   if (!found) {
     return <div className="p-4">Not found</div>;
   }
@@ -84,4 +87,3 @@ export default function ProductPage({
     </div>
   );
 }
-
