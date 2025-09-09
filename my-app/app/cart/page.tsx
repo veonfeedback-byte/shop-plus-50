@@ -1,3 +1,4 @@
+// app/cart/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -25,6 +26,7 @@ export default function CartPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // load cart
     const stored = JSON.parse(localStorage.getItem("cart") || "[]");
     if (Array.isArray(stored)) {
       setItems(
@@ -35,6 +37,7 @@ export default function CartPage() {
       );
     }
 
+    // load saved profile
     const p = JSON.parse(localStorage.getItem("profile") || "{}");
     if (p.name) setName(p.name);
     if (p.phone) setPhone(p.phone);
@@ -71,38 +74,43 @@ export default function CartPage() {
 
     setSubmitting(true);
     try {
-      // ensure profile exists
-      const { data: existing } = await supabase
+      // ✅ check if profile already exists
+      let { data: existing, error: fetchError } = await supabase
         .from("profiles")
         .select("id")
         .eq("email", email)
-        .single();
+        .maybeSingle();
 
-      let userId: string;
-      if (!existing) {
-        const { data, error } = await supabase
+      if (fetchError) throw fetchError;
+
+      let profileId: string;
+      if (existing) {
+        profileId = existing.id;
+      } else {
+        // ✅ insert new profile
+        const { data: newProfile, error: insertError } = await supabase
           .from("profiles")
           .insert([{ name, phone, address, email }])
           .select("id")
           .single();
-        if (error) throw error;
-        userId = data.id;
-      } else {
-        userId = existing.id;
+
+        if (insertError) throw insertError;
+        profileId = newProfile.id;
       }
 
-      // insert order
+      // ✅ insert new order
       const { error: orderError } = await supabase.from("orders").insert([
         {
-          user_id: userId,
+          profile_id: profileId,
           items,
           total,
           status: "pending",
         },
       ]);
+
       if (orderError) throw orderError;
 
-      // save local profile
+      // ✅ save profile locally for quick access
       localStorage.setItem(
         "profile",
         JSON.stringify({ name, phone, address, email })
@@ -110,6 +118,7 @@ export default function CartPage() {
       localStorage.removeItem("cart");
       location.href = "/profile";
     } catch (e: any) {
+      console.error(e);
       alert(e.message || "Error submitting order");
     } finally {
       setSubmitting(false);
@@ -135,16 +144,35 @@ export default function CartPage() {
           <div className="flex-1">
             <div className="font-medium">{it.title}</div>
             {it.code && <div className="text-sm text-gray-500">{it.code}</div>}
-            {it.size && <div className="text-sm text-gray-700">Size: {it.size}</div>}
-            {it.color && <div className="text-sm text-gray-700">Color: {it.color}</div>}
+            {it.size && (
+              <div className="text-sm text-gray-700">Size: {it.size}</div>
+            )}
+            {it.color && (
+              <div className="text-sm text-gray-700">Color: {it.color}</div>
+            )}
             {it.note && <div className="text-sm italic">Note: {it.note}</div>}
             <div className="font-semibold mt-1">
               Rs {it.price} × {it.qty} = Rs {Number(it.price) * Number(it.qty)}
             </div>
             <div className="flex gap-2 mt-2">
-              <button onClick={() => updateQty(it.id, -1)} className="px-3 py-1 border rounded">-</button>
-              <button onClick={() => updateQty(it.id, +1)} className="px-3 py-1 border rounded">+</button>
-              <button onClick={() => removeItem(it.id)} className="px-3 py-1 border rounded">Remove</button>
+              <button
+                onClick={() => updateQty(it.id, -1)}
+                className="px-3 py-1 border rounded"
+              >
+                -
+              </button>
+              <button
+                onClick={() => updateQty(it.id, +1)}
+                className="px-3 py-1 border rounded"
+              >
+                +
+              </button>
+              <button
+                onClick={() => removeItem(it.id)}
+                className="px-3 py-1 border rounded"
+              >
+                Remove
+              </button>
             </div>
           </div>
         </div>
@@ -154,15 +182,58 @@ export default function CartPage() {
         <div className="rounded-xl shadow p-4 bg-white space-y-3">
           <div className="text-lg font-semibold">Order details</div>
           <div className="grid md:grid-cols-4 gap-3">
-            <label className="text-sm">Name<input className="w-full border rounded p-2" value={name} onChange={(e) => setName(e.target.value)} disabled={!editing}/></label>
-            <label className="text-sm">Phone<input className="w-full border rounded p-2" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!editing}/></label>
-            <label className="text-sm">Address<input className="w-full border rounded p-2" value={address} onChange={(e) => setAddress(e.target.value)} disabled={!editing}/></label>
-            <label className="text-sm">Email<input className="w-full border rounded p-2" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!editing}/></label>
+            <label className="text-sm">
+              Name
+              <input
+                className="w-full border rounded p-2"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={!editing}
+              />
+            </label>
+            <label className="text-sm">
+              Phone
+              <input
+                className="w-full border rounded p-2"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={!editing}
+              />
+            </label>
+            <label className="text-sm">
+              Address
+              <input
+                className="w-full border rounded p-2"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                disabled={!editing}
+              />
+            </label>
+            <label className="text-sm">
+              Email
+              <input
+                className="w-full border rounded p-2"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={!editing}
+              />
+            </label>
           </div>
-          <button className="px-3 py-1 border rounded" onClick={() => setEditing(!editing)}>✏️ Edit</button>
-          <div className="text-sm">Payment: <b>Cash on Delivery (COD)</b></div>
+          <button
+            className="px-3 py-1 border rounded"
+            onClick={() => setEditing(!editing)}
+          >
+            ✏️ Edit
+          </button>
+          <div className="text-sm">
+            Payment: <b>Cash on Delivery (COD)</b>
+          </div>
           <div className="text-lg font-bold">Total: Rs {total}</div>
-          <button onClick={submitOrder} disabled={submitting} className="px-4 py-2 rounded border">
+          <button
+            onClick={submitOrder}
+            disabled={submitting}
+            className="px-4 py-2 rounded border"
+          >
             {submitting ? "Submitting…" : "Submit Order"}
           </button>
         </div>
