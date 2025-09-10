@@ -2,26 +2,35 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { toast } from "sonner";
+import { User, Mail, Phone, MapPin } from "lucide-react";
+
+type CartItem = {
+  id: string;
+  title: string;
+  image?: string;
+  qty: number;
+  price: number;
+};
 
 type DBOrder = {
   id: string;
   status:
     | "pending"
     | "approved"
+    | "out_for_delivery"
     | "dropped"
-    | "complete"
+    | "completed"
     | "cancelled"
-    | "return_requested"
+    | "return_pending"
     | "return_approved"
     | "return_dropped"
     | "return_completed";
-  items: any[];
+  items: CartItem[];
   total: number;
   created_at: string;
   completed_at?: string | null;
-  size?: string | null;
-  color?: string | null;
-  note?: string | null;
+  expires_at?: string | null;
 };
 
 export default function Profile() {
@@ -29,150 +38,242 @@ export default function Profile() {
   const [orders, setOrders] = useState<DBOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ check if within 7 days
-  function within7Days(ts?: string | null) {
-    if (!ts) return false;
-    const t = new Date(ts).getTime();
-    return Date.now() - t <= 7 * 24 * 60 * 60 * 1000;
+  function isReturnWindowOpen(order: DBOrder) {
+    if (!order.completed_at) return false;
+    if (!order.expires_at) return true; // still active until expiry
+    return new Date(order.expires_at).getTime() > Date.now();
   }
 
-  async function loadOrders(email: string) {
-    const { data: profileRow } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .single();
-
-    if (profileRow) {
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("user_id", profileRow.id)
-        .order("created_at", { ascending: false });
-
-      setOrders(orders || []);
-    }
-    setLoading(false);
-  }
-
-  // 🔹 cancel order
+  // Cancel order
   async function cancelOrder(orderId: string) {
     const { error } = await supabase
       .from("orders")
       .update({ status: "cancelled" })
       .eq("id", orderId);
-
-    if (!error) {
-      setOrders((os) =>
-        os.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o))
-      );
-    }
+    if (error) toast.error(error.message);
   }
 
-  // 🔹 request return
+  // Request return
   async function requestReturn(orderId: string) {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: "return_requested" })
-      .eq("id", orderId);
-
-    if (!error) {
-      setOrders((os) =>
-        os.map((o) =>
-          o.id === orderId ? { ...o, status: "return_requested" } : o
-        )
-      );
-    }
+    const { error } = await supabase.rpc("request_return", {
+      p_order_id: orderId,
+    });
+    if (error) toast.error(error.message || "Failed to request return");
   }
 
   useEffect(() => {
     const p = JSON.parse(localStorage.getItem("profile") || "{}");
     setProfile(p);
-    if (p.email) loadOrders(p.email);
-    else setLoading(false);
+
+    if (!p.email) {
+      setLoading(false);
+      return;
+    }
+
+    supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", p.email)
+      .single()
+      .then(async ({ data: profileRow }) => {
+        if (!profileRow) {
+          setLoading(false);
+          return;
+        }
+
+        const profileId = profileRow.id;
+
+        // Initial load
+        const { data: initialOrders } = await supabase
+          .from("orders")
+          .select("*, order_items(*)")
+          .eq("profile_id", profileId)
+          .order("created_at", { ascending: false });
+
+        setOrders(initialOrders || []);
+        setLoading(false);
+
+        // 🔥 Realtime updates (direct state update, no refetch)
+        const channel = supabase
+          .channel(`orders-realtime-${profileId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "orders",
+              filter: `profile_id=eq.${profileId}`,
+            },
+            (payload) => {
+              setOrders((prev) => {
+                if (payload.eventType === "INSERT") {
+                  toast.success("New order placed");
+                  return [payload.new as DBOrder, ...prev];
+                }
+                if (payload.eventType === "UPDATE") {
+                  toast.info(`Order updated → ${payload.new.status}`);
+                  return prev.map((o) =>
+                    o.id === payload.new.id ? { ...o, ...payload.new } : o
+                  );
+                }
+                if (payload.eventType === "DELETE") {
+                  toast("Order removed");
+                  return prev.filter((o) => o.id !== payload.old.id);
+                }
+                return prev;
+              });
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      });
   }, []);
 
   return (
-    <div className="space-y-6 p-4">
-      <h1 className="text-2xl font-semibold">Profile</h1>
+    <div className="space-y-8 p-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+      <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
 
+      {/* Profile Info */}
       {profile?.name || profile?.email ? (
-        <div className="rounded-xl shadow p-3 bg-white">
-          <div className="font-semibold">{profile.name}</div>
-          <div className="text-sm">{profile.email}</div>
-          <div className="text-sm">{profile.phone}</div>
-          <div className="text-sm">{profile.address}</div>
+        <div className="rounded-2xl shadow-lg bg-white p-6 flex items-center gap-6 border border-gray-200">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-purple-400 to-blue-400 flex items-center justify-center text-white text-3xl font-bold shadow-md">
+            {profile.name?.[0] || "U"}
+          </div>
+          <div className="space-y-2">
+            <div className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <User className="w-5 h-5 text-purple-500" /> {profile.name}
+            </div>
+            <div className="text-sm text-gray-700 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-gray-400" /> {profile.email}
+            </div>
+            <div className="text-sm text-gray-700 flex items-center gap-2">
+              <Phone className="w-4 h-4 text-gray-400" /> {profile.phone}
+            </div>
+            <div className="text-sm text-gray-700 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-gray-400" /> {profile.address}
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="rounded-xl shadow p-3 bg-white text-sm text-gray-600">
+        <div className="rounded-xl shadow p-4 bg-white text-sm text-gray-600">
           Not logged in. Place an order to save your info.
         </div>
       )}
 
+      {/* Orders */}
       <div>
-        <div className="text-lg font-semibold mb-2">Your Orders</div>
+        <h2 className="text-2xl font-semibold mb-4">Your Orders</h2>
         {loading && <div>Loading…</div>}
-        {!loading && orders.length === 0 && <div>No orders yet.</div>}
+        {!loading && orders.length === 0 && (
+          <div className="text-gray-500">No orders yet.</div>
+        )}
 
-        <div className="space-y-3">
+        <div className="grid gap-5">
           {orders.map((o) => {
             const canCancel = o.status === "pending";
             const canRequestReturn =
-              o.status === "complete" &&
-              within7Days(o.completed_at || o.created_at);
+              o.status === "completed" && isReturnWindowOpen(o);
 
             return (
               <div
                 key={o.id}
-                className="rounded-xl shadow p-3 bg-white space-y-1"
+                className="rounded-2xl shadow-md border border-gray-200 p-5 bg-white transition hover:shadow-lg"
               >
                 <div className="flex items-center justify-between">
-                  <div className="font-semibold">Order #{o.id.slice(0, 8)}</div>
-                  <div className="px-2 py-0.5 rounded-full border text-xs">
-                    {o.status}
+                  <div className="font-semibold text-gray-800">
+                    Order #{o.id.slice(0, 8)}
                   </div>
+                  <span
+                    className={`px-3 py-1 text-xs font-medium rounded-full ${
+                      o.status === "pending"
+                        ? "bg-gray-100 text-gray-700 border"
+                        : o.status === "approved"
+                        ? "bg-blue-100 text-blue-700 border border-blue-300"
+                        : o.status === "out_for_delivery"
+                        ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
+                        : o.status === "completed"
+                        ? "bg-green-100 text-green-700 border border-green-300"
+                        : o.status.includes("return")
+                        ? "bg-purple-100 text-purple-700 border border-purple-300"
+                        : "bg-red-100 text-red-700 border border-red-300"
+                    }`}
+                  >
+                    {o.status.replace("_", " ")}
+                  </span>
                 </div>
-                <div className="text-sm text-gray-600">
+
+                <div className="text-sm text-gray-500 mt-1">
                   {o.items?.length} item(s) •{" "}
                   {new Date(o.created_at).toLocaleString()}
                 </div>
 
-                <div className="flex gap-2 mt-2">
+                {/* Product preview */}
+                <div className="flex flex-wrap gap-3 mt-4">
+                  {o.items?.map((it, idx) => (
+                    <div
+                      key={idx}
+                      className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden relative"
+                    >
+                      {it.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={it.image}
+                          alt={it.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-xs text-gray-400 flex items-center justify-center h-full">
+                          No Img
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 right-0 text-xs bg-black/70 text-white px-1 rounded-tl">
+                        ×{it.qty}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3 mt-4">
                   {canCancel && (
                     <button
                       onClick={() => cancelOrder(o.id)}
-                      className="px-3 py-1 border rounded"
+                      className="px-4 py-1.5 text-sm rounded-lg border border-red-400 text-red-600 hover:bg-red-50 transition"
                     >
                       Cancel Order
                     </button>
                   )}
                   {o.status === "approved" && (
                     <button
-                      className="px-3 py-1 border rounded opacity-50 cursor-not-allowed"
+                      className="px-4 py-1.5 text-sm rounded-lg border opacity-50 cursor-not-allowed"
                       disabled
                     >
-                      Cancel (disabled)
+                      Cancel ⓘ
                     </button>
                   )}
-                  {canRequestReturn && (
+                  {canRequestReturn ? (
                     <button
                       onClick={() => requestReturn(o.id)}
-                      className="px-3 py-1 border rounded"
+                      className="px-4 py-1.5 text-sm rounded-lg border border-purple-400 text-purple-600 hover:bg-purple-50 transition"
                     >
                       Request Return
                     </button>
+                  ) : (
+                    o.status === "completed" && (
+                      <button
+                        className="px-4 py-1.5 text-sm rounded-lg border opacity-50 cursor-not-allowed"
+                        disabled
+                      >
+                        Return Unavailable
+                      </button>
+                    )
                   )}
                 </div>
 
-                {(o.size || o.color || o.note) && (
-                  <div className="text-xs text-gray-700 mt-1">
-                    {o.size && <>Size: {o.size} • </>}
-                    {o.color && <>Color: {o.color} • </>}
-                    {o.note && <>Note: {o.note}</>}
-                  </div>
-                )}
-
-                <div className="text-sm font-semibold mt-1">
+                <div className="text-base font-bold text-gray-800 mt-4">
                   Total: Rs {o.total}
                 </div>
               </div>
