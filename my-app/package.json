@@ -10,15 +10,17 @@
     "scrape": "node scripts/scrape.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.2",
+    "@supabase/supabase-js": "^2.57.4",
     "cheerio": "^1.1.2",
     "framer-motion": "^12.23.12",
     "fuse.js": "^7.1.0",
+    "lucide-react": "^0.543.0",
     "next": "15.5.2",
     "node-fetch": "^3.3.2",
     "puppeteer": "^24.18.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

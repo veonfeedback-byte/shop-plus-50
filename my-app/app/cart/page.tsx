@@ -1,4 +1,3 @@
-// app/cart/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -98,7 +97,7 @@ export default function CartPage() {
         profileId = newProfile.id;
       }
 
-      // ✅ insert new order
+      // ✅ insert new order (uses profile_id)
       const { error: orderError } = await supabase.from("orders").insert([
         {
           profile_id: profileId,
