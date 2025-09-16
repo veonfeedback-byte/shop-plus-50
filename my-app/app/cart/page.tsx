@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/app/lib/supabase";
+import { supabase } from "@/app/lib/supabaseClient";
 
 type CartItem = {
   id: string;
@@ -13,6 +13,12 @@ type CartItem = {
   size?: string | null;
   color?: string | null;
   note?: string | null;
+  meta?: {
+    original_price: number;
+    coupon?: string | null;
+    discount_pct: number;
+    discount_amount_per_unit: number;
+  };
 };
 
 export default function CartPage() {
@@ -25,7 +31,7 @@ export default function CartPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // load cart
+    // Load cart from localStorage
     const stored = JSON.parse(localStorage.getItem("cart") || "[]");
     if (Array.isArray(stored)) {
       setItems(
@@ -36,7 +42,7 @@ export default function CartPage() {
       );
     }
 
-    // load saved profile
+    // Load saved profile
     const p = JSON.parse(localStorage.getItem("profile") || "{}");
     if (p.name) setName(p.name);
     if (p.phone) setPhone(p.phone);
@@ -73,7 +79,7 @@ export default function CartPage() {
 
     setSubmitting(true);
     try {
-      // ✅ check if profile already exists
+      // Check if profile already exists
       let { data: existing, error: fetchError } = await supabase
         .from("profiles")
         .select("id")
@@ -86,7 +92,7 @@ export default function CartPage() {
       if (existing) {
         profileId = existing.id;
       } else {
-        // ✅ insert new profile
+        // Insert new profile
         const { data: newProfile, error: insertError } = await supabase
           .from("profiles")
           .insert([{ name, phone, address, email }])
@@ -97,7 +103,7 @@ export default function CartPage() {
         profileId = newProfile.id;
       }
 
-      // ✅ insert new order (uses profile_id)
+      // Insert new order
       const { error: orderError } = await supabase.from("orders").insert([
         {
           profile_id: profileId,
@@ -109,7 +115,7 @@ export default function CartPage() {
 
       if (orderError) throw orderError;
 
-      // ✅ save profile locally for quick access
+      // Save profile locally and clear cart
       localStorage.setItem(
         "profile",
         JSON.stringify({ name, phone, address, email })
@@ -143,13 +149,25 @@ export default function CartPage() {
           <div className="flex-1">
             <div className="font-medium">{it.title}</div>
             {it.code && <div className="text-sm text-gray-500">{it.code}</div>}
-            {it.size && (
-              <div className="text-sm text-gray-700">Size: {it.size}</div>
-            )}
-            {it.color && (
-              <div className="text-sm text-gray-700">Color: {it.color}</div>
-            )}
+            {it.size && <div className="text-sm text-gray-700">Size: {it.size}</div>}
+            {it.color && <div className="text-sm text-gray-700">Color: {it.color}</div>}
             {it.note && <div className="text-sm italic">Note: {it.note}</div>}
+
+            {/* Coupon applied message */}
+            {it.meta?.coupon && (
+              <div className="flex flex-col items-start gap-1 mt-1">
+                <div className="text-sm text-green-700">
+                  Coupon applied: {it.meta.coupon} (-{it.meta.discount_pct}%)
+                </div>
+                <button
+                  onClick={() => removeItem(it.id)}
+                  className="px-3 py-1 rounded border mt-1"
+                >
+                  Remove Item
+                </button>
+              </div>
+            )}
+
             <div className="font-semibold mt-1">
               Rs {it.price} × {it.qty} = Rs {Number(it.price) * Number(it.qty)}
             </div>

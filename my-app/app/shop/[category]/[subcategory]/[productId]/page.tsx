@@ -5,6 +5,7 @@ import Catalog, { Product } from "@/app/lib/catalog";
 import { CartItem } from "@/app/lib/types";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { supabase } from "@/app/lib/supabaseClient";
 
 export default function ProductPage({
   params,
@@ -24,6 +25,17 @@ export default function ProductPage({
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [imgIndex, setImgIndex] = useState(0);
+
+  // coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discount_pct: number;
+    active: boolean;
+    id?: number | string;
+  } | null>(null);
 
   // Swipe refs
   const startX = useRef(0);
@@ -60,42 +72,168 @@ export default function ProductPage({
       setImgIndex((i) => (i + 1) % product.images!.length);
     } else if (endX.current - startX.current > 50) {
       // swipe right
-      setImgIndex((i) =>
-        i === 0 ? product.images!.length - 1 : i - 1
-      );
+      setImgIndex((i) => (i === 0 ? product.images!.length - 1 : i - 1));
     }
   };
 
-  // Add to cart
-  function addToCart(goCheckout = false) {
+  const blurData =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAuMB9o7bF7sAAAAASUVORK5CYII=";
+
+  /* ---------------- coupon logic (Supabase) ---------------- */
+  async function applyCoupon() {
+    setCouponLoading(true);
+    setCouponError(null);
+    const code = (couponCode || "").trim().toUpperCase();
+    if (!code) {
+      setCouponError("Enter a coupon code");
+      setCouponLoading(false);
+      return;
+    }
+
+    try {
+      // query the coupons table (public.coupons) for the code
+      const { data, error } = await supabase
+        .from("coupons")
+        .select("id, code, discount_pct, active")
+        .eq("code", code)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        setCouponError("Error validating coupon");
+        setAppliedCoupon(null);
+      } else if (!data) {
+        setCouponError("Invalid coupon code");
+        setAppliedCoupon(null);
+      } else if (!data.active) {
+        setCouponError("Coupon is not active");
+        setAppliedCoupon(null);
+      } else {
+        // make sure discount_pct is numeric
+        const pct = Number(data.discount_pct) || 0;
+        if (pct <= 0) {
+          setCouponError("Coupon has invalid discount");
+          setAppliedCoupon(null);
+        } else {
+          setAppliedCoupon({
+            id: (data as any).id,
+            code: (data as any).code,
+            discount_pct: pct,
+            active: true,
+          });
+          setCouponError(null);
+        }
+      }
+    } catch (err) {
+      console.error("coupon error", err);
+      setCouponError("Unable to validate coupon");
+      setAppliedCoupon(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError(null);
+  }
+
+  function computeFinalPricePerUnit(): number {
+    const base = Number(product.price) || 0;
+    if (appliedCoupon && appliedCoupon.discount_pct) {
+      return +(base * (1 - appliedCoupon.discount_pct / 100));
+    }
+    return base;
+  }
+
+  /* ---------------- Add to cart ---------------- */
+  async function addToCart(goCheckout = false) {
     const cart: CartItem[] = JSON.parse(localStorage.getItem("cart") || "[]");
     const i = cart.findIndex((x) => x.id === product.id);
 
+    const unitPrice = computeFinalPricePerUnit();
+    const discount_amount_per_unit = (Number(product.price) || 0) - unitPrice;
+
+    const item: CartItem = {
+      id: product.id,
+      code: product.code,
+      title: product.title,
+      image: product.images?.[0] ?? "",
+      price: unitPrice, // price per unit after discount (if any)
+      qty,
+      note,
+      size: selectedSize || null,
+      color: selectedColor || null,
+      // extra metadata to keep track of coupon on checkout
+      meta: {
+        original_price: Number(product.price) || 0,
+        coupon: appliedCoupon ? appliedCoupon.code : null,
+        discount_pct: appliedCoupon ? appliedCoupon.discount_pct : 0,
+        discount_amount_per_unit: discount_amount_per_unit,
+      },
+    };
+
     if (i >= 0) {
+      // update existing item
       cart[i].qty += qty;
       cart[i].note = note;
       cart[i].size = selectedSize || null;
       cart[i].color = selectedColor || null;
+      // update price and meta
+      cart[i].price = item.price;
+      cart[i].meta = item.meta;
     } else {
-      cart.push({
-        id: product.id,
-        code: product.code,
-        title: product.title,
-        image: product.images?.[0] ?? "",
-        price: Number(product.price),
-        qty,
-        note,
-        size: selectedSize || null,
-        color: selectedColor || null,
-      });
+      cart.push(item);
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
+
+    // If user is going to checkout now and a coupon was applied, notify backend/admin
+    if (goCheckout && appliedCoupon) {
+      // This is a simple notify endpoint you can implement server-side to alert you
+      // when customers checkout with a coupon. It is optional — remove if undesired.
+      try {
+        await fetch("/api/notify-discount", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId: product.id,
+            productTitle: product.title,
+            category,
+            subcategory,
+            qty,
+            coupon: appliedCoupon.code,
+            discount_pct: appliedCoupon.discount_pct,
+            total_discount_amount: (discount_amount_per_unit * qty),
+            time: new Date().toISOString(),
+          }),
+        });
+      } catch (err) {
+        // ignore notify errors client-side
+        console.warn("notify-discount failed", err);
+      }
+    }
+
     router.push(goCheckout ? "/cart?checkout=1" : "/cart");
   }
 
-  const blurData =
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAuMB9o7bF7sAAAAASUVORK5CYII=";
+  /* ---------------- UI ---------------- */
+  const displayedPrice = discountAppliedDisplay();
+
+  function discountAppliedDisplay() {
+    const base = Number(product.price) || 0;
+    if (appliedCoupon && appliedCoupon.discount_pct) {
+      const final = computeFinalPricePerUnit();
+      return {
+        base,
+        final,
+        saved: +(base - final),
+        pct: appliedCoupon.discount_pct,
+      };
+    }
+    return { base, final: base, saved: 0, pct: 0 };
+  }
 
   return (
     <div className="space-y-6 p-4">
@@ -134,9 +272,7 @@ export default function ProductPage({
               <button
                 key={i}
                 onClick={() => setImgIndex(i)}
-                className={`w-2 h-2 rounded-full ${
-                  imgIndex === i ? "bg-black" : "bg-gray-400"
-                }`}
+                className={`w-2 h-2 rounded-full ${imgIndex === i ? "bg-black" : "bg-gray-400"}`}
               />
             ))}
           </div>
@@ -145,31 +281,64 @@ export default function ProductPage({
 
       {/* Product details */}
       <h1 className="text-2xl font-semibold">{product.title}</h1>
-      <div className="font-bold text-lg">Rs {product.price}</div>
-      {product.code && (
-        <div className="text-sm text-gray-500">Code: {product.code}</div>
-      )}
-      {product.description && (
-        <div className="prose max-w-none text-sm text-gray-700">
-          {product.description}
-        </div>
-      )}
+
+      {/* Price display: show original and discounted if coupon applied */}
+      <div className="flex items-baseline gap-3">
+        {appliedCoupon ? (
+          <>
+            <div className="text-lg font-semibold text-gray-400 line-through">Rs {displayedPrice.base.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-black">Rs {displayedPrice.final.toFixed(2)}</div>
+            <div className="text-sm text-green-600 font-medium">Save Rs {displayedPrice.saved.toFixed(2)} ({displayedPrice.pct}%)</div>
+          </>
+        ) : (
+          <div className="font-bold text-lg">Rs {Number(product.price).toFixed(2)}</div>
+        )}
+      </div>
+
+      {product.code && <div className="text-sm text-gray-500">Code: {product.code}</div>}
+      {product.description && <div className="prose max-w-none text-sm text-gray-700">{product.description}</div>}
+
+      {/* Coupon field */}
+      <div className="flex gap-2 items-center mt-2">
+        <input
+          type="text"
+          value={couponCode}
+          onChange={(e) => setCouponCode(e.target.value)}
+          placeholder="Enter coupon code"
+          className="flex-1 border rounded px-3 py-2"
+          disabled={couponLoading}
+        />
+        {appliedCoupon ? (
+          <div className="flex flex-col items-start gap-1 mt-1">
+            <div className="text-sm font-medium text-green-700">
+              Applied: {appliedCoupon.code} ({appliedCoupon.discount_pct}%)
+            </div>
+            <button
+              onClick={removeCoupon}
+              className="px-3 py-1 rounded border mt-1"
+              style={{background:'red', color:'white', fontWeight:'600'}}
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={applyCoupon}
+            disabled={couponLoading}
+            className="px-4 py-2 rounded bg-black text-white"
+          >
+            {couponLoading ? "Checking..." : "Apply"}
+          </button>
+        )}
+
+      </div>
+      {couponError && <div className="text-sm text-red-600 mt-1">{couponError}</div>}
 
       {/* Quantity */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => setQty((q) => Math.max(1, q - 1))}
-          className="px-3 py-1 border rounded"
-        >
-          -
-        </button>
+        <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="px-3 py-1 border rounded">-</button>
         <span className="font-medium">{qty}</span>
-        <button
-          onClick={() => setQty((q) => q + 1)}
-          className="px-3 py-1 border rounded"
-        >
-          +
-        </button>
+        <button onClick={() => setQty((q) => q + 1)} className="px-3 py-1 border rounded">+</button>
       </div>
 
       {/* Sizes */}
@@ -181,11 +350,7 @@ export default function ProductPage({
               <button
                 key={s}
                 onClick={() => setSelectedSize(s)}
-                className={`px-3 py-1 rounded border ${
-                  selectedSize === s
-                    ? "bg-black text-white"
-                    : "bg-white text-gray-700"
-                }`}
+                className={`px-3 py-1 rounded border ${selectedSize === s ? "bg-black text-white" : "bg-white text-gray-700"}`}
               >
                 {s}
               </button>
@@ -203,11 +368,7 @@ export default function ProductPage({
               <button
                 key={c}
                 onClick={() => setSelectedColor(c)}
-                className={`px-3 py-1 rounded border ${
-                  selectedColor === c
-                    ? "bg-black text-white"
-                    : "bg-white text-gray-700"
-                }`}
+                className={`px-3 py-1 rounded border ${selectedColor === c ? "bg-black text-white" : "bg-white text-gray-700"}`}
               >
                 {c}
               </button>
@@ -217,28 +378,12 @@ export default function ProductPage({
       )}
 
       {/* Note */}
-      <textarea
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Add extra details (optional)"
-        className="w-full border rounded p-2"
-        rows={3}
-      />
+      <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add extra details (optional)" className="w-full border rounded p-2" rows={3} />
 
       {/* Actions */}
       <div className="flex gap-2">
-        <button
-          className="flex-1 px-4 py-2 rounded border bg-gray-100"
-          onClick={() => addToCart(false)}
-        >
-          Add to cart
-        </button>
-        <button
-          className="flex-1 px-4 py-2 rounded border bg-black text-white"
-          onClick={() => addToCart(true)}
-        >
-          Buy now
-        </button>
+        <button className="flex-1 px-4 py-2 rounded border bg-gray-100" onClick={() => addToCart(false)}>Add to cart</button>
+        <button className="flex-1 px-4 py-2 rounded border bg-black text-white" onClick={() => addToCart(true)}>Buy now</button>
       </div>
 
       {/* 🔹 Related products (3 horizontal scroll rows, 10 each) */}
@@ -254,9 +399,7 @@ export default function ProductPage({
                 .map((p) => (
                   <div
                     key={p.id}
-                    onClick={() =>
-                      router.push(`/shop/${category}/${subcategory}/${p.id}`)
-                    }
+                    onClick={() => router.push(`/shop/${category}/${subcategory}/${p.id}`)}
                     className="w-40 flex-shrink-0 border rounded-lg shadow bg-white cursor-pointer hover:shadow-lg transition"
                   >
                     {p.img && (
@@ -274,12 +417,8 @@ export default function ProductPage({
                       </div>
                     )}
                     <div className="p-2">
-                      <h3 className="text-xs font-medium line-clamp-2">
-                        {p.title}
-                      </h3>
-                      <div className="text-sm font-bold text-red-600">
-                        Rs {p.price}
-                      </div>
+                      <h3 className="text-xs font-medium line-clamp-2">{p.title}</h3>
+                      <div className="text-sm font-bold text-red-600">Rs {p.price}</div>
                     </div>
                   </div>
                 ))}
