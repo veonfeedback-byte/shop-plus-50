@@ -12,6 +12,13 @@ export type CartItem = {
   note?: string;
   size?: string | null;
   color?: string | null;
+
+  meta?: {
+    original_price: number;
+    coupon?: string | null;
+    discount_pct: number;
+    discount_amount_per_unit: number;
+  };
 };
 
 export type OrderStatus = "pending" | "approved" | "rejected" | "delivered";

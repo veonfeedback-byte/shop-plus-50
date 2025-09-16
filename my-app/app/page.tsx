@@ -1,94 +1,125 @@
-// app/page.tsx
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  useDeferredValue,
-  useCallback,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import Fuse from "fuse.js";
 import Catalog, { Product, Category, Subcategory } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
+import { categoryIcons } from "./lib/categoryIcons";
 
+/* ----------------- types ----------------- */
 type Suggestion = {
-  type: "category" | "subcategory";
+  type: "category" | "subcategory" | "product";
   name: string;
   slug: string;
   parent?: string;
-  reactKey?: string; // only for React rendering
+  id?: string;
+  reactKey?: string;
 };
 
-export default function Home() {
+type IndexedProduct = Product & {
+  categorySlug: string;
+  categoryName: string;
+  subcategorySlug: string;
+  subcategoryName: string;
+  mainImage?: string | null;
+};
+
+/* ----------------- component ----------------- */
+export default function HomePage() {
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
-  const [homeProducts, setHomeProducts] = useState<Product[]>([]);
-  const [visibleProducts, setVisibleProducts] = useState<Product[]>([]);
+
+  const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>([]);
+  const [visibleProducts, setVisibleProducts] = useState<IndexedProduct[]>([]);
   const [loadingHome, setLoadingHome] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(false); // new loading flag
+
+  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const [activeSubcategory, setActiveSubcategory] = useState<Subcategory | null>(null);
   const [activeFilter, setActiveFilter] = useState<Suggestion | null>(null);
+  const [sortBy, setSortBy] = useState<"asc" | "desc" | null>(null);
 
-  // ✅ Reset home from BottomNav
-  const resetHome = useCallback(() => {
-    setQuery("");
-    setActiveFilter(null);
-    setShowSuggestions(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  const suggestionsRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const catRowRef = useRef<HTMLDivElement | null>(null);
 
-  // ✅ Precompute all categories + subcategories as search targets
-  const searchTargets: Suggestion[] = useMemo(() => {
-    const cats = Catalog.getCategories();
-    const targets: Suggestion[] = [];
-    cats.forEach((cat: Category) => {
-      targets.push({ type: "category", name: cat.name, slug: cat.slug });
-      cat.subcategories.forEach((sub: Subcategory) => {
-        targets.push({
-          type: "subcategory",
-          name: sub.name,
-          slug: sub.slug,
-          parent: cat.slug,
+  const isDown = useRef(false);
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
+
+  /* ---------- Build product index ---------- */
+  const allProducts = useMemo<IndexedProduct[]>(() => {
+    const out: IndexedProduct[] = [];
+    Catalog.getCategories().forEach((cat) => {
+      cat.subcategories.forEach((sub) => {
+        (sub.products || []).forEach((p: Product) => {
+          const mainImage =
+            p.img ?? (Array.isArray((p as any).images) ? (p as any).images[0] : null);
+          if (!mainImage) return;
+          const priceNum = p.price == null ? 0 : Number(p.price);
+          if (!priceNum || Number.isNaN(priceNum) || priceNum <= 0) return;
+
+          out.push({
+            ...(p as IndexedProduct),
+            categorySlug: cat.slug,
+            categoryName: cat.name,
+            subcategorySlug: sub.slug,
+            subcategoryName: sub.name,
+            mainImage,
+          });
         });
       });
     });
-    return targets;
+    return out;
   }, []);
 
-  // 🎯 Fuzzy search instance (runs once)
+  /* ---------- Fuse instance ---------- */
   const fuse = useMemo(() => {
-    return new Fuse(searchTargets, {
-      keys: ["name"],
-      threshold: 0.4,
+    return new Fuse(allProducts, {
+      keys: ["title"],
+      threshold: 0.35,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
     });
-  }, [searchTargets]);
+  }, [allProducts]);
 
-  // 🎲 Home products = many random picks
+  /* ---------- Debounced query ---------- */
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedQuery(query.trim().toLowerCase());
+    }, 120);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  /* ---------- Trending / hot picks ---------- */
   useEffect(() => {
     setLoadingHome(true);
-
-    const picks: Product[] = [];
-    Catalog.getCategories().forEach((cat) => {
+    const picks: IndexedProduct[] = [];
+    const cats = Catalog.getCategories();
+    cats.forEach((cat) => {
       cat.subcategories.forEach((sub) => {
-        if (!sub.products?.length) return;
-        const shuffled = [...sub.products].sort(() => 0.5 - Math.random());
-        picks.push(...shuffled.slice(0, 6)); // more variety
+        const valid = allProducts.filter(
+          (p) => p.categorySlug === cat.slug && p.subcategorySlug === sub.slug
+        );
+        if (!valid.length) return;
+        const shuffled = [...valid].sort(() => 0.5 - Math.random());
+        picks.push(...shuffled.slice(0, 6));
       });
     });
-
-    setHomeProducts(picks);
-    setVisibleProducts(picks.slice(0, 30)); // show 30 instantly
-    const t = setTimeout(() => setLoadingHome(false), 300);
+    const trending = picks.length ? picks : allProducts.slice();
+    setHomeProducts(trending);
+    setVisibleProducts(trending.slice(0, 30));
+    const t = setTimeout(() => setLoadingHome(false), 200);
     return () => clearTimeout(t);
-  }, []);
+  }, [allProducts]);
 
-  // ♻️ Infinite scroll: load 20 more when scrolled near bottom
+  /* ---------- Infinite scroll ---------- */
   useEffect(() => {
     function onScroll() {
-      if (
-        window.innerHeight + window.scrollY >=
-        document.body.offsetHeight - 200
-      ) {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
         setVisibleProducts((prev) => {
           const nextCount = prev.length + 20;
           return homeProducts.slice(0, nextCount);
@@ -99,159 +130,367 @@ export default function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [homeProducts]);
 
-  // 🕒 Defer query for smooth typing
-  const deferredQuery = useDeferredValue(query.trim().toLowerCase());
-
-  // ✅ Suggestions via fuzzy search
+  /* ---------- Suggestions ---------- */
   const suggestions = useMemo(() => {
-    if (!deferredQuery) return [];
-    return fuse.search(deferredQuery).map((r, idx) => ({
-      ...r.item,
-      reactKey: `${r.item.type}-${r.item.parent ?? "root"}-${r.item.slug}-${idx}`,
-    }));
-  }, [deferredQuery, fuse]);
+    if (!debouncedQuery) return [];
+    const cats = Catalog.getCategories();
+    const out: Suggestion[] = [];
 
-  // ✅ Search results = products under selected category/subcategory
-  const searchResults: Product[] | null = useMemo(() => {
-    if (!activeFilter) return null;
-    if (activeFilter.type === "category") {
-      return Catalog.getProducts(activeFilter.slug);
-    } else {
-      return Catalog.getProducts(activeFilter.parent, activeFilter.slug);
+    cats.forEach((cat) => {
+      if (cat.name.toLowerCase().includes(debouncedQuery)) {
+        out.push({ type: "category", name: cat.name, slug: cat.slug });
+      }
+      cat.subcategories.forEach((sub) => {
+        if (sub.name.toLowerCase().includes(debouncedQuery)) {
+          out.push({
+            type: "subcategory",
+            name: sub.name,
+            slug: sub.slug,
+            parent: cat.slug,
+          });
+        }
+      });
+    });
+
+    if (debouncedQuery.length >= 2) {
+      fuse.search(debouncedQuery, { limit: 20 }).forEach((r) => {
+        const p = r.item;
+        out.push({
+          type: "product",
+          name: p.title,
+          slug: p.id,
+          parent: p.categorySlug,
+          id: p.id,
+        });
+      });
     }
-  }, [activeFilter]);
 
-  // 🔗 Helper: build product URL
-  function productUrl(p: Product & { category?: string; subcategory?: string }) {
-    const cat = (p as any).category ?? activeFilter?.parent ?? "";
-    const sub =
-      (p as any).subcategory ??
-      (activeFilter?.type === "subcategory" ? activeFilter.slug : "");
-    return `/shop/${encodeURIComponent(cat)}/${encodeURIComponent(
-      sub
+    const seen = new Set<string>();
+    return out.filter((s) => {
+      const key = `${s.type}:${s.parent ?? "root"}:${s.slug}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [debouncedQuery, fuse]);
+
+  /* ---------- Search results ---------- */
+  const searchResults = useMemo<IndexedProduct[] | null>(() => {
+    function dedupe(arr: IndexedProduct[]) {
+      const seen = new Set<string>();
+      return arr.filter((p) => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
+    }
+    function applySort(arr: IndexedProduct[]) {
+      if (sortBy === "asc") return [...arr].sort((a, b) => Number(a.price) - Number(b.price));
+      if (sortBy === "desc") return [...arr].sort((a, b) => Number(b.price) - Number(a.price));
+      return arr;
+    }
+
+    if (activeFilter) {
+      if (activeFilter.type === "category") {
+        return applySort(
+          dedupe(allProducts.filter((p) => p.categorySlug === activeFilter.slug))
+        );
+      }
+      if (activeFilter.type === "subcategory") {
+        return applySort(
+          dedupe(
+            allProducts.filter(
+              (p) =>
+                p.categorySlug === activeFilter.parent &&
+                p.subcategorySlug === activeFilter.slug
+            )
+          )
+        );
+      }
+      if (activeFilter.type === "product") {
+        const exact = allProducts.find((p) => p.id === activeFilter.id);
+        const related = allProducts
+          .filter((p) => p.categorySlug === activeFilter.parent)
+          .filter((p) =>
+            p.title.toLowerCase().includes(activeFilter.name.toLowerCase())
+          )
+          .slice(0, 40);
+        const combined = [];
+        if (exact) combined.push(exact);
+        combined.push(...related);
+        return applySort(dedupe(combined));
+      }
+    }
+
+    if (activeSubcategory && activeCategory) {
+      return applySort(
+        dedupe(
+          allProducts.filter(
+            (p) =>
+              p.categorySlug === activeCategory.slug &&
+              p.subcategorySlug === activeSubcategory.slug
+          )
+        )
+      );
+    }
+
+    if (activeCategory) {
+      return applySort(
+        dedupe(allProducts.filter((p) => p.categorySlug === activeCategory.slug))
+      );
+    }
+
+    if (debouncedQuery) {
+      const matches =
+        debouncedQuery.length >= 2
+          ? fuse.search(debouncedQuery, { limit: 60 }).map((r) => r.item)
+          : [];
+      return applySort(dedupe(matches));
+    }
+
+    return null;
+  }, [activeFilter, activeCategory, activeSubcategory, debouncedQuery, fuse, allProducts, sortBy]);
+
+  /* ---------- reset home ---------- */
+  const resetHome = useCallback(() => {
+    setQuery("");
+    setActiveFilter(null);
+    setActiveCategory(null);
+    setActiveSubcategory(null);
+    setSortBy(null);
+    setShowSuggestions(false);
+    setVisibleProducts(homeProducts.slice(0, 30));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [homeProducts]);
+
+  /* ---------- UX close suggestions ---------- */
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const el = suggestionsRef.current;
+      const inp = inputRef.current;
+      if (!el || !inp) return;
+      if (el.contains(e.target as Node) || inp.contains(e.target as Node)) return;
+      setShowSuggestions(false);
+    }
+    function onScroll() {
+      setShowSuggestions(false);
+    }
+    document.addEventListener("click", onDocClick);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      document.removeEventListener("click", onDocClick);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  /* ---------- drag handlers ---------- */
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!catRowRef.current) return;
+    isDown.current = true;
+    startX.current = e.pageX - catRowRef.current.offsetLeft;
+    scrollLeft.current = catRowRef.current.scrollLeft;
+  };
+  const handleMouseLeave = () => { isDown.current = false; };
+  const handleMouseUp = () => { isDown.current = false; };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDown.current || !catRowRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - catRowRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1.5;
+    catRowRef.current.scrollLeft = scrollLeft.current - walk;
+  };
+
+  /* ---------- suggestion select ---------- */
+  function onSelectSuggestion(s: Suggestion) {
+    setQuery(s.name);
+    setActiveFilter(s);
+    setActiveCategory(null);
+    setActiveSubcategory(null);
+    setShowSuggestions(false);
+    window.scrollTo({ top: 300, behavior: "smooth" });
+  }
+
+  /* ---------- product url ---------- */
+  function productUrl(p: IndexedProduct) {
+    return `/shop/${encodeURIComponent(p.categorySlug)}/${encodeURIComponent(
+      p.subcategorySlug
     )}/${encodeURIComponent(p.id)}`;
   }
 
+  /* ---------- helper for trending sort ---------- */
+  function applyTrendingSort(arr: IndexedProduct[]) {
+    if (sortBy === "asc") return [...arr].sort((a, b) => Number(a.price) - Number(b.price));
+    if (sortBy === "desc") return [...arr].sort((a, b) => Number(b.price) - Number(a.price));
+    return arr;
+  }
+
+  /* ---------- category click ---------- */
+  const handleCategoryClick = (cat: Category) => {
+    setLoadingProducts(true);
+    setActiveCategory(cat);
+    setActiveSubcategory(null);
+    setActiveFilter(null);
+    setTimeout(() => setLoadingProducts(false), 250); // small loading animation
+    window.scrollTo({ top: 220, behavior: "smooth" });
+  };
+
+  const handleSubcategoryClick = (sub: Subcategory) => {
+    setLoadingProducts(true);
+    setActiveSubcategory(sub);
+    setActiveFilter(null);
+    setTimeout(() => setLoadingProducts(false), 250); // small loading animation
+    window.scrollTo({ top: 340, behavior: "smooth" });
+  };
+
+  /* ---------- render ---------- */
   return (
     <HomeContext.Provider value={{ resetHome }}>
-      <div className="space-y-6 p-4 pb-20">
-        {/* 🔍 Search Bar */}
+      <div className="space-y-6 p-4 pb-28">
+        {/* Search */}
         <div className="relative">
           <input
+            ref={inputRef}
             type="text"
-            placeholder="Search Products…"
+            placeholder="Search products, categories, subcategories..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               setShowSuggestions(true);
-              if (e.target.value.trim() === "") {
-                setActiveFilter(null);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && suggestions[0]) {
-                setActiveFilter(suggestions[0]);
-                setShowSuggestions(false);
-              }
+              if (e.target.value.trim() === "") setActiveFilter(null);
             }}
             className="w-full rounded-xl border p-3 shadow focus:outline-none"
           />
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full bg-white shadow rounded-lg max-h-60 overflow-y-auto">
+            <div
+              ref={suggestionsRef}
+              className="absolute z-20 mt-1 w-full bg-white shadow-lg rounded-lg max-h-64 overflow-y-auto"
+            >
               {suggestions.map((s) => (
                 <button
-                  key={s.reactKey}
+                  key={s.reactKey ?? s.slug}
                   type="button"
-                  className="w-full text-left p-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    setQuery(s.name);
-                    setActiveFilter(s);
-                    setShowSuggestions(false);
-                  }}
+                  className="w-full text-left p-3 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => onSelectSuggestion(s)}
                 >
-                  {s.name}{" "}
-                  {s.type === "subcategory" && (
-                    <span className="text-xs text-gray-500">(subcategory)</span>
-                  )}
+                  <div className="text-sm font-medium grow">{s.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {s.type === "category" ? "Category" : s.type === "subcategory" ? "Subcategory" : "Product"}
+                  </div>
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Search Results or Trending */}
-        {searchResults ? (
-          <section>
-            <h2 className="text-xl font-semibold mb-2">
-              {activeFilter?.name} – Products
-            </h2>
-            {searchResults.length === 0 ? (
-              <p className="text-gray-500">No products found.</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {searchResults.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={productUrl(p as any)}
-                    className="rounded-xl shadow p-2 bg-white block"
-                  >
-                    {p.img && (
-                      <div className="relative w-full aspect-square mb-2">
-                        <img
-                          src={p.img}
-                          alt={p.title}
-                          className="w-full h-full object-cover rounded-lg"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
-                    <div className="text-sm line-clamp-2">{p.title}</div>
-                    <div className="font-semibold mt-1">
-                      {p.price ? `Rs ${p.price}` : "Price N/A"}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
+        {/* Categories row */}
+        <div
+          ref={catRowRef}
+          className="overflow-x-auto hide-scrollbar py-2"
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+        >
+          <div className="flex gap-4 min-w-max items-center">
+            {Catalog.getCategories().map((cat) => {
+              const iconData = categoryIcons[cat.name];
+              const Icon = iconData?.icon;
+              const gradient = iconData?.gradient ?? "from-gray-400 to-gray-600";
+              return (
+                <motion.button
+                  key={cat.slug}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleCategoryClick(cat)}
+                  className={`flex flex-col items-center justify-center w-20 h-20 rounded-full text-white shadow-lg flex-shrink-0
+                    bg-gradient-to-br ${gradient}
+                    ${activeCategory?.slug === cat.slug ? "ring-4 ring-offset-2 ring-indigo-500" : ""}`}
+                  title={cat.name}
+                >
+                  {Icon ? <Icon className="w-8 h-8" /> : <div className="text-lg">{cat.name[0]}</div>}
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Subcategories */}
+        {activeCategory && (
+          <div className="flex flex-wrap gap-2 justify-center">
+            {activeCategory.subcategories.map((sub) => {
+              const iconData = categoryIcons[sub.name] ?? categoryIcons[activeCategory.name];
+              const Icon = iconData?.icon;
+              const gradient = iconData?.gradient ?? "from-gray-300 to-gray-400";
+              return (
+                <motion.button
+                  key={sub.slug}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleSubcategoryClick(sub)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium text-white shadow
+                    bg-gradient-to-r ${gradient}
+                    ${activeSubcategory?.slug === sub.slug ? "ring-2 ring-offset-2 ring-indigo-500" : ""}`}
+                >
+                  <div className="flex items-center gap-2">
+                    {Icon && <Icon className="w-4 h-4" />}
+                    <span className="whitespace-nowrap">{sub.name}</span>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Controls */}
+        <div className="flex justify-between items-center">
+          <button onClick={resetHome} className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300">Clear</button>
+          <div className="flex gap-2">
+            <button onClick={() => setSortBy("asc")} className={`px-3 py-1 rounded ${sortBy === "asc" ? "bg-blue-600 text-white" : "bg-gray-200"}`}>Price ↑</button>
+            <button onClick={() => setSortBy("desc")} className={`px-3 py-1 rounded ${sortBy === "desc" ? "bg-blue-600 text-white" : "bg-gray-200"}`}>Price ↓</button>
+          </div>
+        </div>
+
+        {/* Results / Trending */}
+        {loadingProducts ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-xl shadow p-3 bg-gray-200 h-44 animate-pulse" />
+            ))}
+          </div>
+        ) : searchResults && searchResults.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            {searchResults.map((p) => (
+              <Link
+                key={p.id}
+                href={productUrl(p)}
+                className="rounded-xl shadow p-3 bg-white block hover:scale-[1.02] transition"
+              >
+                <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg bg-gray-100">
+                  <img src={p.mainImage ?? ""} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
+                </div>
+                <div className="text-sm line-clamp-2">{p.title}</div>
+                <div className="font-semibold mt-1">Rs {p.price}</div>
+              </Link>
+            ))}
+          </div>
+        ) : loadingHome ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-xl shadow p-3 bg-gray-200 h-44 animate-pulse" />
+            ))}
+          </div>
         ) : (
           <section>
-            <h1 className="text-2xl font-semibold">Trending / Hot</h1>
-            {loadingHome ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="rounded-xl shadow p-2 bg-gray-200 h-40 animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                {visibleProducts.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={productUrl(p as any)}
-                    className="rounded-xl shadow p-2 bg-white block"
-                  >
-                    {p.img && (
-                      <div className="relative w-full aspect-square mb-2">
-                        <img
-                          src={p.img}
-                          alt={p.title}
-                          className="w-full h-full object-cover rounded-lg"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
-                    <div className="text-sm line-clamp-2">{p.title}</div>
-                    <div className="font-semibold mt-1">
-                      {p.price ? `Rs ${p.price}` : "Price N/A"}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+            <h1 className="text-2xl font-semibold">🔥 Trending / Hot</h1>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+              {applyTrendingSort(visibleProducts).map((p) => (
+                <Link key={p.id} href={productUrl(p)} className="rounded-xl shadow p-3 bg-white block hover:scale-[1.02] transition">
+                  <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg bg-gray-100">
+                    <img src={p.mainImage ?? ""} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                  <div className="text-sm line-clamp-2">{p.title}</div>
+                  <div className="font-semibold mt-1">Rs {p.price}</div>
+                </Link>
+              ))}
+            </div>
           </section>
         )}
       </div>
