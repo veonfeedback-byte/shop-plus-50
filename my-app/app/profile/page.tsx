@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { toast } from "sonner";
-import Image from "next/image";
 import {
   User,
   Mail,
@@ -351,7 +350,7 @@ export default function Profile() {
                       </div>
                       <div className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0">
                         {item.image ? (
-                          <Image
+                          <img
                             src={item.image}
                             alt={item.title}
                             className="w-full h-full object-cover"
