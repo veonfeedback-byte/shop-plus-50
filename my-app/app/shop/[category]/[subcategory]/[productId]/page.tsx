@@ -5,7 +5,7 @@ import Catalog, { Product } from "@/app/lib/catalog";
 import { CartItem } from "@/app/lib/types";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { supabase } from "@/app/lib/supabaseClient";
+import { supabase } from "@/app/lib/supabase";
 
 export default function ProductPage({
   params,
@@ -19,14 +19,12 @@ export default function ProductPage({
   if (!found) return <div className="p-4">Not found</div>;
   const product: Product = found;
 
-  // State
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [imgIndex, setImgIndex] = useState(0);
 
-  // coupon state
   const [couponCode, setCouponCode] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -37,11 +35,9 @@ export default function ProductPage({
     id?: number | string;
   } | null>(null);
 
-  // Swipe refs
   const startX = useRef(0);
   const endX = useRef(0);
 
-  // Sizes / colors from description
   const sizes =
     product.description?.match(/sizes?:\s*([a-z0-9, ]+)/i)?.[1]
       ?.split(",")
@@ -51,7 +47,6 @@ export default function ProductPage({
       ?.split(",")
       .map((c) => c.trim()) || [];
 
-  // Auto-slide carousel
   useEffect(() => {
     if (!product.images?.length) return;
     const timer = setInterval(() => {
@@ -60,7 +55,6 @@ export default function ProductPage({
     return () => clearInterval(timer);
   }, [product.images]);
 
-  // Swipe handling
   const handleTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;
   };
@@ -68,10 +62,8 @@ export default function ProductPage({
   const handleTouchEnd = (e: React.TouchEvent) => {
     endX.current = e.changedTouches[0].clientX;
     if (startX.current - endX.current > 50) {
-      // swipe left
       setImgIndex((i) => (i + 1) % product.images!.length);
     } else if (endX.current - startX.current > 50) {
-      // swipe right
       setImgIndex((i) => (i === 0 ? product.images!.length - 1 : i - 1));
     }
   };
@@ -79,7 +71,6 @@ export default function ProductPage({
   const blurData =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAuMB9o7bF7sAAAAASUVORK5CYII=";
 
-  /* ---------------- coupon logic (Supabase) ---------------- */
   async function applyCoupon() {
     setCouponLoading(true);
     setCouponError(null);
@@ -91,7 +82,6 @@ export default function ProductPage({
     }
 
     try {
-      // query the coupons table (public.coupons) for the code
       const { data, error } = await supabase
         .from("coupons")
         .select("id, code, discount_pct, active")
@@ -109,7 +99,6 @@ export default function ProductPage({
         setCouponError("Coupon is not active");
         setAppliedCoupon(null);
       } else {
-        // make sure discount_pct is numeric
         const pct = Number(data.discount_pct) || 0;
         if (pct <= 0) {
           setCouponError("Coupon has invalid discount");
@@ -147,7 +136,6 @@ export default function ProductPage({
     return base;
   }
 
-  /* ---------------- Add to cart ---------------- */
   async function addToCart(goCheckout = false) {
     const cart: CartItem[] = JSON.parse(localStorage.getItem("cart") || "[]");
     const i = cart.findIndex((x) => x.id === product.id);
@@ -160,27 +148,24 @@ export default function ProductPage({
       code: product.code,
       title: product.title,
       image: product.images?.[0] ?? "",
-      price: unitPrice, // price per unit after discount (if any)
+      price: unitPrice,
       qty,
       note,
       size: selectedSize || null,
       color: selectedColor || null,
-      // extra metadata to keep track of coupon on checkout
       meta: {
         original_price: Number(product.price) || 0,
         coupon: appliedCoupon ? appliedCoupon.code : null,
         discount_pct: appliedCoupon ? appliedCoupon.discount_pct : 0,
-        discount_amount_per_unit: discount_amount_per_unit,
+        discount_amount_per_unit,
       },
     };
 
     if (i >= 0) {
-      // update existing item
       cart[i].qty += qty;
       cart[i].note = note;
       cart[i].size = selectedSize || null;
       cart[i].color = selectedColor || null;
-      // update price and meta
       cart[i].price = item.price;
       cart[i].meta = item.meta;
     } else {
@@ -189,10 +174,10 @@ export default function ProductPage({
 
     localStorage.setItem("cart", JSON.stringify(cart));
 
-    // If user is going to checkout now and a coupon was applied, notify backend/admin
+    // 🔹 Update layout cart count
+    window.dispatchEvent(new Event("cartUpdated"));
+
     if (goCheckout && appliedCoupon) {
-      // This is a simple notify endpoint you can implement server-side to alert you
-      // when customers checkout with a coupon. It is optional — remove if undesired.
       try {
         await fetch("/api/notify-discount", {
           method: "POST",
@@ -205,12 +190,11 @@ export default function ProductPage({
             qty,
             coupon: appliedCoupon.code,
             discount_pct: appliedCoupon.discount_pct,
-            total_discount_amount: (discount_amount_per_unit * qty),
+            total_discount_amount: discount_amount_per_unit * qty,
             time: new Date().toISOString(),
           }),
         });
       } catch (err) {
-        // ignore notify errors client-side
         console.warn("notify-discount failed", err);
       }
     }
@@ -218,7 +202,6 @@ export default function ProductPage({
     router.push(goCheckout ? "/cart?checkout=1" : "/cart");
   }
 
-  /* ---------------- UI ---------------- */
   const displayedPrice = discountAppliedDisplay();
 
   function discountAppliedDisplay() {
@@ -237,8 +220,7 @@ export default function ProductPage({
 
   return (
     <div className="space-y-6 p-4">
-      {/* 🔹 Image carousel with swipe */}
-      {product.images?.length ? (
+      {product.images?.length && (
         <div
           className="relative w-full aspect-square overflow-hidden rounded-lg bg-gray-100"
           onTouchStart={handleTouchStart}
@@ -265,40 +247,44 @@ export default function ProductPage({
               </div>
             ))}
           </motion.div>
-
-          {/* dots */}
           <div className="absolute bottom-2 w-full flex justify-center gap-2">
             {product.images.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setImgIndex(i)}
-                className={`w-2 h-2 rounded-full ${imgIndex === i ? "bg-black" : "bg-gray-400"}`}
+                className={`w-2 h-2 rounded-full ${
+                  imgIndex === i ? "bg-black" : "bg-gray-400"
+                }`}
               />
             ))}
           </div>
         </div>
-      ) : null}
+      )}
 
-      {/* Product details */}
       <h1 className="text-2xl font-semibold">{product.title}</h1>
 
-      {/* Price display: show original and discounted if coupon applied */}
       <div className="flex items-baseline gap-3">
         {appliedCoupon ? (
           <>
-            <div className="text-lg font-semibold text-gray-400 line-through">Rs {displayedPrice.base.toFixed(2)}</div>
-            <div className="text-2xl font-bold text-black">Rs {displayedPrice.final.toFixed(2)}</div>
-            <div className="text-sm text-green-600 font-medium">Save Rs {displayedPrice.saved.toFixed(2)} ({displayedPrice.pct}%)</div>
+            <div className="text-lg font-semibold text-gray-400 line-through">
+              Rs {displayedPrice.base.toFixed(2)}
+            </div>
+            <div className="text-2xl font-bold text-black">
+              Rs {displayedPrice.final.toFixed(2)}
+            </div>
+            <div className="text-sm text-green-600 font-medium">
+              Save Rs {displayedPrice.saved.toFixed(2)} ({displayedPrice.pct}%)
+            </div>
           </>
         ) : (
           <div className="font-bold text-lg">Rs {Number(product.price).toFixed(2)}</div>
         )}
       </div>
 
-      {product.code && <div className="text-sm text-gray-500">Code: {product.code}</div>}
-      {product.description && <div className="prose max-w-none text-sm text-gray-700">{product.description}</div>}
+      {product.description && (
+        <div className="prose max-w-none text-sm text-gray-700">{product.description}</div>
+      )}
 
-      {/* Coupon field */}
       <div className="flex gap-2 items-center mt-2">
         <input
           type="text"
@@ -316,7 +302,7 @@ export default function ProductPage({
             <button
               onClick={removeCoupon}
               className="px-3 py-1 rounded border mt-1"
-              style={{background:'red', color:'white', fontWeight:'600'}}
+              style={{ background: "red", color: "white", fontWeight: 600 }}
             >
               Remove
             </button>
@@ -330,18 +316,25 @@ export default function ProductPage({
             {couponLoading ? "Checking..." : "Apply"}
           </button>
         )}
-
       </div>
       {couponError && <div className="text-sm text-red-600 mt-1">{couponError}</div>}
 
-      {/* Quantity */}
       <div className="flex items-center gap-3">
-        <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="px-3 py-1 border rounded">-</button>
+        <button
+          onClick={() => setQty((q) => Math.max(1, q - 1))}
+          className="px-3 py-1 border rounded"
+        >
+          -
+        </button>
         <span className="font-medium">{qty}</span>
-        <button onClick={() => setQty((q) => q + 1)} className="px-3 py-1 border rounded">+</button>
+        <button
+          onClick={() => setQty((q) => q + 1)}
+          className="px-3 py-1 border rounded"
+        >
+          +
+        </button>
       </div>
 
-      {/* Sizes */}
       {sizes.length > 0 && (
         <div>
           <h3 className="font-medium mb-2">Sizes</h3>
@@ -350,7 +343,9 @@ export default function ProductPage({
               <button
                 key={s}
                 onClick={() => setSelectedSize(s)}
-                className={`px-3 py-1 rounded border ${selectedSize === s ? "bg-black text-white" : "bg-white text-gray-700"}`}
+                className={`px-3 py-1 rounded border ${
+                  selectedSize === s ? "bg-black text-white" : "bg-white text-gray-700"
+                }`}
               >
                 {s}
               </button>
@@ -359,7 +354,6 @@ export default function ProductPage({
         </div>
       )}
 
-      {/* Colors */}
       {colors.length > 0 && (
         <div>
           <h3 className="font-medium mb-2">Colors</h3>
@@ -368,7 +362,9 @@ export default function ProductPage({
               <button
                 key={c}
                 onClick={() => setSelectedColor(c)}
-                className={`px-3 py-1 rounded border ${selectedColor === c ? "bg-black text-white" : "bg-white text-gray-700"}`}
+                className={`px-3 py-1 rounded border ${
+                  selectedColor === c ? "bg-black text-white" : "bg-white text-gray-700"
+                }`}
               >
                 {c}
               </button>
@@ -377,19 +373,31 @@ export default function ProductPage({
         </div>
       )}
 
-      {/* Note */}
-      <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add extra details (optional)" className="w-full border rounded p-2" rows={3} />
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Add extra details (optional)"
+        className="w-full border rounded p-2"
+        rows={3}
+      />
 
-      {/* Actions */}
       <div className="flex gap-2">
-        <button className="flex-1 px-4 py-2 rounded border bg-gray-100" onClick={() => addToCart(false)}>Add to cart</button>
-        <button className="flex-1 px-4 py-2 rounded border bg-black text-white" onClick={() => addToCart(true)}>Buy now</button>
+        <button
+          className="flex-1 px-4 py-2 rounded border bg-gray-100"
+          onClick={() => addToCart(false)}
+        >
+          Add to cart
+        </button>
+        <button
+          className="flex-1 px-4 py-2 rounded border bg-black text-white"
+          onClick={() => addToCart(true)}
+        >
+          Buy now
+        </button>
       </div>
 
-      {/* 🔹 Related products (3 horizontal scroll rows, 10 each) */}
       <div className="mt-8">
         <h2 className="text-lg font-bold mb-4">Related Products</h2>
-
         {[0, 1, 2].map((row) => (
           <div key={row} className="mb-6 overflow-x-auto scrollbar-hide">
             <div className="flex gap-4 w-max">
@@ -399,7 +407,9 @@ export default function ProductPage({
                 .map((p) => (
                   <div
                     key={p.id}
-                    onClick={() => router.push(`/shop/${category}/${subcategory}/${p.id}`)}
+                    onClick={() =>
+                      router.push(`/shop/${category}/${subcategory}/${p.id}`)
+                    }
                     className="w-40 flex-shrink-0 border rounded-lg shadow bg-white cursor-pointer hover:shadow-lg transition"
                   >
                     {p.img && (
