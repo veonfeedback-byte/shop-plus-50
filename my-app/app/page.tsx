@@ -7,6 +7,7 @@ import Fuse from "fuse.js";
 import Catalog, { Product, Category, Subcategory } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
 import { categoryIcons } from "./lib/categoryIcons";
+import Image from "next/image";
 
 /* ----------------- types ----------------- */
 type Suggestion = {
@@ -56,6 +57,7 @@ export default function HomePage() {
       cat.subcategories.forEach((sub) => {
         (sub.products || []).forEach((p: Product) => {
           const mainImage =
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
             p.img ?? (Array.isArray((p as any).images) ? (p as any).images[0] : null);
           if (!mainImage) return;
           const priceNum = p.price == null ? 0 : Number(p.price);
@@ -464,7 +466,7 @@ export default function HomePage() {
                 className="rounded-xl shadow p-3 bg-white block hover:scale-[1.02] transition"
               >
                 <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg bg-gray-100">
-                  <img src={p.mainImage ?? ""} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
+                  <Image src={p.mainImage ?? ""} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
                 </div>
                 <div className="text-sm line-clamp-2">{p.title}</div>
                 <div className="font-semibold mt-1">Rs {p.price}</div>
@@ -484,7 +486,7 @@ export default function HomePage() {
               {applyTrendingSort(visibleProducts).map((p) => (
                 <Link key={p.id} href={productUrl(p)} className="rounded-xl shadow p-3 bg-white block hover:scale-[1.02] transition">
                   <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg bg-gray-100">
-                    <img src={p.mainImage ?? ""} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
+                    <Image src={p.mainImage ?? ""} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
                   </div>
                   <div className="text-sm line-clamp-2">{p.title}</div>
                   <div className="font-semibold mt-1">Rs {p.price}</div>

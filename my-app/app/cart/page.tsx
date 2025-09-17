@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 type CartItem = {
   id: string;
@@ -41,6 +42,7 @@ export default function CartPage() {
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("cart") || "[]");
     if (Array.isArray(stored)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapped = stored.map((it: any) => ({
         ...it,
         price: typeof it.price === "string" ? parseFloat(it.price) : it.price,
@@ -159,7 +161,9 @@ export default function CartPage() {
       localStorage.setItem("profile", JSON.stringify({ name, phone, address, email }));
       setEditing(false);
       alert("Profile saved successfully!");
-    } catch (e: any) {
+    } 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    catch (e: any) {
       console.error(e);
       alert(e.message || "Failed to save profile");
     }
@@ -208,7 +212,9 @@ export default function CartPage() {
 
       localStorage.setItem("profile", JSON.stringify({ name, phone, address, email }));
       location.href = "/profile";
-    } catch (e: any) {
+    } 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    catch (e: any) {
       console.error(e);
       alert(e.message || "Error submitting order");
     } finally {
@@ -325,7 +331,7 @@ export default function CartPage() {
               className="w-5 h-5 mt-2 accent-blue-600"
             />
             {it.image && (
-              <img
+              <Image
                 src={it.image}
                 alt={it.title}
                 className="w-24 h-24 object-cover rounded-lg border"

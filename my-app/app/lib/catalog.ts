@@ -39,6 +39,7 @@ export type Catalog = {
 };
 
 /** ============= Helpers ============= */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ensureCatalog(data: any): Catalog {
   if (data && Array.isArray(data.categories)) {
     return data as Catalog;
@@ -113,6 +114,7 @@ function safePlus50(input: unknown): string {
 }
 
 export function normalizeProduct(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   p: any,
   category: string,
   subcategory: string

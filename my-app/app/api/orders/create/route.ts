@@ -75,6 +75,7 @@ export async function POST(req: Request) {
       clientId: profile.client_id,
       clientSecret: profile.client_secret
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: e.message ?? 'Server error' }, { status: 500 });
