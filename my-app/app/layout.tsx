@@ -14,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // Function to recalculate total cart count
   const updateCartCount = () => {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const total = cart.reduce((sum: number, item: any) => sum + item.qty, 0);
     setCartCount(total);
   };

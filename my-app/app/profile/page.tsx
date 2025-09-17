@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { toast } from "sonner";
+import Image from "next/image";
 import {
   User,
   Mail,
@@ -46,6 +47,7 @@ type ReturnReasonState = {
 };
 
 export default function Profile() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profile, setProfile] = useState<any>({});
   const [orders, setOrders] = useState<DBOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -349,14 +351,14 @@ export default function Profile() {
                       </div>
                       <div className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0">
                         {item.image ? (
-                          <img
+                          <Image
                             src={item.image}
                             alt={item.title}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="text-xs text-gray-400 flex items-center justify-center h-full">
-                            No Img
+                            No Image
                           </div>
                         )}
                       </div>

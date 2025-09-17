@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Catalog, { Product, Subcategory } from "@/app/lib/catalog";
 import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
 
 type IndexedProduct = Product & {
   mainImage: string;
@@ -37,6 +38,7 @@ export default function SubcategoryPage(props: Props) {
     if (!subcategory) return [];
     return (subcategory.products || [])
       .map((p) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mainImage = p.img ?? (Array.isArray((p as any).images) ? (p as any).images[0] : null);
         const priceNum = p.price ? Number(p.price) : 0;
         if (!mainImage || !priceNum) return null;
@@ -111,7 +113,7 @@ export default function SubcategoryPage(props: Props) {
               className="flex flex-col items-center bg-white rounded-xl shadow hover:scale-[1.02] transition-transform p-3"
             >
               <div className="relative w-full aspect-square overflow-hidden rounded-lg bg-gray-100 mb-2">
-                <img
+                <Image
                   src={p.mainImage ?? ""}
                   alt={p.title}
                   className="w-full h-full object-cover"
