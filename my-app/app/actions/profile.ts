@@ -1,10 +1,10 @@
-// app/actions/profile.ts
 "use server";
 
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 export async function ensureProfile(userId: string, email: string) {
-  const admin = supabaseAdmin();
+  // just use the client, do NOT call it
+  const admin = supabaseAdmin;
 
   // Check if profile already exists
   const { data } = await admin

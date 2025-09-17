@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/app/lib/supabaseClient";
+import { supabase } from "@/app/lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
 
 type CartItem = {
   id: string;
@@ -21,40 +22,92 @@ type CartItem = {
   };
 };
 
+type Profile = {
+  id?: string;
+  name?: string;
+  phone?: string;
+  address?: string;
+  email?: string;
+};
+
 export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [email, setEmail] = useState("");
-  const [editing, setEditing] = useState(true);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [profile, setProfile] = useState<Profile>({});
+  const [editing, setEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Load cart & profile
   useEffect(() => {
-    // Load cart from localStorage
     const stored = JSON.parse(localStorage.getItem("cart") || "[]");
     if (Array.isArray(stored)) {
-      setItems(
-        stored.map((it: any) => ({
-          ...it,
-          price: typeof it.price === "string" ? parseFloat(it.price) : it.price,
-        }))
-      );
+      const mapped = stored.map((it: any) => ({
+        ...it,
+        price: typeof it.price === "string" ? parseFloat(it.price) : it.price,
+      }));
+      setItems(mapped);
+      setSelected(Object.fromEntries(mapped.map((it: CartItem) => [it.id, false])));
     }
 
-    // Load saved profile
-    const p = JSON.parse(localStorage.getItem("profile") || "{}");
-    if (p.name) setName(p.name);
-    if (p.phone) setPhone(p.phone);
-    if (p.address) setAddress(p.address);
-    if (p.email) setEmail(p.email);
-    if (p.name || p.phone || p.address || p.email) setEditing(false);
+    const loadProfile = async () => {
+      const localProfile = JSON.parse(localStorage.getItem("profile") || "{}");
+      if (localProfile.email) {
+        setProfile((prev) => ({ ...prev, email: localProfile.email }));
+      }
+
+      if (localProfile.email) {
+        const { data: existingProfile, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("email", localProfile.email)
+          .maybeSingle();
+        if (error) {
+          console.error(error);
+        } else if (existingProfile) {
+          setProfile({
+            id: existingProfile.id,
+            name: existingProfile.name || "",
+            phone: existingProfile.phone || "",
+            address: existingProfile.address || "",
+            email: existingProfile.email,
+          });
+          setEditing(false);
+        } else {
+          setProfile({
+            name: localProfile.name || "",
+            phone: localProfile.phone || "",
+            address: localProfile.address || "",
+            email: localProfile.email,
+          });
+          setEditing(true);
+        }
+      } else {
+        setEditing(true);
+      }
+    };
+
+    loadProfile();
   }, []);
 
-  const total = useMemo(
-    () => items.reduce((sum, it) => sum + Number(it.price) * Number(it.qty), 0),
-    [items]
+  const selectedItems = useMemo(
+    () => items.filter((it) => selected[it.id]),
+    [items, selected]
   );
+
+  const total = useMemo(
+    () =>
+      selectedItems.reduce(
+        (sum, it) => sum + Number(it.price) * Number(it.qty),
+        0
+      ),
+    [selectedItems]
+  );
+
+  const selectedCount = selectedItems.length;
+
+  function toggleSelectAll(checked: boolean) {
+    setSelected(Object.fromEntries(items.map((it) => [it.id, checked])));
+  }
 
   function updateQty(id: string, d: number) {
     const next = items.map((it) =>
@@ -62,65 +115,98 @@ export default function CartPage() {
     );
     setItems(next);
     localStorage.setItem("cart", JSON.stringify(next));
+    window.dispatchEvent(new Event("cartUpdated")); // update layout badge
   }
 
   function removeItem(id: string) {
     const next = items.filter((it) => it.id !== id);
     setItems(next);
     localStorage.setItem("cart", JSON.stringify(next));
+
+    const { [id]: _, ...rest } = selected;
+    setSelected(rest);
+
+    window.dispatchEvent(new Event("cartUpdated")); // update layout badge
   }
 
-  async function submitOrder() {
-    if (!email) {
-      alert("Please enter your email.");
+  // Save profile with allowed fields only
+  async function saveProfile() {
+    const { id, name, phone, address, email } = profile;
+
+    if (!name || !phone || !address || !email) {
+      alert("Please fill all fields");
       return;
     }
-    if (items.length === 0) return;
 
-    setSubmitting(true);
     try {
-      // Check if profile already exists
-      let { data: existing, error: fetchError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      let profileId: string;
-      if (existing) {
-        profileId = existing.id;
+      if (id) {
+        const updates = { name, phone, address };
+        const { error } = await supabase
+          .from("profiles")
+          .update(updates)
+          .eq("id", id);
+        if (error) throw error;
       } else {
-        // Insert new profile
-        const { data: newProfile, error: insertError } = await supabase
+        const { data: newProfile, error } = await supabase
           .from("profiles")
           .insert([{ name, phone, address, email }])
           .select("id")
           .single();
-
-        if (insertError) throw insertError;
-        profileId = newProfile.id;
+        if (error) throw error;
+        setProfile((prev) => ({ ...prev, id: newProfile.id }));
       }
 
-      // Insert new order
+      localStorage.setItem("profile", JSON.stringify({ name, phone, address, email }));
+      setEditing(false);
+      alert("Profile saved successfully!");
+    } catch (e: any) {
+      console.error(e);
+      alert(e.message || "Failed to save profile");
+    }
+  }
+
+  async function submitOrder() {
+    const { id, name, phone, address, email } = profile;
+
+    if (!name || !phone || !address || !email) {
+      alert("Please complete your profile details first.");
+      setEditing(true);
+      return;
+    }
+    if (selectedItems.length === 0) return;
+
+    setSubmitting(true);
+    try {
+      let profileId = id;
+      if (!profileId) {
+        const { data: newProfile, error } = await supabase
+          .from("profiles")
+          .insert([{ name, phone, address, email }])
+          .select("id")
+          .single();
+        if (error) throw error;
+        profileId = newProfile.id;
+        setProfile((prev) => ({ ...prev, id: profileId }));
+      }
+
       const { error: orderError } = await supabase.from("orders").insert([
         {
           profile_id: profileId,
-          items,
+          items: selectedItems,
           total,
           status: "pending",
         },
       ]);
-
       if (orderError) throw orderError;
 
-      // Save profile locally and clear cart
-      localStorage.setItem(
-        "profile",
-        JSON.stringify({ name, phone, address, email })
-      );
-      localStorage.removeItem("cart");
+      // Keep remaining items in cart
+      const remaining = items.filter((it) => !selected[it.id]);
+      setItems(remaining);
+      localStorage.setItem("cart", JSON.stringify(remaining));
+      setSelected(Object.fromEntries(remaining.map((it) => [it.id, false])));
+      window.dispatchEvent(new Event("cartUpdated")); // update layout badge
+
+      localStorage.setItem("profile", JSON.stringify({ name, phone, address, email }));
       location.href = "/profile";
     } catch (e: any) {
       console.error(e);
@@ -131,130 +217,200 @@ export default function CartPage() {
   }
 
   return (
-    <div className="space-y-6 p-4">
-      <h1 className="text-2xl font-semibold">Cart</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 pb-28 p-4">
+      <h1 className="text-3xl font-bold text-gray-800 mb-4">🛒 Your Cart</h1>
 
-      {items.length === 0 && <div>Your cart is empty.</div>}
-
-      {items.map((it) => (
-        <div key={it.id} className="rounded-xl shadow p-3 bg-white flex gap-3">
-          {it.image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={it.image}
-              alt={it.title}
-              className="w-20 h-20 object-cover rounded border"
-            />
+      {/* Address / Profile Section */}
+      <div className="bg-white shadow rounded-xl p-4 mb-4 border">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="font-semibold text-gray-800">Delivery Details</h2>
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="text-blue-600 text-sm font-medium hover:underline"
+            >
+              Edit
+            </button>
           )}
-          <div className="flex-1">
-            <div className="font-medium">{it.title}</div>
-            {it.code && <div className="text-sm text-gray-500">{it.code}</div>}
-            {it.size && <div className="text-sm text-gray-700">Size: {it.size}</div>}
-            {it.color && <div className="text-sm text-gray-700">Color: {it.color}</div>}
-            {it.note && <div className="text-sm italic">Note: {it.note}</div>}
-
-            {/* Coupon applied message */}
-            {it.meta?.coupon && (
-              <div className="flex flex-col items-start gap-1 mt-1">
-                <div className="text-sm text-green-700">
-                  Coupon applied: {it.meta.coupon} (-{it.meta.discount_pct}%)
-                </div>
-                <button
-                  onClick={() => removeItem(it.id)}
-                  className="px-3 py-1 rounded border mt-1"
-                >
-                  Remove Item
-                </button>
-              </div>
-            )}
-
-            <div className="font-semibold mt-1">
-              Rs {it.price} × {it.qty} = Rs {Number(it.price) * Number(it.qty)}
-            </div>
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => updateQty(it.id, -1)}
-                className="px-3 py-1 border rounded"
-              >
-                -
-              </button>
-              <button
-                onClick={() => updateQty(it.id, +1)}
-                className="px-3 py-1 border rounded"
-              >
-                +
-              </button>
-              <button
-                onClick={() => removeItem(it.id)}
-                className="px-3 py-1 border rounded"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
         </div>
-      ))}
 
+        {editing ? (
+          <div className="space-y-3">
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              placeholder="Full Name"
+              value={profile.name || ""}
+              onChange={(e) =>
+                setProfile((prev) => ({ ...prev, name: e.target.value }))
+              }
+            />
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              placeholder="Phone"
+              value={profile.phone || ""}
+              onChange={(e) =>
+                setProfile((prev) => ({ ...prev, phone: e.target.value }))
+              }
+            />
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              placeholder="Address"
+              value={profile.address || ""}
+              onChange={(e) =>
+                setProfile((prev) => ({ ...prev, address: e.target.value }))
+              }
+            />
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              placeholder="Email"
+              value={profile.email || ""}
+              onChange={(e) =>
+                setProfile((prev) => ({ ...prev, email: e.target.value }))
+              }
+            />
+            <button
+              onClick={saveProfile}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium"
+            >
+              Save
+            </button>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-700 space-y-1">
+            <div><span className="font-medium">Name:</span> {profile.name}</div>
+            <div><span className="font-medium">Phone:</span> {profile.phone}</div>
+            <div><span className="font-medium">Address:</span> {profile.address}</div>
+            <div><span className="font-medium">Email:</span> {profile.email}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Select all */}
       {items.length > 0 && (
-        <div className="rounded-xl shadow p-4 bg-white space-y-3">
-          <div className="text-lg font-semibold">Order details</div>
-          <div className="grid md:grid-cols-4 gap-3">
-            <label className="text-sm">
-              Name
-              <input
-                className="w-full border rounded p-2"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={!editing}
-              />
-            </label>
-            <label className="text-sm">
-              Phone
-              <input
-                className="w-full border rounded p-2"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={!editing}
-              />
-            </label>
-            <label className="text-sm">
-              Address
-              <input
-                className="w-full border rounded p-2"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                disabled={!editing}
-              />
-            </label>
-            <label className="text-sm">
-              Email
-              <input
-                className="w-full border rounded p-2"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={!editing}
-              />
-            </label>
-          </div>
-          <button
-            className="px-3 py-1 border rounded"
-            onClick={() => setEditing(!editing)}
-          >
-            ✏️ Edit
-          </button>
-          <div className="text-sm">
-            Payment: <b>Cash on Delivery (COD)</b>
-          </div>
-          <div className="text-lg font-bold">Total: Rs {total}</div>
-          <button
-            onClick={submitOrder}
-            disabled={submitting}
-            className="px-4 py-2 rounded border"
-          >
-            {submitting ? "Submitting…" : "Submit Order"}
-          </button>
+        <div className="flex items-center gap-3 mb-4 bg-white p-3 rounded-xl shadow border">
+          <input
+            type="checkbox"
+            checked={selectedCount === items.length && items.length > 0}
+            onChange={(e) => toggleSelectAll(e.target.checked)}
+            className="w-5 h-5 accent-blue-600"
+          />
+          <span className="font-medium text-gray-700">
+            Select All ({selectedCount}/{items.length})
+          </span>
         </div>
       )}
+
+      {items.length === 0 && (
+        <div className="text-gray-500 text-center mt-10 text-lg">
+          Your cart is empty.
+        </div>
+      )}
+
+      {/* Cart Items */}
+      <div className="space-y-4">
+        {items.map((it) => (
+          <motion.div
+            key={it.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="rounded-2xl shadow-md p-4 bg-white border border-gray-200 flex gap-4 items-start hover:shadow-lg transition"
+          >
+            <input
+              type="checkbox"
+              checked={!!selected[it.id]}
+              onChange={(e) =>
+                setSelected({ ...selected, [it.id]: e.target.checked })
+              }
+              className="w-5 h-5 mt-2 accent-blue-600"
+            />
+            {it.image && (
+              <img
+                src={it.image}
+                alt={it.title}
+                className="w-24 h-24 object-cover rounded-lg border"
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-base text-gray-800 truncate">
+                {it.title}
+              </div>
+              {it.code && <div className="text-xs text-gray-500">{it.code}</div>}
+              {it.size && <div className="text-xs text-gray-700">Size: {it.size}</div>}
+              {it.color && <div className="text-xs text-gray-700">Color: {it.color}</div>}
+              {it.note && <div className="text-xs italic text-gray-600">Note: {it.note}</div>}
+
+              {it.meta?.coupon && (
+                <div className="mt-1 text-xs text-green-700">
+                  Coupon applied: <span className="font-medium">{it.meta.coupon}</span> (-{it.meta.discount_pct}%)
+                </div>
+              )}
+
+              <div className="mt-2 flex items-center gap-2">
+                {it.meta?.coupon ? (
+                  <>
+                    <span className="line-through text-gray-500 text-sm">
+                      Rs {it.meta.original_price}
+                    </span>
+                    <span className="text-base font-bold text-blue-600">
+                      Rs {it.price}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-base font-bold text-blue-600">Rs {it.price}</span>
+                )}
+                <span className="text-sm text-gray-600">× {it.qty}</span>
+              </div>
+
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => updateQty(it.id, -1)}
+                  className="px-2 py-1 border rounded-lg hover:bg-gray-100 text-sm"
+                >
+                  -
+                </button>
+                <button
+                  onClick={() => updateQty(it.id, +1)}
+                  className="px-2 py-1 border rounded-lg hover:bg-gray-100 text-sm"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => removeItem(it.id)}
+                  className="px-3 py-1 border rounded-lg text-red-600 hover:bg-red-50 text-sm"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Sticky Checkout Bar */}
+      <AnimatePresence>
+        {items.length > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 200, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-17 left-0 right-0 bg-white shadow-lg p-3 border-t flex justify-between items-center"
+          >
+            <div className="text-base font-semibold">
+              Total ({selectedCount} items):{" "}
+              <span className="text-blue-600 font-bold">Rs {total}</span>
+            </div>
+            <button
+              onClick={submitOrder}
+              disabled={submitting || selectedCount === 0}
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium shadow hover:scale-105 transition disabled:opacity-50"
+            >
+              {submitting ? "Submitting…" : "Place Order"}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
