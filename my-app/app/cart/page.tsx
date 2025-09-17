@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 
 type CartItem = {
   id: string;
@@ -331,7 +330,7 @@ export default function CartPage() {
               className="w-5 h-5 mt-2 accent-blue-600"
             />
             {it.image && (
-              <Image
+              <img
                 src={it.image}
                 alt={it.title}
                 className="w-24 h-24 object-cover rounded-lg border"
