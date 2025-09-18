@@ -65,8 +65,6 @@ export default function HomePage() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showBackButton, setShowBackButton] = useState(false);
 
-  const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>([]);
-  const [visibleProducts, setVisibleProducts] = useState<IndexedProduct[]>([]);
   const [loadingHome, setLoadingHome] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(false);
 
@@ -82,6 +80,25 @@ export default function HomePage() {
   const isDown = useRef(false);
   const startX = useRef(0);
   const scrollLeft = useRef(0);
+
+  // Pre-seed with first 10 products for instant render
+  const initialProducts: IndexedProduct[] = Catalog.getCategories()
+    .flatMap((cat) =>
+      cat.subcategories.flatMap((sub) =>
+        (sub.products || []).map((p) => ({
+          ...(p as IndexedProduct),
+          categorySlug: cat.slug,
+          categoryName: cat.name,
+          subcategorySlug: sub.slug,
+          subcategoryName: sub.name,
+          mainImage: p.img ?? (Array.isArray((p as any).images) ? (p as any).images[0] : null),
+        }))
+      )
+    )
+    .slice(0, 10);
+
+  const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>(initialProducts);
+  const [visibleProducts, setVisibleProducts] = useState<IndexedProduct[]>(initialProducts);
 
   /* ---------- Build product index ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
@@ -141,7 +158,7 @@ export default function HomePage() {
       return;
     }
 
-    // pick a random category each load
+    // ✅ Pick a random category each load
     const randomCat = cats[Math.floor(Math.random() * cats.length)];
     const picks: IndexedProduct[] = [];
 
@@ -155,11 +172,12 @@ export default function HomePage() {
     });
 
     const trending = picks.length ? picks : allProducts.slice();
+
+    // ✅ Instantly show 10 products
     setHomeProducts(trending);
-    setVisibleProducts(trending.slice(0, 10)); // instant 10
+    setVisibleProducts(trending.slice(0, 10));
     setLoadingHome(false);
   }, [allProducts]);
-
 
   /* ---------- Infinite scroll for home / results (lazy) ---------- */
   useEffect(() => {
@@ -375,6 +393,12 @@ export default function HomePage() {
     setShowSuggestions(false);
     setShowBackButton(true);
 
+    // ✅ Close mobile keyboard
+    inputRef.current?.blur();
+
+    // ✅ Close mobile keyboard when selecting a suggestion
+    inputRef.current?.blur();
+
     // Save current search+scroll to sessionStorage so 'back' from product restores it
     if (typeof window !== "undefined") {
       sessionStorage.setItem(
@@ -408,71 +432,69 @@ export default function HomePage() {
 
   /* ---------- category click: auto-select first subcategory & lazy load ---------- */
   const handleCategoryClick = (cat: Category) => {
-    setLoadingProducts(true);
-    setActiveCategory(cat);
-    // auto-select first subcategory (if exists) so products for it load by default
-    setActiveSubcategory(cat.subcategories && cat.subcategories.length > 0 ? cat.subcategories[0] : null);
-    setActiveFilter(null);
-    setShowBackButton(true);
-    // Save state to session so product->back can restore
-    if (typeof window !== "undefined") {
-     sessionStorage.setItem(
-  "lastSearch",
-  JSON.stringify({
-    query: cat.name,
-    scrollY: window.scrollY,
-    activeFilter: null,
-    activeCategorySlug: cat.slug,
-    activeSubcategorySlug: cat.subcategories?.[0]?.slug ?? null,
-  } satisfies LastSearchState)
-);
+  // clear any previous state
+  if (typeof window !== "undefined") {
+    sessionStorage.clear();
+  }
 
-    }
-    setTimeout(() => setLoadingProducts(false), 200);
-    window.scrollTo({ behavior: "smooth" });
-  };
+  setLoadingProducts(true);
+  setActiveCategory(cat);
+  setActiveSubcategory(cat.subcategories?.[0] ?? null);
+  setActiveFilter(null);
+  setShowBackButton(true);
+
+  // force hard navigation (like full reload)
+  window.location.href = `/shop/${encodeURIComponent(cat.slug)}`;
+};
+
 
   const handleSubcategoryClick = (sub: Subcategory) => {
-    setLoadingProducts(true);
-    setActiveSubcategory(sub);
-    setActiveFilter(null);
-    setShowBackButton(true);
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem(
-      "lastSearch",
-      JSON.stringify({
-        query: sub.name,
-        scrollY: window.scrollY,
-        activeFilter: null,
-        activeCategorySlug: activeCategory?.slug ?? null,
-        activeSubcategorySlug: sub.slug,
-      } satisfies LastSearchState)
-    );
-    }
-    setTimeout(() => setLoadingProducts(false), 200);
-    window.scrollTo({  behavior: "smooth" });
-  };
+  if (typeof window !== "undefined") {
+    sessionStorage.clear();
+  }
+
+  setLoadingProducts(true);
+  setActiveSubcategory(sub);
+  setActiveFilter(null);
+  setShowBackButton(true);
+
+  // force hard navigation (like full reload)
+  window.location.href = `/shop/${encodeURIComponent(activeCategory?.slug ?? "")}/${encodeURIComponent(sub.slug)}`;
+};
+
 
   /* ---------- Enter key in search: close suggestions + show back icon ---------- */
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      setShowSuggestions(false);
-      setShowBackButton(true);
+  if (e.key === "Enter") {
+    e.preventDefault(); // stop form submit or page reload
+    setShowSuggestions(false);
+    setShowBackButton(true);
 
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(
-          "lastSearch",
-          JSON.stringify({
-            query: query.trim(),
-            scrollY: window.scrollY,
-            activeFilter: null,
-            activeCategorySlug: null,
-            activeSubcategorySlug: null,
-          } satisfies LastSearchState)
-        );
-      }
+    // Close the soft keyboard on mobile
+    inputRef.current?.blur();
+
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+        "lastSearch",
+        JSON.stringify({
+          query: query.trim(),
+          scrollY: window.scrollY,
+          activeFilter: null,
+          activeCategorySlug: null,
+          activeSubcategorySlug: null,
+        } satisfies LastSearchState)
+      );
     }
-  };
+  }
+};
+
+  // Reset session storage if page is fully reloaded
+  useEffect(() => {
+    const entries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+    if (entries.length && entries[0].type === "reload") {
+      sessionStorage.clear(); // clear all last state
+    }
+  }, []);
 
   /* ---------- persist & restore last search on back/forward ---------- */
   useEffect(() => {
@@ -698,19 +720,25 @@ export default function HomePage() {
           // SEARCH / FILTERED RESULTS (covers activeCategory / activeSubcategory / activeFilter / search)
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
             {searchResults.map((p) => (
-              <Link
+              <a
                 key={productKey(p)}
-                href={productUrl(p)}
+                href={productUrl(p)} // full page reload
                 onClick={() => handleProductClickSave(p)}
                 className="block hover:scale-[1.02] transition"
               >
                 <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg">
-                  <img src={p.mainImage ?? ""} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
+                  <img
+                    src={p.mainImage ?? ""}
+                    alt={p.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
                 </div>
                 <div className="text-sm line-clamp-2">{p.title}</div>
                 <div className="font-semibold mt-1">Rs {p.price}</div>
-              </Link>
+              </a>
             ))}
+
           </div>
         ) : loadingHome ? (
           // initial skeleton while home loads
