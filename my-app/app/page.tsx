@@ -132,24 +132,34 @@ export default function HomePage() {
   /* ---------- Home picks & immediate load (10 first) ---------- */
   useEffect(() => {
     setLoadingHome(true);
-    const picks: IndexedProduct[] = [];
+
     const cats = Catalog.getCategories();
-    cats.forEach((cat) => {
-      cat.subcategories.forEach((sub) => {
-        const valid = allProducts.filter(
-          (p) => p.categorySlug === cat.slug && p.subcategorySlug === sub.slug
-        );
-        if (!valid.length) return;
-        const shuffled = [...valid].sort(() => 0.5 - Math.random());
-        picks.push(...shuffled.slice(0, 6));
-      });
+    if (!cats.length) {
+      setHomeProducts([]);
+      setVisibleProducts([]);
+      setLoadingHome(false);
+      return;
+    }
+
+    // pick a random category each load
+    const randomCat = cats[Math.floor(Math.random() * cats.length)];
+    const picks: IndexedProduct[] = [];
+
+    randomCat.subcategories.forEach((sub) => {
+      const valid = allProducts.filter(
+        (p) => p.categorySlug === randomCat.slug && p.subcategorySlug === sub.slug
+      );
+      if (!valid.length) return;
+      const shuffled = [...valid].sort(() => 0.5 - Math.random());
+      picks.push(...shuffled.slice(0, 6));
     });
+
     const trending = picks.length ? picks : allProducts.slice();
     setHomeProducts(trending);
-    setVisibleProducts(trending.slice(0, 10)); // immediate lightweight render (10)
-    const t = setTimeout(() => setLoadingHome(false), 120);
-    return () => clearTimeout(t);
+    setVisibleProducts(trending.slice(0, 10)); // instant 10
+    setLoadingHome(false);
   }, [allProducts]);
+
 
   /* ---------- Infinite scroll for home / results (lazy) ---------- */
   useEffect(() => {
