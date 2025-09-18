@@ -1,9 +1,11 @@
+// app/page.tsx
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Fuse from "fuse.js";
+import { ArrowLeft } from "lucide-react";
 import Catalog, { Product, Category, Subcategory } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
 import { categoryIcons } from "./lib/categoryIcons";
@@ -26,15 +28,47 @@ type IndexedProduct = Product & {
   mainImage?: string | null;
 };
 
+type LastSearchState = {
+  query?: string;
+  scrollY?: number;
+  activeFilter?: Suggestion | null;
+  activeCategorySlug?: string | null;
+  activeSubcategorySlug?: string | null;
+};
+
+function scrollToPosition(defaultTop?: number) {
+  const raw = sessionStorage.getItem("lastSearch");
+  let top = defaultTop ?? 0;
+
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as LastSearchState;
+      if (parsed.scrollY !== undefined) top = parsed.scrollY;
+    } catch {}
+  }
+
+  // Actually scroll to the saved position
+  window.scrollTo({ top, behavior: "auto" });
+}
+
+
+
+function isBackNavigation() {
+  if (typeof window === "undefined") return false;
+  const entries = window.performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+  return entries.length && entries[0].type === "back_forward";
+}
+
 /* ----------------- component ----------------- */
 export default function HomePage() {
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [showBackButton, setShowBackButton] = useState(false);
 
   const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>([]);
   const [visibleProducts, setVisibleProducts] = useState<IndexedProduct[]>([]);
   const [loadingHome, setLoadingHome] = useState(true);
-  const [loadingProducts, setLoadingProducts] = useState(false); // new loading flag
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<Subcategory | null>(null);
@@ -56,7 +90,7 @@ export default function HomePage() {
       cat.subcategories.forEach((sub) => {
         (sub.products || []).forEach((p: Product) => {
           const mainImage =
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             p.img ?? (Array.isArray((p as any).images) ? (p as any).images[0] : null);
           if (!mainImage) return;
           const priceNum = p.price == null ? 0 : Number(p.price);
@@ -76,7 +110,7 @@ export default function HomePage() {
     return out;
   }, []);
 
-  /* ---------- Fuse instance ---------- */
+  /* ---------- Fuse instance (search) ---------- */
   const fuse = useMemo(() => {
     return new Fuse(allProducts, {
       keys: ["title"],
@@ -86,16 +120,16 @@ export default function HomePage() {
     });
   }, [allProducts]);
 
-  /* ---------- Debounced query ---------- */
+  /* ---------- Debounced query (fast) ---------- */
   const [debouncedQuery, setDebouncedQuery] = useState("");
   useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedQuery(query.trim().toLowerCase());
-    }, 120);
+    }, 80); // very small delay for smooth typing
     return () => clearTimeout(t);
   }, [query]);
 
-  /* ---------- Trending / hot picks ---------- */
+  /* ---------- Home picks & immediate load (10 first) ---------- */
   useEffect(() => {
     setLoadingHome(true);
     const picks: IndexedProduct[] = [];
@@ -112,26 +146,30 @@ export default function HomePage() {
     });
     const trending = picks.length ? picks : allProducts.slice();
     setHomeProducts(trending);
-    setVisibleProducts(trending.slice(0, 30));
-    const t = setTimeout(() => setLoadingHome(false), 200);
+    setVisibleProducts(trending.slice(0, 10)); // immediate lightweight render (10)
+    const t = setTimeout(() => setLoadingHome(false), 120);
     return () => clearTimeout(t);
   }, [allProducts]);
 
-  /* ---------- Infinite scroll ---------- */
+  /* ---------- Infinite scroll for home / results (lazy) ---------- */
   useEffect(() => {
     function onScroll() {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+      // lazy-load more home products
+      if (
+        window.innerHeight + window.scrollY >=
+        document.body.offsetHeight - 200
+      ) {
         setVisibleProducts((prev) => {
           const nextCount = prev.length + 20;
           return homeProducts.slice(0, nextCount);
         });
       }
     }
-    window.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [homeProducts]);
 
-  /* ---------- Suggestions ---------- */
+  /* ---------- Suggestions (unique keys) ---------- */
   const suggestions = useMemo(() => {
     if (!debouncedQuery) return [];
     const cats = Catalog.getCategories();
@@ -154,7 +192,7 @@ export default function HomePage() {
     });
 
     if (debouncedQuery.length >= 2) {
-      fuse.search(debouncedQuery, { limit: 20 }).forEach((r) => {
+      fuse.search(debouncedQuery, { limit: 20 }).forEach((r, i) => {
         const p = r.item;
         out.push({
           type: "product",
@@ -162,12 +200,13 @@ export default function HomePage() {
           slug: p.id,
           parent: p.categorySlug,
           id: p.id,
+          reactKey: `${p.id}-${p.subcategorySlug}-${i}`, // unique
         });
       });
     }
 
     const seen = new Set<string>();
-    return out.filter((s) => {
+    return out.filter((s, i) => {
       const key = `${s.type}:${s.parent ?? "root"}:${s.slug}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -175,7 +214,7 @@ export default function HomePage() {
     });
   }, [debouncedQuery, fuse]);
 
-  /* ---------- Search results ---------- */
+  /* ---------- Search results & active filter/category/subcategory handling ---------- */
   const searchResults = useMemo<IndexedProduct[] | null>(() => {
     function dedupe(arr: IndexedProduct[]) {
       const seen = new Set<string>();
@@ -186,8 +225,10 @@ export default function HomePage() {
       });
     }
     function applySort(arr: IndexedProduct[]) {
-      if (sortBy === "asc") return [...arr].sort((a, b) => Number(a.price) - Number(b.price));
-      if (sortBy === "desc") return [...arr].sort((a, b) => Number(b.price) - Number(a.price));
+      if (sortBy === "asc")
+        return [...arr].sort((a, b) => Number(a.price) - Number(b.price));
+      if (sortBy === "desc")
+        return [...arr].sort((a, b) => Number(b.price) - Number(a.price));
       return arr;
     }
 
@@ -216,7 +257,7 @@ export default function HomePage() {
             p.title.toLowerCase().includes(activeFilter.name.toLowerCase())
           )
           .slice(0, 40);
-        const combined = [];
+        const combined: IndexedProduct[] = [];
         if (exact) combined.push(exact);
         combined.push(...related);
         return applySort(dedupe(combined));
@@ -250,21 +291,31 @@ export default function HomePage() {
     }
 
     return null;
-  }, [activeFilter, activeCategory, activeSubcategory, debouncedQuery, fuse, allProducts, sortBy]);
+  }, [
+    activeFilter,
+    activeCategory,
+    activeSubcategory,
+    debouncedQuery,
+    fuse,
+    allProducts,
+    sortBy,
+  ]);
 
-  /* ---------- reset home ---------- */
-  const resetHome = useCallback(() => {
-    setQuery("");
-    setActiveFilter(null);
-    setActiveCategory(null);
-    setActiveSubcategory(null);
-    setSortBy(null);
-    setShowSuggestions(false);
-    setVisibleProducts(homeProducts.slice(0, 30));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [homeProducts]);
+ const resetHome = useCallback(() => {
+  // This should ONLY run when user clicks the custom Back button
+  sessionStorage.removeItem("lastSearch"); // clear saved search
+  setQuery("");
+  setActiveFilter(null);
+  setActiveCategory(null);
+  setActiveSubcategory(null);
+  setSortBy(null);
+  setShowSuggestions(false);
+  setShowBackButton(false);
+  setVisibleProducts(homeProducts.slice(0, 10));
+  if (typeof window !== "undefined") window.scrollTo({ behavior: "smooth" });
+}, [homeProducts]);
 
-  /* ---------- UX close suggestions ---------- */
+  /* ---------- UX close suggestions on outside click/scroll ---------- */
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       const el = suggestionsRef.current;
@@ -284,15 +335,19 @@ export default function HomePage() {
     };
   }, []);
 
-  /* ---------- drag handlers ---------- */
+  /* ---------- drag handlers for category row ---------- */
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!catRowRef.current) return;
     isDown.current = true;
     startX.current = e.pageX - catRowRef.current.offsetLeft;
     scrollLeft.current = catRowRef.current.scrollLeft;
   };
-  const handleMouseLeave = () => { isDown.current = false; };
-  const handleMouseUp = () => { isDown.current = false; };
+  const handleMouseLeave = () => {
+    isDown.current = false;
+  };
+  const handleMouseUp = () => {
+    isDown.current = false;
+  };
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDown.current || !catRowRef.current) return;
     e.preventDefault();
@@ -308,7 +363,23 @@ export default function HomePage() {
     setActiveCategory(null);
     setActiveSubcategory(null);
     setShowSuggestions(false);
-    window.scrollTo({ top: 300, behavior: "smooth" });
+    setShowBackButton(true);
+
+    // Save current search+scroll to sessionStorage so 'back' from product restores it
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+        "lastSearch",
+        JSON.stringify({
+          query: s.name,
+          scrollY: window.scrollY,
+          activeFilter: s,
+          activeCategorySlug: null,
+          activeSubcategorySlug: null,
+        } satisfies LastSearchState)
+      );
+    }
+
+    window.scrollTo({ behavior: "smooth" });
   }
 
   /* ---------- product url ---------- */
@@ -325,122 +396,279 @@ export default function HomePage() {
     return arr;
   }
 
-  /* ---------- category click ---------- */
+  /* ---------- category click: auto-select first subcategory & lazy load ---------- */
   const handleCategoryClick = (cat: Category) => {
     setLoadingProducts(true);
     setActiveCategory(cat);
-    setActiveSubcategory(null);
+    // auto-select first subcategory (if exists) so products for it load by default
+    setActiveSubcategory(cat.subcategories && cat.subcategories.length > 0 ? cat.subcategories[0] : null);
     setActiveFilter(null);
-    setTimeout(() => setLoadingProducts(false), 250); // small loading animation
-    window.scrollTo({ top: 220, behavior: "smooth" });
+    setShowBackButton(true);
+    // Save state to session so product->back can restore
+    if (typeof window !== "undefined") {
+     sessionStorage.setItem(
+  "lastSearch",
+  JSON.stringify({
+    query: cat.name,
+    scrollY: window.scrollY,
+    activeFilter: null,
+    activeCategorySlug: cat.slug,
+    activeSubcategorySlug: cat.subcategories?.[0]?.slug ?? null,
+  } satisfies LastSearchState)
+);
+
+    }
+    setTimeout(() => setLoadingProducts(false), 200);
+    window.scrollTo({ behavior: "smooth" });
   };
 
   const handleSubcategoryClick = (sub: Subcategory) => {
     setLoadingProducts(true);
     setActiveSubcategory(sub);
     setActiveFilter(null);
-    setTimeout(() => setLoadingProducts(false), 250); // small loading animation
-    window.scrollTo({ top: 340, behavior: "smooth" });
+    setShowBackButton(true);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+      "lastSearch",
+      JSON.stringify({
+        query: sub.name,
+        scrollY: window.scrollY,
+        activeFilter: null,
+        activeCategorySlug: activeCategory?.slug ?? null,
+        activeSubcategorySlug: sub.slug,
+      } satisfies LastSearchState)
+    );
+    }
+    setTimeout(() => setLoadingProducts(false), 200);
+    window.scrollTo({  behavior: "smooth" });
   };
+
+  /* ---------- Enter key in search: close suggestions + show back icon ---------- */
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      setShowSuggestions(false);
+      setShowBackButton(true);
+
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          "lastSearch",
+          JSON.stringify({
+            query: query.trim(),
+            scrollY: window.scrollY,
+            activeFilter: null,
+            activeCategorySlug: null,
+            activeSubcategorySlug: null,
+          } satisfies LastSearchState)
+        );
+      }
+    }
+  };
+
+  /* ---------- persist & restore last search on back/forward ---------- */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const restoreState = () => {
+      const raw = sessionStorage.getItem("lastSearch");
+      if (!raw) return;
+
+      try {
+        const parsed = JSON.parse(raw) as LastSearchState;
+        if (!parsed) return;
+
+        if (parsed.query) setQuery(parsed.query);
+        if (parsed.activeFilter) setActiveFilter(parsed.activeFilter);
+
+        if (parsed.activeCategorySlug) {
+          const cat = Catalog.getCategories().find(
+            (c) => c.slug === parsed.activeCategorySlug
+          ) || null;
+          setActiveCategory(cat);
+
+          if (parsed.activeSubcategorySlug && cat) {
+            const sub = cat.subcategories.find(
+              (s) => s.slug === parsed.activeSubcategorySlug
+            ) || null;
+            setActiveSubcategory(sub);
+          }
+        }
+
+        setShowBackButton(
+          !!(parsed.query || parsed.activeFilter || parsed.activeCategorySlug)
+        );
+
+        // Restore scroll AFTER DOM updates and products are visible
+        if (parsed.scrollY !== undefined) {
+          const tryScroll = () => {
+            if (document.body.offsetHeight > 0) {
+              window.scrollTo({ top: parsed.scrollY, behavior: "auto" });
+            } else {
+              // wait until DOM renders
+              requestAnimationFrame(tryScroll);
+            }
+          };
+          requestAnimationFrame(tryScroll);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    };
+
+  restoreState();
+  window.addEventListener("popstate", restoreState);
+  return () => window.removeEventListener("popstate", restoreState);
+}, []);
+
+
+  /* ---------- when clicking a product, save last search (so back restores) ---------- */
+  const handleProductClickSave = (p: IndexedProduct) => {
+    if (typeof window !== "undefined") {
+      const saveQuery = debouncedQuery || query || activeFilter?.name || activeSubcategory?.name || activeCategory?.name || "";
+      sessionStorage.setItem(
+        "lastSearch",
+        JSON.stringify({
+          query: saveQuery,
+          scrollY: window.scrollY,
+          activeFilter,
+          activeCategorySlug: activeCategory?.slug ?? null,
+          activeSubcategorySlug: activeSubcategory?.slug ?? null,
+        } satisfies LastSearchState)
+      );
+    }
+  };
+
+  /* ---------- fix for duplicate key console error: ensure unique keys for lists ---------- */
+  const productKey = (p: IndexedProduct) => `${p.id}-${p.subcategorySlug}-${p.categorySlug}`;
 
   /* ---------- render ---------- */
   return (
     <HomeContext.Provider value={{ resetHome }}>
       <div className="space-y-6 p-4 pb-28">
-        {/* Search */}
-        <div className="relative">
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Search products, categories, subcategories..."
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setShowSuggestions(true);
-              if (e.target.value.trim() === "") setActiveFilter(null);
-            }}
-            className="w-full rounded-xl border p-3 shadow focus:outline-none"
-          />
-          {showSuggestions && suggestions.length > 0 && (
-            <div
-              ref={suggestionsRef}
-              className="absolute z-20 mt-1 w-full bg-white shadow-lg rounded-lg max-h-64 overflow-y-auto"
+        {/* Search Row */}
+        <div className="flex items-center gap-3 w-full">
+          {showBackButton ? (
+            <button
+              onClick={resetHome}
+              aria-label="Back"
+              className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition"
             >
-              {suggestions.map((s) => (
-                <button
-                  key={s.reactKey ?? s.slug}
-                  type="button"
-                  className="w-full text-left p-3 hover:bg-gray-100 flex items-center gap-2"
-                  onClick={() => onSelectSuggestion(s)}
-                >
-                  <div className="text-sm font-medium grow">{s.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {s.type === "category" ? "Category" : s.type === "subcategory" ? "Subcategory" : "Product"}
-                  </div>
-                </button>
-              ))}
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+          ) : null}
+
+          <div className="relative w-full">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search for products, categories, subcategories..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setShowSuggestions(true);
+                if (e.target.value.trim() === "") setActiveFilter(null);
+              }}
+              onKeyDown={handleSearchKeyDown}
+              className="w-full rounded-2xl bg-white/90 backdrop-blur-lg border border-gray-200 px-5 py-3 
+              text-gray-800 shadow-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
+              placeholder-gray-400 transition duration-200 ease-in-out"
+
+            />
+
+            {/* Suggestions dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                ref={suggestionsRef}
+                className="absolute z-20 mt-2 w-full rounded-2xl backdrop-blur-md bg-white/90 shadow-xl border border-gray-100 max-h-72 overflow-y-auto"
+              >
+                {suggestions.map((s, i) => (
+                  <button
+                    key={`${s.type}-${s.parent ?? "root"}-${s.slug}-${i}`}
+                    type="button"
+                    className="w-full text-left px-5 py-3 hover:bg-gray-100/70 flex items-center justify-between transition"
+                    onClick={() => onSelectSuggestion(s)}
+                  >
+                    <span className="text-sm font-medium text-gray-900">{s.name}</span>
+                    <span className="text-xs text-gray-500">
+                      {s.type === "category"
+                        ? "Category"
+                        : s.type === "subcategory"
+                        ? "Subcategory"
+                        : "Product"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+
+        {/* Categories + Subcategories row — hidden during search */}
+        {!debouncedQuery && !activeFilter && (
+          <>
+            {/* Categories row */}
+            <div
+              ref={catRowRef}
+              className="overflow-x-auto hide-scrollbar py-2"
+              onMouseDown={handleMouseDown}
+              onMouseLeave={handleMouseLeave}
+              onMouseUp={handleMouseUp}
+              onMouseMove={handleMouseMove}
+            >
+              <div className="flex gap-4 min-w-max items-center">
+                {Catalog.getCategories().map((cat) => {
+                  const iconData = categoryIcons[cat.name];
+                  const Icon = iconData?.icon;
+                  const gradient = iconData?.gradient ?? "from-gray-400 to-gray-600";
+                  return (
+                    <motion.button
+                      key={cat.slug}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleCategoryClick(cat)}
+                      className={`flex flex-col items-center justify-center w-20 h-20 rounded-full text-white shadow-lg flex-shrink-0
+                        bg-gradient-to-br ${gradient}
+                        ${activeCategory?.slug === cat.slug ? "ring-4 ring-offset-2 ring-indigo-500" : ""}`}
+                      title={cat.name}
+                    >
+                      {Icon ? <Icon className="w-8 h-8" /> : <div className="text-lg">{cat.name[0]}</div>}
+                    </motion.button>
+                  );
+                })}
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Categories row */}
-        <div
-          ref={catRowRef}
-          className="overflow-x-auto hide-scrollbar py-2"
-          onMouseDown={handleMouseDown}
-          onMouseLeave={handleMouseLeave}
-          onMouseUp={handleMouseUp}
-          onMouseMove={handleMouseMove}
-        >
-          <div className="flex gap-4 min-w-max items-center">
-            {Catalog.getCategories().map((cat) => {
-              const iconData = categoryIcons[cat.name];
-              const Icon = iconData?.icon;
-              const gradient = iconData?.gradient ?? "from-gray-400 to-gray-600";
-              return (
-                <motion.button
-                  key={cat.slug}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCategoryClick(cat)}
-                  className={`flex flex-col items-center justify-center w-20 h-20 rounded-full text-white shadow-lg flex-shrink-0
-                    bg-gradient-to-br ${gradient}
-                    ${activeCategory?.slug === cat.slug ? "ring-4 ring-offset-2 ring-indigo-500" : ""}`}
-                  title={cat.name}
-                >
-                  {Icon ? <Icon className="w-8 h-8" /> : <div className="text-lg">{cat.name[0]}</div>}
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Subcategories */}
-        {activeCategory && (
-          <div className="flex flex-wrap gap-2 justify-center">
-            {activeCategory.subcategories.map((sub) => {
-              const iconData = categoryIcons[sub.name] ?? categoryIcons[activeCategory.name];
-              const Icon = iconData?.icon;
-              const gradient = iconData?.gradient ?? "from-gray-300 to-gray-400";
-              return (
-                <motion.button
-                  key={sub.slug}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleSubcategoryClick(sub)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium text-white shadow
-                    bg-gradient-to-r ${gradient}
-                    ${activeSubcategory?.slug === sub.slug ? "ring-2 ring-offset-2 ring-indigo-500" : ""}`}
-                >
-                  <div className="flex items-center gap-2">
-                    {Icon && <Icon className="w-4 h-4" />}
-                    <span className="whitespace-nowrap">{sub.name}</span>
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
+            {/* Subcategories (if category selected) */}
+            {activeCategory && (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {activeCategory.subcategories.map((sub) => {
+                  const iconData =
+                    categoryIcons[sub.name] ?? categoryIcons[activeCategory.name];
+                  const Icon = iconData?.icon;
+                  const gradient = iconData?.gradient ?? "from-gray-300 to-gray-400";
+                  return (
+                    <motion.button
+                      key={sub.slug}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleSubcategoryClick(sub)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium text-white shadow bg-gradient-to-r ${gradient} ${
+                        activeSubcategory?.slug === sub.slug
+                          ? "ring-2 ring-offset-2 ring-indigo-500"
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {Icon && <Icon className="w-4 h-4" />}
+                        <span className="whitespace-nowrap">{sub.name}</span>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
-        {/* Controls */}
+        {/* Controls (clear + price sort) */}
         <div className="flex justify-between items-center">
           <button onClick={resetHome} className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300">Clear</button>
           <div className="flex gap-2">
@@ -453,18 +681,20 @@ export default function HomePage() {
         {loadingProducts ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-xl shadow p-3 bg-gray-200 h-44 animate-pulse" />
+              <div key={`loading-${i}`} className="h-44 animate-pulse bg-gray-200 rounded-lg" />
             ))}
           </div>
         ) : searchResults && searchResults.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          // SEARCH / FILTERED RESULTS (covers activeCategory / activeSubcategory / activeFilter / search)
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
             {searchResults.map((p) => (
               <Link
-                key={p.id}
+                key={productKey(p)}
                 href={productUrl(p)}
-                className="rounded-xl shadow p-3 bg-white block hover:scale-[1.02] transition"
+                onClick={() => handleProductClickSave(p)}
+                className="block hover:scale-[1.02] transition"
               >
-                <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg bg-gray-100">
+                <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg">
                   <img src={p.mainImage ?? ""} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
                 </div>
                 <div className="text-sm line-clamp-2">{p.title}</div>
@@ -473,18 +703,25 @@ export default function HomePage() {
             ))}
           </div>
         ) : loadingHome ? (
+          // initial skeleton while home loads
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-xl shadow p-3 bg-gray-200 h-44 animate-pulse" />
+              <div key={`skeleton-${i}`} className="h-44 animate-pulse bg-gray-200 rounded-lg" />
             ))}
           </div>
         ) : (
+          // HOME / TRENDING
           <section>
             <h1 className="text-2xl font-semibold">🔥 Trending / Hot</h1>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
               {applyTrendingSort(visibleProducts).map((p) => (
-                <Link key={p.id} href={productUrl(p)} className="rounded-xl shadow p-3 bg-white block hover:scale-[1.02] transition">
-                  <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg bg-gray-100">
+                <Link
+                  key={productKey(p)}
+                  href={productUrl(p)}
+                  onClick={() => handleProductClickSave(p)}
+                  className="block hover:scale-[1.02] transition"
+                >
+                  <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg">
                     <img src={p.mainImage ?? ""} alt={p.title} className="w-full h-full object-cover" loading="lazy" />
                   </div>
                   <div className="text-sm line-clamp-2">{p.title}</div>
