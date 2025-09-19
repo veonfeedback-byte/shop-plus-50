@@ -6,8 +6,6 @@ import { CartItem } from "@/app/lib/types";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { supabase } from "@/app/lib/supabase";
-import { ArrowLeft } from "lucide-react";
-
 
 export default function ProductPage({
   params,
@@ -38,7 +36,6 @@ export default function ProductPage({
   } | null>(null);
 
   const startX = useRef(0);
-  const endX = useRef(0);
 
   const sizes =
     product.description?.match(/sizes?:\s*([a-z0-9, ]+)/i)?.[1]
@@ -62,10 +59,10 @@ export default function ProductPage({
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    endX.current = e.changedTouches[0].clientX;
-    if (startX.current - endX.current > 50) {
+    const endX = e.changedTouches[0].clientX;
+    if (startX.current - endX > 50) {
       setImgIndex((i) => (i + 1) % product.images!.length);
-    } else if (endX.current - startX.current > 50) {
+    } else if (endX - startX.current > 50) {
       setImgIndex((i) => (i === 0 ? product.images!.length - 1 : i - 1));
     }
   };
@@ -91,10 +88,7 @@ export default function ProductPage({
         .limit(1)
         .maybeSingle();
 
-      if (error) {
-        setCouponError("Error validating coupon");
-        setAppliedCoupon(null);
-      } else if (!data) {
+      if (error || !data) {
         setCouponError("Invalid coupon code");
         setAppliedCoupon(null);
       } else if (!data.active) {
@@ -112,7 +106,6 @@ export default function ProductPage({
             discount_pct: pct,
             active: true,
           });
-          setCouponError(null);
         }
       }
     } catch (err) {
@@ -132,7 +125,7 @@ export default function ProductPage({
 
   function computeFinalPricePerUnit(): number {
     const base = Number(product.price) || 0;
-    if (appliedCoupon && appliedCoupon.discount_pct) {
+    if (appliedCoupon?.discount_pct) {
       return +(base * (1 - appliedCoupon.discount_pct / 100));
     }
     return base;
@@ -164,91 +157,22 @@ export default function ProductPage({
     };
 
     if (i >= 0) {
-      cart[i].qty += qty;
-      cart[i].note = note;
-      cart[i].size = selectedSize || null;
-      cart[i].color = selectedColor || null;
-      cart[i].price = item.price;
-      cart[i].meta = item.meta;
+      cart[i] = { ...cart[i], ...item, qty: cart[i].qty + qty };
     } else {
       cart.push(item);
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
-
-    // 🔹 Update layout cart count
     window.dispatchEvent(new Event("cartUpdated"));
-
-    if (goCheckout && appliedCoupon) {
-      try {
-        await fetch("/api/notify-discount", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            productId: product.id,
-            productTitle: product.title,
-            category,
-            subcategory,
-            qty,
-            coupon: appliedCoupon.code,
-            discount_pct: appliedCoupon.discount_pct,
-            total_discount_amount: discount_amount_per_unit * qty,
-            time: new Date().toISOString(),
-          }),
-        });
-      } catch (err) {
-        console.warn("notify-discount failed", err);
-      }
-    }
 
     router.push(goCheckout ? "/cart?checkout=1" : "/cart");
   }
 
-  const displayedPrice = discountAppliedDisplay();
-
-  function discountAppliedDisplay() {
-    const base = Number(product.price) || 0;
-    if (appliedCoupon && appliedCoupon.discount_pct) {
-      const final = computeFinalPricePerUnit();
-      return {
-        base,
-        final,
-        saved: +(base - final),
-        pct: appliedCoupon.discount_pct,
-      };
-    }
-    return { base, final: base, saved: 0, pct: 0 };
-  }
+  const basePrice = Number(product.price) || 0;
+  const discounted = computeFinalPricePerUnit();
 
   return (
     <div className="space-y-6 p-4">
-
-      <button
-      onClick={() => {
-        const lastSearch = sessionStorage.getItem("lastSearch");
-        if (lastSearch) {
-          const { activeCategorySlug, activeSubcategorySlug } = JSON.parse(lastSearch);
-
-          // reconstruct the shop URL
-          let url = "/";
-          if (activeCategorySlug) {
-            url = `/shop/${activeCategorySlug}`;
-            if (activeSubcategorySlug) {
-              url += `/${activeSubcategorySlug}`;
-            }
-          }
-
-          // ⚡ instantly go back to that page
-          router.push(url);
-        } else {
-          router.back();
-        }
-      }}
-      className="flex items-center gap-2 text-gray-700 hover:text-black font-medium mb-4"
-    >
-      <ArrowLeft className="w-5 h-5" />
-    </button>
-
       {product.images?.length && (
         <div
           className="relative w-full aspect-square overflow-hidden rounded-lg bg-gray-100"
@@ -296,24 +220,28 @@ export default function ProductPage({
         {appliedCoupon ? (
           <>
             <div className="text-lg font-semibold text-gray-400 line-through">
-              Rs {displayedPrice.base.toFixed(2)}
+              Rs {basePrice.toFixed(2)}
             </div>
             <div className="text-2xl font-bold text-black">
-              Rs {displayedPrice.final.toFixed(2)}
+              Rs {discounted.toFixed(2)}
             </div>
             <div className="text-sm text-green-600 font-medium">
-              Save Rs {displayedPrice.saved.toFixed(2)} ({displayedPrice.pct}%)
+              Save Rs {(basePrice - discounted).toFixed(2)} (
+              {appliedCoupon.discount_pct}%)
             </div>
           </>
         ) : (
-          <div className="font-bold text-lg">Rs {Number(product.price).toFixed(2)}</div>
+          <div className="font-bold text-lg">Rs {basePrice.toFixed(2)}</div>
         )}
       </div>
 
       {product.description && (
-        <div className="prose max-w-none text-sm text-gray-700">{product.description}</div>
+        <div className="prose max-w-none text-sm text-gray-700">
+          {product.description}
+        </div>
       )}
 
+      {/* Coupon */}
       <div className="flex gap-2 items-center mt-2">
         <input
           type="text"
@@ -330,8 +258,7 @@ export default function ProductPage({
             </div>
             <button
               onClick={removeCoupon}
-              className="px-3 py-1 rounded border mt-1"
-              style={{ background: "red", color: "white", fontWeight: 600 }}
+              className="px-3 py-1 rounded border mt-1 bg-red-600 text-white font-semibold"
             >
               Remove
             </button>
@@ -348,6 +275,7 @@ export default function ProductPage({
       </div>
       {couponError && <div className="text-sm text-red-600 mt-1">{couponError}</div>}
 
+      {/* Qty */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -364,6 +292,7 @@ export default function ProductPage({
         </button>
       </div>
 
+      {/* Sizes */}
       {sizes.length > 0 && (
         <div>
           <h3 className="font-medium mb-2">Sizes</h3>
@@ -373,7 +302,9 @@ export default function ProductPage({
                 key={s}
                 onClick={() => setSelectedSize(s)}
                 className={`px-3 py-1 rounded border ${
-                  selectedSize === s ? "bg-black text-white" : "bg-white text-gray-700"
+                  selectedSize === s
+                    ? "bg-black text-white"
+                    : "bg-white text-gray-700"
                 }`}
               >
                 {s}
@@ -383,6 +314,7 @@ export default function ProductPage({
         </div>
       )}
 
+      {/* Colors */}
       {colors.length > 0 && (
         <div>
           <h3 className="font-medium mb-2">Colors</h3>
@@ -392,7 +324,9 @@ export default function ProductPage({
                 key={c}
                 onClick={() => setSelectedColor(c)}
                 className={`px-3 py-1 rounded border ${
-                  selectedColor === c ? "bg-black text-white" : "bg-white text-gray-700"
+                  selectedColor === c
+                    ? "bg-black text-white"
+                    : "bg-white text-gray-700"
                 }`}
               >
                 {c}
@@ -402,6 +336,7 @@ export default function ProductPage({
         </div>
       )}
 
+      {/* Note */}
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
@@ -410,6 +345,7 @@ export default function ProductPage({
         rows={3}
       />
 
+      {/* Buttons */}
       <div className="flex gap-2">
         <button
           className="flex-1 px-4 py-2 rounded border bg-gray-100"
@@ -425,6 +361,7 @@ export default function ProductPage({
         </button>
       </div>
 
+      {/* Related */}
       <div className="mt-8">
         <h2 className="text-lg font-bold mb-4">Related Products</h2>
         {[0, 1, 2].map((row) => (
@@ -456,8 +393,12 @@ export default function ProductPage({
                       </div>
                     )}
                     <div className="p-2">
-                      <h3 className="text-xs font-medium line-clamp-2">{p.title}</h3>
-                      <div className="text-sm font-bold text-red-600">Rs {p.price}</div>
+                      <h3 className="text-xs font-medium line-clamp-2">
+                        {p.title}
+                      </h3>
+                      <div className="text-sm font-bold text-red-600">
+                        Rs {p.price}
+                      </div>
                     </div>
                   </div>
                 ))}
