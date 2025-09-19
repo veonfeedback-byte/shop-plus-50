@@ -6,6 +6,8 @@ import { CartItem } from "@/app/lib/types";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { supabase } from "@/app/lib/supabase";
+import { ArrowLeft } from "lucide-react";
+
 
 export default function ProductPage({
   params,
@@ -220,6 +222,33 @@ export default function ProductPage({
 
   return (
     <div className="space-y-6 p-4">
+
+      <button
+      onClick={() => {
+        const lastSearch = sessionStorage.getItem("lastSearch");
+        if (lastSearch) {
+          const { activeCategorySlug, activeSubcategorySlug } = JSON.parse(lastSearch);
+
+          // reconstruct the shop URL
+          let url = "/";
+          if (activeCategorySlug) {
+            url = `/shop/${activeCategorySlug}`;
+            if (activeSubcategorySlug) {
+              url += `/${activeSubcategorySlug}`;
+            }
+          }
+
+          // ⚡ instantly go back to that page
+          router.push(url);
+        } else {
+          router.back();
+        }
+      }}
+      className="flex items-center gap-2 text-gray-700 hover:text-black font-medium mb-4"
+    >
+      <ArrowLeft className="w-5 h-5" />
+    </button>
+
       {product.images?.length && (
         <div
           className="relative w-full aspect-square overflow-hidden rounded-lg bg-gray-100"
