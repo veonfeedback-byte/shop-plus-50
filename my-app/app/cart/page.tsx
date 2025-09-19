@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import { Trash2 } from "lucide-react";
 
 type CartItem = {
   id: string;
@@ -367,26 +368,35 @@ export default function CartPage() {
                 <span className="text-sm text-gray-600">× {it.qty}</span>
               </div>
 
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => updateQty(it.id, -1)}
-                  className="px-2 py-1 border rounded-lg hover:bg-gray-100 text-sm"
-                >
-                  -
-                </button>
+              {/* Quantity Controls */}
+              <div className="mt-3 inline-flex items-center border rounded-lg overflow-hidden">
+                {it.qty > 1 ? (
+                  <button
+                    onClick={() => updateQty(it.id, -1)}
+                    className="px-3 py-1 text-gray-700 hover:bg-gray-100"
+                  >
+                    -
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => removeItem(it.id)}
+                    className="px-3 py-1 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+
+                <span className="px-4 py-1 text-gray-800 font-medium">{it.qty}</span>
+
                 <button
                   onClick={() => updateQty(it.id, +1)}
-                  className="px-2 py-1 border rounded-lg hover:bg-gray-100 text-sm"
+                  className="px-3 py-1 text-gray-700 hover:bg-gray-100"
                 >
                   +
                 </button>
-                <button
-                  onClick={() => removeItem(it.id)}
-                  className="px-3 py-1 border rounded-lg text-red-600 hover:bg-red-50 text-sm"
-                >
-                  Remove
-                </button>
               </div>
+
+             
             </div>
           </motion.div>
         ))}

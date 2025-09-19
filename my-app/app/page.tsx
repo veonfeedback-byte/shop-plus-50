@@ -9,6 +9,9 @@ import { ArrowLeft } from "lucide-react";
 import Catalog, { Product, Category, Subcategory } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
 import { categoryIcons } from "./lib/categoryIcons";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react"; // or your custom spinner if different
+
 
 /* ----------------- types ----------------- */
 type Suggestion = {
@@ -80,6 +83,8 @@ export default function HomePage() {
   const isDown = useRef(false);
   const startX = useRef(0);
   const scrollLeft = useRef(0);
+  const router = useRouter();
+
 
   // Pre-seed with first 10 products for instant render
   const initialProducts: IndexedProduct[] = Catalog.getCategories()
@@ -340,7 +345,7 @@ export default function HomePage() {
   setShowSuggestions(false);
   setShowBackButton(false);
   setVisibleProducts(homeProducts.slice(0, 10));
-  if (typeof window !== "undefined") window.scrollTo({ behavior: "smooth" });
+  if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
 }, [homeProducts]);
 
   /* ---------- UX close suggestions on outside click/scroll ---------- */
@@ -396,9 +401,6 @@ export default function HomePage() {
     // ✅ Close mobile keyboard
     inputRef.current?.blur();
 
-    // ✅ Close mobile keyboard when selecting a suggestion
-    inputRef.current?.blur();
-
     // Save current search+scroll to sessionStorage so 'back' from product restores it
     if (typeof window !== "undefined") {
       sessionStorage.setItem(
@@ -432,46 +434,71 @@ export default function HomePage() {
 
   /* ---------- category click: auto-select first subcategory & lazy load ---------- */
   const handleCategoryClick = (cat: Category) => {
-  // clear any previous state
-  if (typeof window !== "undefined") {
-    sessionStorage.clear();
-  }
+    setLoadingProducts(true);
+    setActiveCategory(cat);
+    // auto-select first subcategory (if exists) so products for it load by default
+    setActiveSubcategory(cat.subcategories && cat.subcategories.length > 0 ? cat.subcategories[0] : null);
+    setActiveFilter(null);
+    setShowBackButton(true);
+    // Save state to session so product->back can restore
+    if (typeof window !== "undefined") {
+     sessionStorage.setItem(
+  "lastSearch",
+  JSON.stringify({
+    query: cat.name,
+    scrollY: window.scrollY,
+    activeFilter: null,
+    activeCategorySlug: cat.slug,
+    activeSubcategorySlug: cat.subcategories?.[0]?.slug ?? null,
+  } satisfies LastSearchState)
+);
 
-  setLoadingProducts(true);
-  setActiveCategory(cat);
-  setActiveSubcategory(cat.subcategories?.[0] ?? null);
-  setActiveFilter(null);
-  setShowBackButton(true);
-
-  // force hard navigation (like full reload)
-  window.location.href = `/shop/${encodeURIComponent(cat.slug)}`;
-};
+    }
+    setTimeout(() => setLoadingProducts(false), 200);
+    window.scrollTo({ behavior: "smooth" });
+  };
 
 
+  /* ---------- subcategory click ---------- */
   const handleSubcategoryClick = (sub: Subcategory) => {
-  if (typeof window !== "undefined") {
-    sessionStorage.clear();
-  }
-
-  setLoadingProducts(true);
-  setActiveSubcategory(sub);
-  setActiveFilter(null);
-  setShowBackButton(true);
-
-  // force hard navigation (like full reload)
-  window.location.href = `/shop/${encodeURIComponent(activeCategory?.slug ?? "")}/${encodeURIComponent(sub.slug)}`;
-};
-
-
+    setLoadingProducts(true);
+    setActiveSubcategory(sub);
+    setActiveFilter(null);
+    setShowBackButton(true);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+      "lastSearch",
+      JSON.stringify({
+        query: sub.name,
+        scrollY: window.scrollY,
+        activeFilter: null,
+        activeCategorySlug: activeCategory?.slug ?? null,
+        activeSubcategorySlug: sub.slug,
+      } satisfies LastSearchState)
+    );
+    }
+    setTimeout(() => setLoadingProducts(false), 200);
+    window.scrollTo({  behavior: "smooth" });
+  };
   /* ---------- Enter key in search: close suggestions + show back icon ---------- */
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
   if (e.key === "Enter") {
     e.preventDefault(); // stop form submit or page reload
+     const firstSuggestion = suggestions[0];
+  if (firstSuggestion) {
+    onSelectSuggestion(firstSuggestion);
+  } else {
     setShowSuggestions(false);
     setShowBackButton(true);
 
+    // Force-close soft keyboard
+    setTimeout(() => {
+      inputRef.current?.blur();
+    }, 100);
+
     // Close the soft keyboard on mobile
     inputRef.current?.blur();
+  }
 
     if (typeof window !== "undefined") {
       sessionStorage.setItem(
@@ -498,57 +525,61 @@ export default function HomePage() {
 
   /* ---------- persist & restore last search on back/forward ---------- */
   useEffect(() => {
-    if (typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
 
-    const restoreState = () => {
-      const raw = sessionStorage.getItem("lastSearch");
-      if (!raw) return;
+  const restoreState = () => {
+    const raw = sessionStorage.getItem("lastSearch");
+    if (!raw) return;
 
-      try {
-        const parsed = JSON.parse(raw) as LastSearchState;
-        if (!parsed) return;
+    try {
+      const parsed = JSON.parse(raw) as LastSearchState;
+      if (!parsed) return;
 
-        if (parsed.query) setQuery(parsed.query);
-        if (parsed.activeFilter) setActiveFilter(parsed.activeFilter);
+      if (parsed.query) setQuery(parsed.query);
+      if (parsed.activeFilter) setActiveFilter(parsed.activeFilter);
 
-        if (parsed.activeCategorySlug) {
-          const cat = Catalog.getCategories().find(
+      if (parsed.activeCategorySlug) {
+        const cat =
+          Catalog.getCategories().find(
             (c) => c.slug === parsed.activeCategorySlug
           ) || null;
-          setActiveCategory(cat);
+        setActiveCategory(cat);
 
-          if (parsed.activeSubcategorySlug && cat) {
-            const sub = cat.subcategories.find(
+        if (parsed.activeSubcategorySlug && cat) {
+          const sub =
+            cat.subcategories.find(
               (s) => s.slug === parsed.activeSubcategorySlug
             ) || null;
-            setActiveSubcategory(sub);
-          }
+          setActiveSubcategory(sub);
         }
-
-        setShowBackButton(
-          !!(parsed.query || parsed.activeFilter || parsed.activeCategorySlug)
-        );
-
-        // Restore scroll AFTER DOM updates and products are visible
-        if (parsed.scrollY !== undefined) {
-          const tryScroll = () => {
-            if (document.body.offsetHeight > 0) {
-              window.scrollTo({ top: parsed.scrollY, behavior: "auto" });
-            } else {
-              // wait until DOM renders
-              requestAnimationFrame(tryScroll);
-            }
-          };
-          requestAnimationFrame(tryScroll);
-        }
-      } catch {
-        // ignore parse errors
       }
-    };
 
+      setShowBackButton(
+        !!(parsed.query || parsed.activeFilter || parsed.activeCategorySlug)
+      );
+
+      if (parsed.scrollY !== undefined) {
+        const tryScroll = () => {
+          if (document.body.offsetHeight > 0) {
+            window.scrollTo({ top: parsed.scrollY, behavior: "auto" });
+          } else {
+            requestAnimationFrame(tryScroll);
+          }
+        };
+        requestAnimationFrame(tryScroll);
+      }
+    } catch {}
+  };
+
+  // Run once on first load
   restoreState();
+
+  // ✅ Works for both hard and soft back/forward
   window.addEventListener("popstate", restoreState);
-  return () => window.removeEventListener("popstate", restoreState);
+
+  return () => {
+    window.removeEventListener("popstate", restoreState);
+  };
 }, []);
 
 
@@ -571,6 +602,12 @@ export default function HomePage() {
 
   /* ---------- fix for duplicate key console error: ensure unique keys for lists ---------- */
   const productKey = (p: IndexedProduct) => `${p.id}-${p.subcategorySlug}-${p.categorySlug}`;
+
+  const Spinner = () => (
+    <div className="flex justify-center items-center py-10">
+      <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+    </div>
+  );
 
   /* ---------- render ---------- */
   return (
@@ -722,9 +759,10 @@ export default function HomePage() {
             {searchResults.map((p) => (
               <a
                 key={productKey(p)}
-                href={productUrl(p)} // full page reload
-                onClick={() => handleProductClickSave(p)}
+                href={productUrl(p)}
+                onClick={() => handleProductClickSave(p)} // save before reload
                 className="block hover:scale-[1.02] transition"
+                rel="prefetch" // 🚀 Hint browser to fetch early
               >
                 <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg">
                   <img
@@ -737,6 +775,7 @@ export default function HomePage() {
                 <div className="text-sm line-clamp-2">{p.title}</div>
                 <div className="font-semibold mt-1">Rs {p.price}</div>
               </a>
+
             ))}
 
           </div>
