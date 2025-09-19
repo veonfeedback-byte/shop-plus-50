@@ -167,7 +167,7 @@ export default function Profile() {
 
         const { data: initialOrders } = await supabase
           .from("orders")
-          .select("*, order_items(*)")
+          .select("*")
           .eq("profile_id", profileId)
           .order("created_at", { ascending: false });
 
