@@ -10,6 +10,7 @@ import React, {
   useLayoutEffect,
 } from "react";
 import Link from "next/link";
+import Head from "next/head";
 import Fuse from "fuse.js";
 import Catalog, { Product } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
@@ -27,7 +28,7 @@ function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-// Cache categories globally to avoid repeated Catalog.getCategories() calls
+// Cache categories globally
 const cachedCategories = Catalog.getCategories();
 
 /* ---------- Small memoized product card with progressive blur ---------- */
@@ -46,7 +47,6 @@ function ProductCard({
 }) {
   const [loaded, setLoaded] = useState(false);
 
-  // small inline style fallback skeleton; we avoid external libs
   const imgProps = {
     src: p.mainImage || "",
     alt: p.title,
@@ -62,7 +62,6 @@ function ProductCard({
     <Link href={href} onClick={onClick} className="block hover:scale-[1.02] transition">
       <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg bg-gray-100">
         {p.mainImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img {...imgProps} />
         ) : (
           <div className="w-full h-full bg-gray-200 animate-pulse" />
@@ -83,7 +82,7 @@ export default function HomePage() {
   const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>([]);
   const [loadingHome, setLoadingHome] = useState(true);
 
-  const [visibleHome, setVisibleHome] = useState<number>(4); // small for fastest first paint
+  const [visibleHome, setVisibleHome] = useState<number>(4);
   const [visibleSearch, setVisibleSearch] = useState<number>(10);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -94,7 +93,7 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
 
-  /* ---------- Build product index once (memoized) ---------- */
+  /* ---------- Build product index once ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
     const out: IndexedProduct[] = [];
     for (const cat of cachedCategories) {
@@ -115,11 +114,9 @@ export default function HomePage() {
       }
     }
     return out;
-    // empty deps so it's built once per page load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ---------- Initial home picks (instant render) ---------- */
+  /* ---------- Initial home picks ---------- */
   const initialHomePicks = useMemo(() => {
     const picks: IndexedProduct[] = [];
     for (const cat of cachedCategories) {
@@ -137,49 +134,40 @@ export default function HomePage() {
   }, [allProducts]);
 
   useEffect(() => {
-    // provide instant content (titles/prices + skeletons)
     setHomeProducts(initialHomePicks);
     setLoadingHome(false);
 
-    // hydrate in background (defer heavy work using idle)
     const hydrate = () => {
       const cached = sessionStorage.getItem("homeProducts");
       if (cached) {
         try {
           setHomeProducts(JSON.parse(cached));
           return;
-        } catch {
-          // ignore parse error, continue
-        }
+        } catch {}
       }
       const shuffled = shuffle(initialHomePicks);
       setHomeProducts(shuffled);
       try {
         sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
-      } catch {
-        /* ignore storage errors */
-      }
+      } catch {}
     };
 
     if ("requestIdleCallback" in window) {
       (window as any).requestIdleCallback(hydrate, { timeout: 500 });
     } else {
-      // fallback
       const t = setTimeout(hydrate, 200);
       return () => clearTimeout(t);
     }
   }, [initialHomePicks]);
 
-  // expand visibleHome quickly after first paint so initial render is fast
   useEffect(() => {
     const id = setTimeout(() => setVisibleHome(6), 50);
     return () => clearTimeout(id);
   }, []);
 
-  /* ---------- Fuse search index (deferred to idle to avoid blocking paint) ---------- */
+  /* ---------- Fuse search ---------- */
   const [fuse, setFuse] = useState<Fuse<IndexedProduct> | null>(null);
   useEffect(() => {
-    // defer building Fuse to idle so initial paint is snappy
     const build = () => {
       try {
         const f = new Fuse(allProducts, {
@@ -237,22 +225,17 @@ export default function HomePage() {
     return cats.slice(0, 6);
   }, [debouncedQuery, searchTriggered]);
 
-  /* ---------- Search results (priority: exact -> phrase -> multiword -> fuzzy) ---------- */
+  /* ---------- Search results ---------- */
   const searchResults = useMemo<IndexedProduct[]>(() => {
     if (!debouncedQuery || !searchTriggered || !fuse) return [];
 
     const q = debouncedQuery.trim().toLowerCase();
     const words = q.split(/\s+/).filter(Boolean);
 
-    // 1. exact title equals
     const exact = allProducts.filter((p) => p.title.toLowerCase() === q);
-
-    // 2. title contains full phrase
     const phrase = allProducts.filter(
       (p) => p.title.toLowerCase().includes(q) && !exact.includes(p)
     );
-
-    // 3. all words present (multi-word)
     const multiWord = allProducts.filter(
       (p) =>
         words.length > 1 &&
@@ -260,15 +243,15 @@ export default function HomePage() {
         !exact.includes(p) &&
         !phrase.includes(p)
     );
-
-    // 4. fuzzy fallback from Fuse
     const fuzzy = fuse
       .search(q, { limit: 300 })
       .map((r) => r.item)
       .filter((p) => !exact.includes(p) && !phrase.includes(p) && !multiWord.includes(p));
 
     const merged = [...exact, ...phrase, ...multiWord, ...fuzzy];
-    const deduped = Array.from(new Map(merged.map((m) => [m.id, m])).values());
+    const deduped = Array.from(
+      new Map(merged.map((m) => [`${m.categorySlug}-${m.subcategorySlug}-${m.id}`, m])).values()
+    );
 
     if (priceSort) {
       deduped.sort((a, b) => {
@@ -281,7 +264,7 @@ export default function HomePage() {
     return deduped;
   }, [debouncedQuery, searchTriggered, fuse, allProducts, priceSort]);
 
-  /* ---------- Final results: either searchResults OR category filter results ---------- */
+  /* ---------- Final results ---------- */
   const finalResults = useMemo<IndexedProduct[]>(() => {
     if (activeCategory || activeSubcategory) {
       let filtered = allProducts.filter(
@@ -312,20 +295,20 @@ export default function HomePage() {
     setActiveSubcategory(null);
     try {
       sessionStorage.clear();
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   /* ---------- product url ---------- */
   const productUrl = useCallback(
     (p: IndexedProduct) =>
-      `/shop/${encodeURIComponent(p.categorySlug)}/${encodeURIComponent(p.subcategorySlug)}/${encodeURIComponent(p.id)}`,
+      `/shop/${encodeURIComponent(p.categorySlug)}/${encodeURIComponent(
+        p.subcategorySlug
+      )}/${encodeURIComponent(p.id)}`,
     []
   );
 
-  /* ---------- Restore state on back ---------- */
+  /* ---------- Restore state ---------- */
   useEffect(() => {
     const lastQ = sessionStorage.getItem("lastQuery");
     const lastScroll = sessionStorage.getItem("scrollY");
@@ -356,10 +339,12 @@ export default function HomePage() {
     }
   }, [finalResults, visibleSearch]);
 
-  /* ---------- Infinite scroll for Home (keeps same behavior) ---------- */
   useEffect(() => {
     function onScroll() {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 && visibleHome < 20) {
+      if (
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 &&
+        visibleHome < 20
+      ) {
         setVisibleHome((v) => Math.min(v + 6, 20));
       }
     }
@@ -370,11 +355,54 @@ export default function HomePage() {
   /* ---------- Render ---------- */
   return (
     <HomeContext.Provider value={{ resetHome }}>
+      <Head>
+        <title>Trolly – Online Shopping in Pakistan | Best Prices 2025</title>
+        <meta
+          name="description"
+          content="Trolly is your trusted online shopping store in Pakistan. Explore trending fashion, electronics, home products & more at affordable prices."
+        />
+        <meta
+          name="keywords"
+          content="Trolly, online shopping Pakistan, buy products online, best prices Pakistan, fashion, electronics"
+        />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://trollypk.vercel.app/" />
+
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Trolly – Online Shopping in Pakistan" />
+        <meta
+          property="og:description"
+          content="Buy latest fashion, electronics & more at Trolly.pk with best prices and fast delivery."
+        />
+        <meta property="og:url" content="https://trollypk.vercel.app/" />
+        <meta property="og:image" content="/assets/Logo.png" />
+
+        {/* Schema.org */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Trolly",
+              url: "https://trollypk.vercel.app",
+              logo: "https://trollypk.vercel.app/assets/Logo.png",
+              sameAs: ["https://facebook.com", "https://instagram.com", "https://twitter.com"],
+            }),
+          }}
+        />
+      </Head>
+
       <div className="space-y-6 p-4 pb-28">
         {/* Search Row */}
         <div className="flex items-center gap-3 w-full sticky top-0 z-30 bg-white/95 backdrop-blur-md py-2">
           {showBackButton && (
-            <button onClick={resetHome} aria-label="Back" className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition">
+            <button
+              onClick={resetHome}
+              aria-label="Back"
+              className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
@@ -408,7 +436,7 @@ export default function HomePage() {
               <div className="absolute z-20 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto">
                 {categorySuggestions.map((s) => (
                   <button
-                    key={s.slug}
+                    key={`${s.type}-${s.parent || "root"}-${s.slug}`}
                     onClick={() => {
                       if (s.type === "category") {
                         setActiveCategory(s.slug);
@@ -437,6 +465,7 @@ export default function HomePage() {
                     {s.title}
                   </button>
                 ))}
+
               </div>
             )}
           </div>
@@ -454,7 +483,9 @@ export default function HomePage() {
                     sessionStorage.setItem("lastSort", "asc");
                   } catch {}
                 }}
-                className={`px-4 py-2 rounded-lg border text-sm ${priceSort === "asc" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"}`}
+                className={`px-4 py-2 rounded-lg border text-sm ${
+                  priceSort === "asc" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"
+                }`}
               >
                 Price ↑
               </button>
@@ -465,7 +496,9 @@ export default function HomePage() {
                     sessionStorage.setItem("lastSort", "desc");
                   } catch {}
                 }}
-                className={`px-4 py-2 rounded-lg border text-sm ${priceSort === "desc" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"}`}
+                className={`px-4 py-2 rounded-lg border text-sm ${
+                  priceSort === "desc" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"
+                }`}
               >
                 Price ↓
               </button>
@@ -487,7 +520,7 @@ export default function HomePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {finalResults.slice(0, visibleSearch).map((p, idx) => (
                 <ProductCard
-                  key={p.id}
+                  key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
                   p={p}
                   href={productUrl(p)}
                   onClick={() => {
@@ -496,7 +529,8 @@ export default function HomePage() {
                       sessionStorage.setItem("lastQuery", query);
                       sessionStorage.setItem("visibleSearch", String(visibleSearch));
                       if (activeCategory) sessionStorage.setItem("lastCategory", activeCategory);
-                      if (activeSubcategory) sessionStorage.setItem("lastSubcategory", activeSubcategory);
+                      if (activeSubcategory)
+                        sessionStorage.setItem("lastSubcategory", activeSubcategory);
                       if (priceSort) sessionStorage.setItem("lastSort", priceSort);
                     } catch {}
                   }}
@@ -532,7 +566,7 @@ export default function HomePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
                 <ProductCard
-                  key={p.id}
+                  key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
                   p={p}
                   href={productUrl(p)}
                   onClick={() => {
