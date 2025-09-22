@@ -427,7 +427,7 @@ export default function CartPage() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 200, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed bottom-20 left-0 right-0 bg-white shadow-lg p-3 border-t flex justify-between items-center"
+            className="fixed bottom-0 pb-20 left-0 right-0 bg-white shadow-lg p-3 border-t flex justify-between items-center"
           >
             <div className="text-base font-semibold">
               Total ({selectedCount} items):{" "}

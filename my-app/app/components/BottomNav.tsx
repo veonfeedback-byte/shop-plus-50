@@ -63,7 +63,7 @@ export default function BottomNav() {
       <PageLoader show={loading} />
 
       {/* ✅ WhatsApp Floating Button */}
-      <div className="fixed bottom-24 right-5 z-50 flex flex-col items-end">
+      <div className="fixed bottom-30 right-5 z-50 flex flex-col items-end">
         {showWhatsApp && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
