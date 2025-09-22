@@ -226,11 +226,11 @@ export default function CartPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 pb-28 p-4">
       <h1 className="text-3xl font-bold text-gray-800 mb-4">🛒 Your Cart</h1>
 
-      {/* Address / Profile Section */}
+     {/* Address / Profile Section */}
       <div className="bg-white shadow rounded-xl p-4 mb-4 border">
         <div className="flex justify-between items-center mb-3">
           <h2 className="font-semibold text-gray-800">Delivery Details</h2>
-          {!editing && (
+          {profile?.email && !editing && (
             <button
               onClick={() => setEditing(true)}
               className="text-blue-600 text-sm font-medium hover:underline"
@@ -240,7 +240,12 @@ export default function CartPage() {
           )}
         </div>
 
-        {editing ? (
+        {/* If not logged in */}
+        {!profile?.email ? (
+          <div className="text-center text-gray-600 text-sm py-6">
+            ⚠️ You are not logged in. Please login first to place an order.
+          </div>
+        ) : editing ? (
           <div className="space-y-3">
             <input
               className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -267,19 +272,31 @@ export default function CartPage() {
               }
             />
             <input
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-100 cursor-not-allowed"
               placeholder="Email"
               value={profile.email || ""}
-              onChange={(e) =>
-                setProfile((prev) => ({ ...prev, email: e.target.value }))
-              }
+              readOnly // 🔒 email cannot be changed
             />
-            <button
-              onClick={saveProfile}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium"
-            >
-              Save
-            </button>
+
+            <div className="flex gap-3">
+              <button
+                onClick={saveProfile}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium"
+              >
+                Save
+              </button>
+
+              <button
+                onClick={() => {
+                  const lastSaved = JSON.parse(localStorage.getItem("profile") || "{}");
+                  setProfile(lastSaved);
+                  setEditing(false);
+                }}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         ) : (
           <div className="text-sm text-gray-700 space-y-1">
@@ -410,7 +427,7 @@ export default function CartPage() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 200, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed bottom-17 left-0 right-0 bg-white shadow-lg p-3 border-t flex justify-between items-center"
+            className="fixed bottom-20 left-0 right-0 bg-white shadow-lg p-3 border-t flex justify-between items-center"
           >
             <div className="text-base font-semibold">
               Total ({selectedCount} items):{" "}
@@ -418,7 +435,7 @@ export default function CartPage() {
             </div>
             <button
               onClick={submitOrder}
-              disabled={submitting || selectedCount === 0}
+              disabled={ submitting || selectedCount === 0 || !profile?.email /* 🔒 block checkout if not logged in */ }
               className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium shadow hover:scale-105 transition disabled:opacity-50"
             >
               {submitting ? "Submitting…" : "Place Order"}

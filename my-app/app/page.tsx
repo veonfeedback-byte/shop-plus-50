@@ -79,19 +79,6 @@ export default function HomePage() {
   const [query, setQuery] = useState("");
   const [showBackButton, setShowBackButton] = useState(false);
 
-  const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>([]);
-  const [loadingHome, setLoadingHome] = useState(true);
-
-  const [visibleHome, setVisibleHome] = useState<number>(4);
-  const [visibleSearch, setVisibleSearch] = useState<number>(10);
-
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
-  const [searchTriggered, setSearchTriggered] = useState(false);
-
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
 
   /* ---------- Build product index once ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
@@ -116,7 +103,7 @@ export default function HomePage() {
     return out;
   }, []);
 
-  /* ---------- Initial home picks ---------- */
+   /* ---------- Initial home picks ---------- */
   const initialHomePicks = useMemo(() => {
     const picks: IndexedProduct[] = [];
     for (const cat of cachedCategories) {
@@ -125,18 +112,28 @@ export default function HomePage() {
           (p) => p.categorySlug === cat.slug && p.subcategorySlug === sub.slug
         );
         if (valid.length) {
-          const random = valid[Math.floor(Math.random() * valid.length)];
-          picks.push(random);
+          picks.push(valid[0]); // always pick first → stable across SSR/CSR
         }
       }
     }
     return picks;
   }, [allProducts]);
 
-  useEffect(() => {
-    setHomeProducts(initialHomePicks);
-    setLoadingHome(false);
 
+  const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>(initialHomePicks);
+
+  const [visibleHome, setVisibleHome] = useState<number>(4);
+  const [visibleSearch, setVisibleSearch] = useState<number>(10);
+
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
+  const [searchTriggered, setSearchTriggered] = useState(false);
+
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
+
+  useEffect(() => {
     const hydrate = () => {
       const cached = sessionStorage.getItem("homeProducts");
       if (cached) {
@@ -153,12 +150,13 @@ export default function HomePage() {
     };
 
     if ("requestIdleCallback" in window) {
-      (window as any).requestIdleCallback(hydrate, { timeout: 500 });
+      (window as any).requestIdleCallback(hydrate, { timeout: 200 });
     } else {
-      const t = setTimeout(hydrate, 200);
+      const t = setTimeout(hydrate, 100);
       return () => clearTimeout(t);
     }
   }, [initialHomePicks]);
+
 
   useEffect(() => {
     const id = setTimeout(() => setVisibleHome(6), 50);
@@ -556,12 +554,8 @@ export default function HomePage() {
               </div>
             )}
           </>
-        ) : loadingHome ? (
-          <div className="flex justify-center items-center py-10">
-            <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : (
-          <section>
+            ) : (
+            <section>
             <h1 className="text-2xl font-semibold">🔥 Trending</h1>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
