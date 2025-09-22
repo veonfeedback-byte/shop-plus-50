@@ -63,7 +63,7 @@ const tag = useMemo(() => {
     <Link
       href={href}
       onClick={onClick}
-      className="block group rounded-xl overflow-hidden shadow hover:shadow-xl transition bg-white"
+      className="block group rounded-xl overflow-hidden shadow hover:shadow-xl transition "
     >
       {/* image with badge */}
       <div className="relative w-full aspect-square overflow-hidden">
@@ -420,7 +420,7 @@ export default function HomePage() {
 
       <div className="space-y-6 p-4 pb-28">
         {/* Search Row */}
-        <div className="flex items-center gap-3 w-full sticky top-0 z-30 bg-white/95 backdrop-blur-md py-2">
+        <div className="flex items-center gap-3 w-full sticky top-0 z-30 backdrop-blur-md py-2">
           {showBackButton && (
             <button
               onClick={resetHome}
