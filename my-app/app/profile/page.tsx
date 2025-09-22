@@ -47,10 +47,15 @@ type ReturnReasonState = {
 
 export default function Profile() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [profile, setProfile] = useState<any>({});
+  const [profile, setProfile] = useState<any>(null);
   const [orders, setOrders] = useState<DBOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"current" | "history">("current");
+
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [form, setForm] = useState({ name: "", phone: "", address: "", email: "" });
+  const [authLoading, setAuthLoading] = useState(false);
+
 
   const [showReturnInput, setShowReturnInput] = useState<{ [id: string]: boolean }>({});
   const [returnReason, setReturnReason] = useState<ReturnReasonState>({});
@@ -114,6 +119,65 @@ export default function Profile() {
     }
   }
 
+  // ---- LOGIN ----
+  async function handleLogin() {
+    if (!form.email) return toast.error("Enter email");
+
+    setAuthLoading(true);
+    const { data: existing, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("email", form.email)
+      .maybeSingle();
+
+    setAuthLoading(false);
+
+    if (error) return toast.error("Login failed");
+    if (!existing) {
+      toast.error("Email not found. Please signup.");
+      return;
+    }
+
+    localStorage.setItem("profile", JSON.stringify(existing));
+    setProfile(existing);
+    toast.success("Logged in successfully!");
+  }
+
+  // ---- SIGNUP ----
+  async function handleSignup() {
+    const { name, phone, address, email } = form;
+    if (!name || !phone || !address || !email) return toast.error("Fill all fields");
+
+    setAuthLoading(true);
+
+    // Check existing email
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existing) {
+      setAuthLoading(false);
+      toast.error("Email already exists, please login.");
+      return;
+    }
+
+    const { data: newProfile, error } = await supabase
+      .from("profiles")
+      .insert([{ name, phone, address, email }])
+      .select("*")
+      .single();
+
+    setAuthLoading(false);
+
+    if (error) return toast.error("Signup failed");
+
+    localStorage.setItem("profile", JSON.stringify(newProfile));
+    setProfile(newProfile);
+    toast.success("Account created successfully!");
+  }
+
   // Auto approve pending orders
   useEffect(() => {
     if (!orders.length) return;
@@ -141,6 +205,14 @@ export default function Profile() {
       }
     });
   }, [orders]);
+
+  // Restore profile from localStorage on page load
+  useEffect(() => {
+    const savedProfile = localStorage.getItem("profile");
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
+  }, []);
 
   // Load profile & orders
   useEffect(() => {
@@ -206,8 +278,32 @@ export default function Profile() {
           )
           .subscribe();
 
+          // After setting profileId and before return cleanup:
+          const profileChannel = supabase
+            .channel(`profile-realtime-${profileId}`)
+            .on(
+              "postgres_changes",
+              {
+                event: "*",
+                schema: "public",
+                table: "profiles",
+                filter: `id=eq.${profileId}`,
+              },
+              (payload) => {
+                if (payload.eventType === "UPDATE") {
+                  setProfile(payload.new);
+                  localStorage.setItem("profile", JSON.stringify(payload.new));
+                  toast.info("Profile updated");
+                }
+              }
+            )
+            .subscribe();
+
+
         return () => {
-          supabase.removeChannel(channel);
+          supabase.removeChannel(channel); // orders
+          supabase.removeChannel(profileChannel); // profile
+
         };
       });
   }, []);
@@ -226,17 +322,40 @@ export default function Profile() {
         ].includes(o.status)
   );
 
+  function handleLogout() {
+  localStorage.removeItem("profile");
+  setProfile(null);
+  toast("Logged out");
+}
+
+
   return (
     <div className="space-y-8 p-5 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+     
+      <div className="flex">
+
+        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+        
+        {profile?.email ? (
+        <button
+          onClick={handleLogout}
+          className="ml-auto px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600"
+        >
+          Logout
+        </button>
+
+        ) : null}
+        </div>
+        
 
       {/* Profile Info */}
-      {profile?.name || profile?.email ? (
+      {profile?.email ? (
         <div className="rounded-2xl bg-white shadow p-5 flex items-center gap-5">
           <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-pink-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
             {profile.name?.[0] || "U"}
           </div>
-          <div className="space-y-1">
+
+          <div className="flex-1 space-y-1">
             <div className="font-semibold text-gray-900 flex items-center gap-2">
               <User className="w-4 h-4 text-pink-500" /> {profile.name}
             </div>
@@ -252,10 +371,86 @@ export default function Profile() {
           </div>
         </div>
       ) : (
-        <div className="rounded-xl bg-white shadow p-4 text-sm text-gray-600">
-          Not logged in. Place an order to save your info.
+        <div className="rounded-2xl bg-white shadow p-5 space-y-3">
+          {authMode === "login" ? (
+            <>
+              <input
+                type="email"
+                placeholder="Enter email"
+                className="w-full border rounded px-3 py-2 text-sm"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+              <button
+                onClick={handleLogin}
+                disabled={authLoading}
+                className={`w-full py-2 rounded font-medium ${
+                  authLoading
+                    ? "bg-blue-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                } text-white`}
+              >
+                {authLoading ? "Logging in..." : "Login"}
+              </button>
+              <p
+                onClick={() => setAuthMode("signup")}
+                className="text-sm text-blue-600 cursor-pointer underline"
+              >
+                Not already login? Signup now
+              </p>
+            </>
+          ) : (
+            <>
+              <input
+                type="text"
+                placeholder="Full Name"
+                className="w-full border rounded px-3 py-2 text-sm"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+              <input
+                type="text"
+                placeholder="Phone"
+                className="w-full border rounded px-3 py-2 text-sm"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+              <input
+                type="text"
+                placeholder="Address"
+                className="w-full border rounded px-3 py-2 text-sm"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                className="w-full border rounded px-3 py-2 text-sm"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+              <button
+                onClick={handleSignup}
+                disabled={authLoading}
+                className={`w-full py-2 rounded font-medium ${
+                  authLoading
+                    ? "bg-green-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700"
+                } text-white`}
+              >
+                {authLoading ? "Signing up..." : "Signup"}
+              </button>
+              <p
+                onClick={() => setAuthMode("login")}
+                className="text-sm text-blue-600 cursor-pointer underline"
+              >
+                Already have an account? Login
+              </p>
+            </>
+          )}
         </div>
       )}
+
 
       {/* Orders */}
       <div>
@@ -303,19 +498,22 @@ export default function Profile() {
                 key={o.id}
                 className="relative rounded-xl bg-white shadow-md border border-gray-100 p-4"
               >
-                {/* Order date/time top-right */}
-                <div className="top-3 right-3 text-xs text-gray-500 flex items-center gap-1">
-                  <History className="w-3 h-3" />
-                  {new Date(o.created_at).toLocaleDateString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}{" "}
-                  {new Date(o.created_at).toLocaleTimeString("en-GB", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
+                  {/* Order header with ID + date */}
+                  <div className="grid justify-between items-center mb-3 gap-3">
+                    
+                    <div className="text-xs text-gray-500 flex items-center gap-1">
+                      <History className="w-3 h-3" />
+                      {new Date(o.created_at).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}{" "}
+                      {new Date(o.created_at).toLocaleTimeString("en-GB", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
 
                 {/* Items list */}
                 <div className="space-y-3">
@@ -325,6 +523,9 @@ export default function Profile() {
                       className="flex justify-between items-center border-b last:border-0 pb-2"
                     >
                       <div className="flex-1 pr-3">
+                        <div className="text-xs font-mono text-gray-600">
+                           Order ID: <span className="font-semibold">{o.id}</span>
+                        </div>
                         <div className="font-medium text-gray-800">
                           {item.title}{" "}
                           <span className="text-gray-500 text-sm">
