@@ -31,7 +31,7 @@ function shuffle<T>(arr: T[]): T[] {
 // Cache categories globally
 const cachedCategories = Catalog.getCategories();
 
-/* ---------- Small memoized product card with progressive blur ---------- */
+/* ---------- Small memoized product card with tags + modern price ---------- */
 function ProductCard({
   p,
   href,
@@ -47,32 +47,64 @@ function ProductCard({
 }) {
   const [loaded, setLoaded] = useState(false);
 
-  const imgProps = {
-    src: p.mainImage || "",
-    alt: p.title,
-    className:
-      "w-full h-full object-cover transition-transform duration-300 ease-out " +
-      (loaded ? "scale-100 filter-none" : "scale-105 blur-2xl grayscale"),
-    loading: eager ? ("eager" as "eager") : ("lazy" as "lazy"),
-    decoding: "async" as const,
-    onLoad: () => setLoaded(true),
-  };
+  const inflated = Math.round(Number(p.price) * 1.2); // +20%
+  const tags = ["Latest", "Sale", "Hot"]; // you can customize logic later
+
+
+  // inside ProductCard
+const tag = useMemo(() => {
+  // pick based on product id → always the same
+  const index = (p.id.charCodeAt(0) + p.id.length) % tags.length;
+  return tags[index];
+}, [p.id]);
+
 
   return (
-    <Link href={href} onClick={onClick} className="block hover:scale-[1.02] transition">
-      <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg bg-gray-100">
+    <Link
+      href={href}
+      onClick={onClick}
+      className="block group rounded-xl overflow-hidden shadow hover:shadow-xl transition bg-white"
+    >
+      {/* image with badge */}
+      <div className="relative w-full aspect-square overflow-hidden">
         {p.mainImage ? (
-          <img {...imgProps} />
+          <img
+            src={p.mainImage}
+            alt={p.title}
+            className={`w-full h-full object-cover transition duration-500 group-hover:scale-105 ${
+              loaded ? "blur-0 grayscale-0" : "blur-xl grayscale"
+            }`}
+            loading={eager ? "eager" : "lazy"}
+            onLoad={() => setLoaded(true)}
+          />
         ) : (
           <div className="w-full h-full bg-gray-200 animate-pulse" />
         )}
+
+        {/* product tag */}
+        <span className="absolute top-2 left-2 bg-black text-white text-xs font-medium px-2 py-1 rounded-md border border-white-300 shadow-sm">
+          {tag}
+        </span>
       </div>
 
-      <div className="text-sm line-clamp-2">{p.title}</div>
-      <div className="font-semibold mt-1">Rs {p.price}</div>
+      {/* content */}
+      <div className="p-3">
+        <div className="text-sm font-medium line-clamp-2 group-hover:text-indigo-600 transition">
+          {p.title}
+        </div>
+        <div className="mt-1">
+          <span className="text-gray-400 line-through text-sm mr-2">
+            Rs {inflated}
+          </span>
+          <span className="text-lg font-semibold text-gray-900">
+            Rs {p.price}
+          </span>
+        </div>
+      </div>
     </Link>
   );
 }
+
 
 /* ---------- main component ---------- */
 export default function HomePage() {
@@ -122,7 +154,7 @@ export default function HomePage() {
 
   const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>(initialHomePicks);
 
-  const [visibleHome, setVisibleHome] = useState<number>(4);
+  const [visibleHome, setVisibleHome] = useState<number>(20);
   const [visibleSearch, setVisibleSearch] = useState<number>(10);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -156,12 +188,6 @@ export default function HomePage() {
       return () => clearTimeout(t);
     }
   }, [initialHomePicks]);
-
-
-  useEffect(() => {
-    const id = setTimeout(() => setVisibleHome(6), 50);
-    return () => clearTimeout(id);
-  }, []);
 
   /* ---------- Fuse search ---------- */
   const [fuse, setFuse] = useState<Fuse<IndexedProduct> | null>(null);
@@ -409,7 +435,7 @@ export default function HomePage() {
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search products..."
+              placeholder=" Search products..."
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -426,8 +452,11 @@ export default function HomePage() {
                   } catch {}
                 }
               }}
-              className="w-full rounded-2xl bg-transparent border px-5 py-3 text-gray-800 shadow-lg focus:ring-2 focus:ring-indigo-500"
-            />
+                   className="w-full rounded-lg bg-white border border-gray-300 px-5 py-3 pl-10 text-gray-800 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    🔍
+                  </span>
 
             {/* suggestions dropdown */}
             {categorySuggestions.length > 0 && (
