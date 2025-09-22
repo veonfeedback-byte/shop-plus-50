@@ -441,17 +441,31 @@ export default function HomePage() {
                 setQuery(e.target.value);
                 setSearchTriggered(false);
               }}
+
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  inputRef.current?.blur();
-                  setSearchTriggered(true);
-                  setShowBackButton(true);
-                  try {
-                    sessionStorage.setItem("lastQuery", query);
-                  } catch {}
-                }
-              }}
+              if (e.key === "Enter") {
+                e.preventDefault();
+                inputRef.current?.blur();
+
+                // reset search state before triggering again
+                setActiveCategory(null);
+                setActiveSubcategory(null);
+                setPriceSort(null);
+                setVisibleSearch(10);
+
+                setSearchTriggered(true);
+                setShowBackButton(true);
+
+                try {
+                  sessionStorage.setItem("lastQuery", query);
+                  sessionStorage.removeItem("lastCategory");
+                  sessionStorage.removeItem("lastSubcategory");
+                  sessionStorage.removeItem("lastSort");
+                  sessionStorage.setItem("visibleSearch", "10");
+                } catch {}
+              }
+            }}
+
                    className="w-full rounded-lg bg-white border border-gray-300 px-5 py-3 pl-10 text-gray-800 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                     />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -544,7 +558,7 @@ export default function HomePage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {finalResults.slice(0, visibleSearch).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
@@ -586,7 +600,7 @@ export default function HomePage() {
             ) : (
             <section>
             <h1 className="text-2xl font-semibold">🔥 Trending</h1>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
