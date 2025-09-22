@@ -544,7 +544,7 @@ export default function HomePage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {finalResults.slice(0, visibleSearch).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
@@ -586,7 +586,7 @@ export default function HomePage() {
             ) : (
             <section>
             <h1 className="text-2xl font-semibold">🔥 Trending</h1>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
