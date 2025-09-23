@@ -449,7 +449,7 @@ export default function HomePage() {
                   type="search"
                   inputMode="search"
                   enterKeyHint="search"
-                  placeholder="Search Products..."
+                  placeholder="Search Products here"
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
