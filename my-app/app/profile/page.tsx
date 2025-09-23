@@ -11,9 +11,13 @@ import {
   List,
   History,
 } from "lucide-react";
+import Link from "next/link";
+
 
 type CartItem = {
   id: string;
+  category: string;
+  subcategory: string;
   title: string;
   image?: string;
   qty: number;
@@ -36,6 +40,7 @@ type DBOrder = {
     | "return_completed";
   items: CartItem[];
   total: number;
+  delivery_charges: number; 
   created_at: string;
   completed_at?: string | null;
   expires_at?: string | null;
@@ -492,12 +497,18 @@ export default function Profile() {
             const canCancel = o.status === "pending";
             const canRequestReturn =
               o.status === "completed" && isReturnWindowOpen(o);
+             
+            const grandTotal = o.total + (o.delivery_charges || 0);
 
             return (
-              <div
-                key={o.id}
-                className="relative rounded-xl bg-white shadow-md border border-gray-100 p-4"
-              >
+              <Link
+                  key={o.id}
+                  href={`/shop/${o.items[0]?.category}/${o.items[0]?.subcategory}/${o.items[0]?.id}`}
+                >
+                <div
+                  
+                  className="relative rounded-xl bg-white shadow-md border border-gray-100 p-4 cursor-pointer hover:shadow-lg transition"
+                >
                   {/* Order header with ID + date */}
                   <div className="grid justify-between items-center mb-3 gap-3">
                     
@@ -524,7 +535,7 @@ export default function Profile() {
                     >
                       <div className="flex-1 pr-3">
                         <div className="text-xs font-mono text-gray-600">
-                           Order ID: <span className="font-semibold">{o.id}</span>
+                           Order ID: <span className="font-semibold">{o.id.slice(0, 7)}</span>
                         </div>
                         <div className="font-medium text-gray-800">
                           {item.title}{" "}
@@ -543,11 +554,16 @@ export default function Profile() {
                               </span>
                             </>
                           ) : (
-                            <span className="font-semibold text-gray-800">
-                              Rs {item.price}
+                              <div className="mt-2 text-sm font-semibold text-gray-900">
+                          Total: Rs {grandTotal} 
+                          {o.delivery_charges > 0 && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              (includes Rs {o.delivery_charges} delivery)
                             </span>
                           )}
                         </div>
+                          )}
+                        </div>         
                       </div>
                       <div className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0">
                         {item.image ? (
@@ -646,6 +662,7 @@ export default function Profile() {
                   )}
                 </div>
               </div>
+            </Link>
             );
           })}
         </div>

@@ -8,6 +8,9 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { supabase } from "@/app/lib/supabase";
 import Catalog from "@/app/lib/catalog";
+import { Trash2 } from "lucide-react";
+import Confetti from "react-confetti";
+
 
 
 export default function ProductClient({
@@ -29,6 +32,8 @@ export default function ProductClient({
   const [couponCode, setCouponCode] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     discount_pct: number;
@@ -37,6 +42,7 @@ export default function ProductClient({
   } | null>(null);
 
   const startX = useRef(0);
+  const [addedAnim, setAddedAnim] = useState(false);
 
   const sizes =
     product.description?.match(/sizes?:\s*([a-z0-9, ]+)/i)?.[1]
@@ -72,23 +78,30 @@ export default function ProductClient({
   const blurData =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAuMB9o7bF7sAAAAASUVORK5CYII=";
 
-  async function applyCoupon() {
-    setCouponLoading(true);
-    setCouponError(null);
-    const code = (couponCode || "").trim().toUpperCase();
-    if (!code) {
-      setCouponError("Enter a coupon code");
-      setCouponLoading(false);
-      return;
-    }
+ async function applyCoupon() {
+  setCouponLoading(true);
+  setCouponError(null);
+  const code = (couponCode || "").trim().toUpperCase();
+  if (!code) {
+    setCouponError("Enter a coupon code");
+    setCouponLoading(false);
+    return;
+  }
 
-    try {
-      const { data, error } = await supabase
-        .from("coupons")
-        .select("id, code, discount_pct, active")
-        .eq("code", code)
-        .limit(1)
-        .maybeSingle();
+  // 🚨 Block if product < 600
+  if ((Number(product.price) || 0) < 600) {
+    setCouponError("Coupon only applies to products priced at Rs 600 or more");
+    setCouponLoading(false);
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("id, code, discount_pct, active")
+      .eq("code", code)
+      .limit(1)
+      .maybeSingle();
 
       if (error || !data) {
         setCouponError("Invalid coupon code");
@@ -109,6 +122,9 @@ export default function ProductClient({
             active: true,
           });
         }
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 4000); // stop after 4 sec
+
       }
     } catch (err) {
       console.error("coupon error", err);
@@ -133,42 +149,62 @@ export default function ProductClient({
     return base;
   }
 
-  async function addToCart(goCheckout = false) {
-    const cart: CartItem[] = JSON.parse(localStorage.getItem("cart") || "[]");
-    const i = cart.findIndex((x) => x.id === product.id);
+  function computeDeliveryCharge(subtotal: number): number {
+  return subtotal < 600 ? 100 : 0;
+}
 
-    const unitPrice = computeFinalPricePerUnit();
-    const discount_amount_per_unit = (Number(product.price) || 0) - unitPrice;
+async function addToCart(goCheckout = false) {
+  const cart: CartItem[] = JSON.parse(localStorage.getItem("cart") || "[]");
+  const i = cart.findIndex((x) => x.id === product.id);
 
-    const item: CartItem = {
-      id: product.id,
-      code: product.code,
-      title: product.title,
-      image: product.images?.[0] ?? "",
-      price: unitPrice,
-      qty,
-      note,
-      size: selectedSize || null,
-      color: selectedColor || null,
-      meta: {
-        original_price: Number(product.price) || 0,
-        coupon: appliedCoupon ? appliedCoupon.code : null,
-        discount_pct: appliedCoupon ? appliedCoupon.discount_pct : 0,
-        discount_amount_per_unit,
-      },
-    };
+  const unitPrice = computeFinalPricePerUnit();
+  const discount_amount_per_unit = (Number(product.price) || 0) - unitPrice;
 
-    if (i >= 0) {
-      cart[i] = { ...cart[i], ...item, qty: cart[i].qty + qty };
-    } else {
-      cart.push(item);
-    }
+  const subtotal = unitPrice * qty;
+  const delivery = computeDeliveryCharge(subtotal);
 
-    localStorage.setItem("cart", JSON.stringify(cart));
-    window.dispatchEvent(new Event("cartUpdated"));
+  const item: CartItem = {
+    id: product.id,
+    code: product.code,
+    title: product.title,
+    image: product.images?.[0] ?? "",
+    price: unitPrice,
+    qty,
+    note,
+    size: selectedSize || null,
+    color: selectedColor || null,
 
-    router.push(goCheckout ? "/cart?checkout=1" : "/cart");
+    // ✅ Add these two
+    category,
+    subcategory,
+
+    meta: {
+      original_price: Number(product.price) || 0,
+      coupon: appliedCoupon ? appliedCoupon.code : null,
+      discount_pct: appliedCoupon ? appliedCoupon.discount_pct : 0,
+      discount_amount_per_unit,
+      delivery_charge: delivery,
+      subtotal,
+      total_with_delivery: subtotal + delivery,
+    },
+  };
+
+  if (i >= 0) {
+    cart[i] = { ...cart[i], ...item, qty: cart[i].qty + qty };
+  } else {
+    cart.push(item);
   }
+
+  localStorage.setItem("cart", JSON.stringify(cart));
+  window.dispatchEvent(new Event("cartUpdated"));
+
+  if (goCheckout) {
+    router.push("/cart?checkout=1");
+  } else {
+    setAddedAnim(true);
+    setTimeout(() => setAddedAnim(false), 800);
+  }
+}
 
   const basePrice = Number(product.price) || 0;
   const discounted = computeFinalPricePerUnit();
@@ -236,6 +272,15 @@ export default function ProductClient({
           <div className="font-bold text-lg">Rs {basePrice.toFixed(2)}</div>
         )}
       </div>
+            
+      <div className="text-lg text-gray-700">
+        Delivery Charges:{" "}
+        {computeDeliveryCharge(discounted * qty) > 0 ? (
+          <span className="font-bold text-lg">Rs 100</span>
+        ) : (
+          <span className="font-bold text-lg text-green-600">Free</span>
+        )}
+      </div>
 
       {product.description && (
         <div className="prose max-w-none text-sm text-gray-700">
@@ -244,38 +289,46 @@ export default function ProductClient({
       )}
 
       {/* Coupon */}
-      <div className="flex gap-2 items-center mt-2">
-        <input
-          type="text"
-          value={couponCode}
-          onChange={(e) => setCouponCode(e.target.value)}
-          placeholder="Enter coupon code"
-          className="flex-1 border rounded px-3 py-2"
-          disabled={couponLoading}
-        />
+      <div className="mt-2">
         {appliedCoupon ? (
-          <div className="flex flex-col items-start gap-1 mt-1">
-            <div className="text-sm font-medium text-green-700">
-              Applied: {appliedCoupon.code} ({appliedCoupon.discount_pct}%)
+          <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-4 py-2 shadow-sm">
+            <div className="flex flex-col">
+              <span className="font-bold text-red-700">
+                🎟 {appliedCoupon.code}
+              </span>
+              <span className="text-sm text-gray-600">
+                {appliedCoupon.discount_pct}% OFF applied
+              </span>
             </div>
             <button
               onClick={removeCoupon}
-              className="px-3 py-1 rounded border mt-1 bg-red-600 text-white font-semibold"
+              className="p-2 text-red-600 hover:text-red-800"
             >
-              Remove
+              <Trash2 size={20} />
             </button>
           </div>
         ) : (
-          <button
-            onClick={applyCoupon}
-            disabled={couponLoading}
-            className="px-4 py-2 rounded bg-black text-white"
-          >
-            {couponLoading ? "Checking..." : "Apply"}
-          </button>
+          <div className="flex gap-2 items-center">
+            <input
+              type="text"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+              placeholder="Enter coupon code"
+              className="flex-1 border rounded px-3 py-2"
+              disabled={couponLoading}
+            />
+            <button
+              onClick={applyCoupon}
+              disabled={couponLoading}
+              className="px-4 py-2 rounded bg-black text-white"
+            >
+              {couponLoading ? "Checking..." : "Apply"}
+            </button>
+          </div>
         )}
+        {couponError && <div className="text-sm text-red-600 mt-1">{couponError}</div>}
       </div>
-      {couponError && <div className="text-sm text-red-600 mt-1">{couponError}</div>}
 
       {/* Qty */}
       <div className="flex items-center gap-3">
@@ -408,6 +461,30 @@ export default function ProductClient({
           </div>
         ))}
       </div>
+
+      {/* Floating +1 animation when added */}
+      {addedAnim && (
+        <motion.div
+          initial={{ opacity: 0, y: 0, scale: 0.5 }}
+          animate={{ opacity: 1, y: -40, scale: 1 }}
+          exit={{ opacity: 0, y: -80, scale: 0 }}
+          transition={{ duration: 0.6 }}
+          className="fixed top-4 right-6 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg z-50"
+        >
+          +{qty}
+        </motion.div>
+)}
+
+{showConfetti && (
+  <Confetti
+    recycle={false}
+    numberOfPieces={200}
+    gravity={0.3}
+    tweenDuration={2000}
+  />
+)}
+
+
     </div>
   );
 }
