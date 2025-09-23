@@ -419,7 +419,7 @@ export default function HomePage() {
         />
       </Head>
 
-      <div className="space-y-6 p-4 pb-28">
+      <div className="space-y-6 px-1 sm:px-2 md:px-4 pb-28">
         {/* Search Row (modern style) */}
         <div className="sticky top-0 z-30 bg-white/60 backdrop-blur-md py-3 px-1 border-b border-transparent">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
@@ -576,7 +576,8 @@ export default function HomePage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              
               {finalResults.slice(0, visibleSearch).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
@@ -618,7 +619,8 @@ export default function HomePage() {
             ) : (
             <section>
             <h1 className="text-2xl font-semibold">🔥 Trending</h1>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
+
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
