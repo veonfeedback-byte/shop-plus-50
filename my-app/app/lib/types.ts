@@ -2,6 +2,8 @@
 
 export type CartItem = {
   id: string;
+  category : string;
+  subcategory : string;
   code?: string;
   title: string;
   image: string;
@@ -18,6 +20,9 @@ export type CartItem = {
     coupon?: string | null;
     discount_pct: number;
     discount_amount_per_unit: number;
+    delivery_charge: number;         // ✅ add this
+    subtotal: number;                // ✅ add this
+    total_with_delivery: number; 
   };
 };
 

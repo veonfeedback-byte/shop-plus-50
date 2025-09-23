@@ -15,11 +15,14 @@ type CartItem = {
   size?: string | null;
   color?: string | null;
   note?: string | null;
-  meta?: {
+    meta?: {
     original_price: number;
     coupon?: string | null;
     discount_pct: number;
     discount_amount_per_unit: number;
+    delivery_charge: number;         // ✅ new
+    subtotal: number;                // ✅ new
+    total_with_delivery: number;     // ✅ new
   };
 };
 
@@ -96,16 +99,16 @@ export default function CartPage() {
     [items, selected]
   );
 
-  const total = useMemo(
-    () =>
-      selectedItems.reduce(
-        (sum, it) => sum + Number(it.price) * Number(it.qty),
-        0
-      ),
-    [selectedItems]
-  );
+ const total = useMemo(
+  () =>
+    selectedItems.reduce(
+      (sum, it) => sum + (it.meta?.total_with_delivery ?? it.price * it.qty),
+      0
+    ),
+  [selectedItems]
+);
 
-  const selectedCount = selectedItems.length;
+const selectedCount = selectedItems.length;
 
   function toggleSelectAll(checked: boolean) {
     setSelected(Object.fromEntries(items.map((it) => [it.id, checked])));
@@ -196,11 +199,26 @@ export default function CartPage() {
       const { error: orderError } = await supabase.from("orders").insert([
         {
           profile_id: profileId,
-          items: selectedItems,
-          total,
+          items: selectedItems.map(it => ({
+            id: it.id,
+            category: (it as any).category || null,       // ✅ include category
+            subcategory: (it as any).subcategory || null, // ✅ include subcategory
+            title: it.title,
+            image: it.image,
+            qty: it.qty,
+            price: it.price,
+            size: it.size,
+            color: it.color,
+            note: it.note,
+            meta: it.meta ?? null,
+          })),
+          subtotal: selectedItems.reduce((s, it) => s + (it.meta?.subtotal ?? it.price * it.qty), 0),
+          delivery_charge: selectedItems.reduce((s, it) => s + (it.meta?.delivery_charge ?? 0), 0),
+          total, // ✅ already includes delivery
           status: "pending",
         },
       ]);
+
       if (orderError) throw orderError;
 
       // Keep remaining items in cart
@@ -339,6 +357,7 @@ export default function CartPage() {
             exit={{ opacity: 0 }}
             className="rounded-2xl shadow-md p-4 bg-white border border-gray-200 flex gap-4 items-start hover:shadow-lg transition"
           >
+            {/* Checkbox */}
             <input
               type="checkbox"
               checked={!!selected[it.id]}
@@ -347,6 +366,8 @@ export default function CartPage() {
               }
               className="w-5 h-5 mt-2 accent-blue-600"
             />
+
+            {/* Product Image */}
             {it.image && (
               <img
                 src={it.image}
@@ -354,6 +375,8 @@ export default function CartPage() {
                 className="w-24 h-24 object-cover rounded-lg border"
               />
             )}
+
+            {/* Product Info */}
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-base text-gray-800 truncate">
                 {it.title}
@@ -361,14 +384,20 @@ export default function CartPage() {
               {it.code && <div className="text-xs text-gray-500">{it.code}</div>}
               {it.size && <div className="text-xs text-gray-700">Size: {it.size}</div>}
               {it.color && <div className="text-xs text-gray-700">Color: {it.color}</div>}
-              {it.note && <div className="text-xs italic text-gray-600">Note: {it.note}</div>}
+              {it.note && (
+                <div className="text-xs italic text-gray-600">Note: {it.note}</div>
+              )}
 
+              {/* Coupon Info */}
               {it.meta?.coupon && (
                 <div className="mt-1 text-xs text-green-700">
-                  Coupon applied: <span className="font-medium">{it.meta.coupon}</span> (-{it.meta.discount_pct}%)
+                  Coupon applied:{" "}
+                  <span className="font-medium">{it.meta.coupon}</span> (-
+                  {it.meta.discount_pct}%)
                 </div>
               )}
 
+              {/* Price */}
               <div className="mt-2 flex items-center gap-2">
                 {it.meta?.coupon ? (
                   <>
@@ -380,10 +409,40 @@ export default function CartPage() {
                     </span>
                   </>
                 ) : (
-                  <span className="text-base font-bold text-blue-600">Rs {it.price}</span>
+                  <span className="text-base font-bold text-blue-600">
+                    Rs {it.price}
+                  </span>
                 )}
                 <span className="text-sm text-gray-600">× {it.qty}</span>
               </div>
+
+              {/* Totals (Safe fallbacks) */}
+              {it.meta && (
+                <div className="mt-2 text-sm text-gray-700 space-y-1">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>
+                      Rs{" "}
+                      {((it.meta.subtotal ??
+                        it.price * it.qty) as number).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Delivery:</span>
+                    <span>
+                      Rs {(it.meta.delivery_charge ?? 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span>Total:</span>
+                    <span>
+                      Rs{" "}
+                      {((it.meta.total_with_delivery ??
+                        it.price * it.qty) as number).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Quantity Controls */}
               <div className="mt-3 inline-flex items-center border rounded-lg overflow-hidden">
@@ -403,7 +462,9 @@ export default function CartPage() {
                   </button>
                 )}
 
-                <span className="px-4 py-1 text-gray-800 font-medium">{it.qty}</span>
+                <span className="px-4 py-1 text-gray-800 font-medium">
+                  {it.qty}
+                </span>
 
                 <button
                   onClick={() => updateQty(it.id, +1)}
@@ -412,12 +473,11 @@ export default function CartPage() {
                   +
                 </button>
               </div>
-
-             
             </div>
           </motion.div>
         ))}
       </div>
+
 
       {/* Sticky Checkout Bar */}
       <AnimatePresence>

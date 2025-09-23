@@ -14,7 +14,7 @@ import Head from "next/head";
 import Fuse from "fuse.js";
 import Catalog, { Product } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search, Camera } from "lucide-react";
 
 /* ----------------- types ----------------- */
 type IndexedProduct = Product & {
@@ -49,7 +49,6 @@ function ProductCard({
 
   const inflated = Math.round(Number(p.price) * 1.2); // +20%
   const tags = ["Latest", "Sale", "Hot"]; // you can customize logic later
-
 
   // inside ProductCard
 const tag = useMemo(() => {
@@ -164,6 +163,8 @@ export default function HomePage() {
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+
 
   useEffect(() => {
     const hydrate = () => {
@@ -419,98 +420,115 @@ export default function HomePage() {
       </Head>
 
       <div className="space-y-6 p-4 pb-28">
-        {/* Search Row */}
-        <div className="flex items-center gap-3 w-full sticky top-0 z-30 backdrop-blur-md py-2">
-          {showBackButton && (
-            <button
-              onClick={resetHome}
-              aria-label="Back"
-              className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )}
+        {/* Search Row (modern style) */}
+        <div className="sticky top-0 z-30 bg-white/60 backdrop-blur-md py-3 px-1 border-b border-transparent">
+          <div className="max-w-4xl mx-auto flex items-center gap-3">
+            {showBackButton && (
+              <button
+                onClick={resetHome}
+                aria-label="Back"
+                className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
 
-          <div className="relative w-full">
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder=" Search products..."
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setSearchTriggered(false);
-              }}
+            <div className="relative flex-1">
+              <div
+                className={
+                  "flex items-center w-full rounded-[14px] px-4 py-2 transition-shadow transition-colors " +
+                  (searchFocused
+                    ? "shadow-lg border-2 border-green-400 bg-white"
+                    : "shadow-sm border border-gray-200 bg-white/95")
+                }
+              >
+                <Search className={`w-5 h-5 mr-3 ${searchFocused ? "text-green-500" : "text-gray-400"}`} />
 
-              onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                inputRef.current?.blur();
+                <input
+                  ref={inputRef}
+                  type="search"
+                  inputMode="search"
+                  enterKeyHint="search"
+                  placeholder="Search Products..."
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setSearchTriggered(false);
+                  }}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      inputRef.current?.blur();
 
-                // reset search state before triggering again
-                setActiveCategory(null);
-                setActiveSubcategory(null);
-                setPriceSort(null);
-                setVisibleSearch(10);
+                      // immediately apply query to debouncedQuery so Enter is instant
+                      const normalized = query.trim().toLowerCase();
+                      setDebouncedQuery(normalized);
 
-                setSearchTriggered(true);
-                setShowBackButton(true);
+                      // reset some search state and trigger
+                      setActiveCategory(null);
+                      setActiveSubcategory(null);
+                      setPriceSort(null);
+                      setVisibleSearch(10);
 
-                try {
-                  sessionStorage.setItem("lastQuery", query);
-                  sessionStorage.removeItem("lastCategory");
-                  sessionStorage.removeItem("lastSubcategory");
-                  sessionStorage.removeItem("lastSort");
-                  sessionStorage.setItem("visibleSearch", "10");
-                } catch {}
-              }
-            }}
-
-                   className="w-full rounded-lg bg-white border border-gray-300 px-5 py-3 pl-10 text-gray-800 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    🔍
-                  </span>
-
-            {/* suggestions dropdown */}
-            {categorySuggestions.length > 0 && (
-              <div className="absolute z-20 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto">
-                {categorySuggestions.map((s) => (
-                  <button
-                    key={`${s.type}-${s.parent || "root"}-${s.slug}`}
-                    onClick={() => {
-                      if (s.type === "category") {
-                        setActiveCategory(s.slug);
-                        setActiveSubcategory(null);
-                        try {
-                          sessionStorage.setItem("lastCategory", s.slug);
-                          sessionStorage.removeItem("lastSubcategory");
-                        } catch {}
-                      } else {
-                        setActiveCategory(s.parent || null);
-                        setActiveSubcategory(s.slug);
-                        try {
-                          sessionStorage.setItem("lastCategory", s.parent || "");
-                          sessionStorage.setItem("lastSubcategory", s.slug);
-                        } catch {}
-                      }
                       setSearchTriggered(true);
                       setShowBackButton(true);
-                      setQuery(s.title);
+
                       try {
-                        sessionStorage.setItem("lastQuery", s.title);
+                        sessionStorage.setItem("lastQuery", query);
+                        sessionStorage.removeItem("lastCategory");
+                        sessionStorage.removeItem("lastSubcategory");
+                        sessionStorage.removeItem("lastSort");
+                        sessionStorage.setItem("visibleSearch", "10");
                       } catch {}
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
-                  >
-                    {s.title}
-                  </button>
-                ))}
+                    }
+                  }}
+                  className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-500"
+                />
 
               </div>
-            )}
+
+              {/* suggestions dropdown (keeps your existing logic but styled) */}
+              {categorySuggestions.length > 0 && (
+                <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
+                  {categorySuggestions.map((s) => (
+                    <button
+                      key={`${s.type}-${s.parent || "root"}-${s.slug}`}
+                      onClick={() => {
+                        if (s.type === "category") {
+                          setActiveCategory(s.slug);
+                          setActiveSubcategory(null);
+                          try {
+                            sessionStorage.setItem("lastCategory", s.slug);
+                            sessionStorage.removeItem("lastSubcategory");
+                          } catch {}
+                        } else {
+                          setActiveCategory(s.parent || null);
+                          setActiveSubcategory(s.slug);
+                          try {
+                            sessionStorage.setItem("lastCategory", s.parent || "");
+                            sessionStorage.setItem("lastSubcategory", s.slug);
+                          } catch {}
+                        }
+                        setSearchTriggered(true);
+                        setShowBackButton(true);
+                        setQuery(s.title);
+                        try {
+                          sessionStorage.setItem("lastQuery", s.title);
+                        } catch {}
+                      }}
+                      className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                    >
+                      {s.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
 
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
