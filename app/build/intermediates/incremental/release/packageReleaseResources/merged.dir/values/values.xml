@@ -3,7 +3,7 @@
     <bool name="enableNotification">true</bool>
     <bool name="enableSiteSettingsShortcut">true</bool>
     <color name="backgroundColor">#FFFFFF</color>
-    <color name="colorPrimary">#2563EB</color>
+    <color name="colorPrimary">#FFFFFF</color>
     <color name="colorPrimaryDark">#000000</color>
     <color name="navigationColor">#000000</color>
     <color name="navigationColorDark">#000000</color>
