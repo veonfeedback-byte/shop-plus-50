@@ -11,8 +11,6 @@ import Catalog from "@/app/lib/catalog";
 import { Trash2 } from "lucide-react";
 import Confetti from "react-confetti";
 
-
-
 export default function ProductClient({
   product,
   params,
@@ -442,52 +440,57 @@ async function addToCart(goCheckout = false) {
         </button>
       </div>
 
-      {/* Related */}
-      <div className="mt-8">
-        <h2 className="text-lg font-bold mb-4">Related Products</h2>
-        {[0, 1, 2].map((row) => (
-          <div key={row} className="mb-6 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-4 w-max">
-              {Catalog.getProducts(category, subcategory)
-                .filter((p) => p.id !== product.id)
-                .slice(row * 10, row * 10 + 10)
-                .map((p) => (
-                  <div
-                    key={p.id}
-                    onClick={() =>
-                      router.push(`/shop/${category}/${subcategory}/${p.id}`)
-                    }
-                    className="w-40 flex-shrink-0 border rounded-lg shadow bg-white cursor-pointer hover:shadow-lg transition"
-                  >
-                    {p.img && (
-                      <div className="relative w-full h-32">
-                        <Image
-                          src={p.img}
-                          alt={p.title}
-                          fill
-                          className="object-cover rounded-t"
-                          unoptimized
-                          loading="lazy"
-                          placeholder="blur"
-                          blurDataURL={blurData}
-                        />
-                      </div>
-                    )}
-                    <div className="p-2">
-                      <h3 className="text-xs font-medium line-clamp-2">
-                        {p.title}
-                      </h3>
-                      <div className="text-sm font-bold text-red-600">
-                        Rs {p.price}
-                      </div>
+     {/* Related */}
+    <div className="mt-8">
+      <h2 className="text-lg font-bold mb-4">Related Products</h2>
+      {[0, 1, 2].map((row) => (
+        <div key={row} className="mb-6 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-4 w-max">
+            {Catalog.getProducts(category, subcategory)
+              .filter(
+                (p) =>
+                  p.id !== product.id &&             // not the current product
+                  Number(p.price) > 0 &&             // 🚫 skip products with price 0
+                  p.img && p.img.trim() !== ""       // 🚫 skip products without image
+              )
+              .slice(row * 10, row * 10 + 10)
+              .map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() =>
+                    router.push(`/shop/${category}/${subcategory}/${p.id}`)
+                  }
+                  className="w-40 flex-shrink-0 border rounded-lg shadow bg-white cursor-pointer hover:shadow-lg transition"
+                >
+                  {p.img && (
+                    <div className="relative w-full h-32">
+                      <Image
+                        src={p.img}
+                        alt={p.title}
+                        fill
+                        className="object-cover rounded-t"
+                        unoptimized
+                        loading="lazy"
+                        placeholder="blur"
+                        blurDataURL={blurData}
+                      />
+                    </div>
+                  )}
+                  <div className="p-2">
+                    <h3 className="text-xs font-medium line-clamp-2">
+                      {p.title}
+                    </h3>
+                    <div className="text-sm font-bold text-red-600">
+                      Rs {p.price}
                     </div>
                   </div>
-                ))}
-            </div>
+                </div>
+              ))}
           </div>
-        ))}
-      </div>
-
+        </div>
+      ))}
+    </div>
+      
       {/* Floating +1 animation when added */}
       {addedAnim && (
         <motion.div
