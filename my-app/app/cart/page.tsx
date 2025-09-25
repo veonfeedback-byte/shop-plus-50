@@ -46,11 +46,30 @@ export default function CartPage() {
     const stored = JSON.parse(localStorage.getItem("cart") || "[]");
     if (Array.isArray(stored)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped = stored.map((it: any) => ({
-        ...it,
-        price: typeof it.price === "string" ? parseFloat(it.price) : it.price,
-      }));
+      const mapped = stored.map((it: any) => {
+        const price = typeof it.price === "string" ? parseFloat(it.price) : it.price;
+        let delivery = it.meta?.delivery_charge ?? 0;
+
+        // ✅ Rule: If price < 600 and delivery = 0 → add 100
+        if (price < 600 && delivery === 0) {
+          delivery = 100;
+        }
+
+        const subtotal = price * (it.qty || 1);
+
+        return {
+          ...it,
+          price,
+          meta: {
+            ...it.meta,
+            subtotal,
+            delivery_charge: delivery,
+            total_with_delivery: subtotal + delivery,
+          },
+        };
+      });
       setItems(mapped);
+
       setSelected(Object.fromEntries(mapped.map((it: CartItem) => [it.id, false])));
     }
 
@@ -114,29 +133,35 @@ const selectedCount = selectedItems.length;
     setSelected(Object.fromEntries(items.map((it) => [it.id, checked])));
   }
 
-  function updateQty(id: string, d: number) {
-    const next = items.map((it) => {
-      if (it.id !== id) return it;
-  
-      const newQty = Math.max(1, it.qty + d);
-      const newSubtotal = it.price * newQty;
-      const delivery = it.meta?.delivery_charge ?? 0;
-  
-      return {
-        ...it,
-        qty: newQty,
-        meta: {
-          ...it.meta,
-          subtotal: newSubtotal,
-          total_with_delivery: newSubtotal + delivery,
-        },
-      };
-    });
-  
-    setItems(next);
-    localStorage.setItem("cart", JSON.stringify(next));
-    window.dispatchEvent(new Event("cartUpdated")); // update layout badge
-  }
+ function updateQty(id: string, d: number) {
+  const next = items.map((it) => {
+    if (it.id !== id) return it;
+
+    const newQty = Math.max(1, it.qty + d);
+    const newSubtotal = it.price * newQty;
+
+    // ✅ Apply rule on every update
+    let delivery = it.meta?.delivery_charge ?? 0;
+    if (it.price < 600 && delivery === 0) {
+      delivery = 100;
+    }
+
+    return {
+      ...it,
+      qty: newQty,
+      meta: {
+        ...it.meta,
+        subtotal: newSubtotal,
+        delivery_charge: delivery,
+        total_with_delivery: newSubtotal + delivery,
+      },
+    };
+  });
+
+  setItems(next);
+  localStorage.setItem("cart", JSON.stringify(next));
+  window.dispatchEvent(new Event("cartUpdated")); // update layout badge
+}
 
   function removeItem(id: string) {
     const next = items.filter((it) => it.id !== id);
