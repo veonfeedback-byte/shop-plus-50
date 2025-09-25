@@ -390,22 +390,24 @@ const selectedCount = selectedItems.length;
       {/* Cart Items */}
       <div className="space-y-4">
         {items.map((it) => (
-          <motion.div
+          <  motion.div
             key={it.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className="rounded-2xl shadow-md p-4 bg-white border border-gray-200 flex gap-4 items-start hover:shadow-lg transition"
           >
-            {/* Checkbox */}
-            <input
-              type="checkbox"
-              checked={!!selected[it.id]}
-              onChange={(e) =>
-                setSelected({ ...selected, [it.id]: e.target.checked })
-              }
-              className="w-5 h-5 mt-2 accent-blue-600"
-            />
+              {/* Checkbox on top */}
+              <div className="flex justify-center mb-2">
+                <input
+                  type="checkbox"
+                  checked={!!selected[it.id]}
+                  onChange={(e) =>
+                    setSelected({ ...selected, [it.id]: e.target.checked })
+                  }
+                  className="w-4 h-4 accent-blue-600" // smaller
+                />
+              </div>
 
             {/* Product Image */}
             {it.image && (
