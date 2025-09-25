@@ -14,11 +14,11 @@
   "enableNotifications": true,
   "startUrl": "/",
   "iconUrl": "https://trollypk.vercel.app/assets/favicon.png",
-  "maskableIconUrl": "https://trollypk.vercel.app/assets/favicon.png",
-  "monochromeIconUrl": "https://trollypk.vercel.app/assets/favicon.png",
+  "maskableIconUrl": "https://trollypk.vercel.app/assets/Logo.png",
+  "monochromeIconUrl": "https://trollypk.vercel.app/assets/Logo.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
-    "path": "C:\\Users\\AC\\Trolly\\shop-plus-50\\android.keystore",
+    "path": "C:\\Users\\AC\\Trily\\shop-plus-50\\android.keystore",
     "alias": "android"
   },
   "appVersionName": "1",
