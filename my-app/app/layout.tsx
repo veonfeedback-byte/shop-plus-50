@@ -2,7 +2,7 @@
 
 import "./globals.css";
 import BottomNav from "@/app/components/BottomNav";
-import { ShoppingBag, Download } from "lucide-react";
+import { ShoppingBag, Download, Share2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
@@ -13,6 +13,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [showDownloadBox, setShowDownloadBox] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const downloadBoxRef = useRef<HTMLDivElement>(null);
+
+  // URL to share
+  const appLink = "https://trollypk.vercel.app/downloads/trolly-pk-shop.apk";
 
   // Function to recalculate total cart count
   const updateCartCount = () => {
@@ -44,6 +47,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     };
     document.addEventListener("mousedown", clickOutside);
 
+    // Detect if user already downloaded the APK previously
+    const downloadedFlag = localStorage.getItem("trollyDownloaded");
+    if (downloadedFlag === "true") setDownloaded(true);
+
     return () => {
       window.removeEventListener("storage", storageHandler);
       window.removeEventListener("cartUpdated", cartUpdatedHandler);
@@ -54,14 +61,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // Trigger download
   const handleDownload = () => {
     const link = document.createElement("a");
-    link.href =
-      "https://trollypk.vercel.app/downloads/trolly-pk-shop.apk";
+    link.href = appLink;
     link.download = "Trolly.apk";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
     setDownloaded(true);
+    localStorage.setItem("trollyDownloaded", "true"); // persist
+  };
+
+  // Trigger native share
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Trolly App",
+          text: "Check out the Trolly App!",
+          url: appLink,
+        });
+      } catch (err) {
+        console.log("Share canceled or failed", err);
+      }
+    } else {
+      // Fallback: copy link to clipboard
+      navigator.clipboard.writeText(appLink);
+      alert("Link copied to clipboard!");
+    }
   };
 
   return (
@@ -111,11 +137,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       className="absolute right-0 top-full mt-2 w-64 bg-white border shadow-lg rounded-md p-3 z-50"
                     >
                       <p className="text-sm font-medium mb-2">
-                        Download Trolly App now!
+                        {downloaded
+                          ? "You already have Trolly App!"
+                          : "Download Trolly App now!"}
                       </p>
+
+                      {/* Download Button */}
                       <button
                         onClick={handleDownload}
-                        className={`w-full py-2 px-3 rounded-md text-white ${
+                        className={`w-full py-2 px-3 rounded-md text-white mb-2 ${
                           downloaded
                             ? "bg-green-500 cursor-default"
                             : "bg-blue-600 hover:bg-blue-700"
@@ -123,6 +153,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         disabled={downloaded}
                       >
                         {downloaded ? "Downloaded" : "Download APK"}
+                      </button>
+
+                      {/* Share Button */}
+                      <button
+                        onClick={handleShare}
+                        className="w-full py-2 px-3 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Share App
                       </button>
                     </motion.div>
                   )}
