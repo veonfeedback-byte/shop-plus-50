@@ -115,9 +115,24 @@ const selectedCount = selectedItems.length;
   }
 
   function updateQty(id: string, d: number) {
-    const next = items.map((it) =>
-      it.id === id ? { ...it, qty: Math.max(1, it.qty + d) } : it
-    );
+    const next = items.map((it) => {
+      if (it.id !== id) return it;
+  
+      const newQty = Math.max(1, it.qty + d);
+      const newSubtotal = it.price * newQty;
+      const delivery = it.meta?.delivery_charge ?? 0;
+  
+      return {
+        ...it,
+        qty: newQty,
+        meta: {
+          ...it.meta,
+          subtotal: newSubtotal,
+          total_with_delivery: newSubtotal + delivery,
+        },
+      };
+    });
+  
     setItems(next);
     localStorage.setItem("cart", JSON.stringify(next));
     window.dispatchEvent(new Event("cartUpdated")); // update layout badge
