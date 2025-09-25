@@ -56,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Image
                   src="/assets/Logo.png"
                   alt="Shop Logo"
-                  width={120}
+                  width={100}
                   height={40}
                   style={{ width: "120px" , height: "40px"}}
                   priority
