@@ -284,30 +284,35 @@ async function addToCart(goCheckout = false) {
 
       {/* Description */}
       {product.description && (
-      <div className="text-sm text-gray-700 space-y-1">
-        <ul className="list-disc pl-5">
-          {product.description
-            .split("\n") // split by new lines
-            .flatMap((line) => line.split(/(?<=:)/)) // further split by colon
-            .map((line) => line.trim())
-            .filter(
-              (line) =>
-                line.length > 0 &&
-                !/^product\s*code\s*:/i.test(line) // 🚫 remove Product Code
-            )
-            .map((line, i) => {
-              const [label, ...rest] = line.split(":");
-              const value = rest.join(":").trim(); // join back if multiple colons
-              return (
-                <li key={i}>
-                  <span className="font-semibold">{label.trim()}:</span>{" "}
-                  <span>{value}</span>
-                </li>
-              );
-            })}
-        </ul>
-      </div>
-    )}
+        <div className="text-sm text-gray-700 space-y-1">
+          <h3 className="text-base font-semibold mb-2">Product Description</h3>
+          <div className="space-y-1">
+            {product.description
+              .split("\n") // split by new lines
+              .map((line) => line.trim())
+              .filter(
+                (line) =>
+                  line.length > 0 &&
+                  !/^product\s*code\s*:/i.test(line) && // 🚫 hide "Product Code:"
+                  !/^MZ\d+/i.test(line) // 🚫 hide codes like MZ1176200122...
+              )
+              .map((line, i) => {
+                const [label, ...rest] = line.split(":");
+                const value = rest.join(":").trim();
+                return (
+                  <div key={i}>
+                    {label && (
+                      <span className="font-semibold">{label.trim()}</span>
+                    )}
+                    {value && (
+                      <span className="ml-1">{value}</span>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
 
       {/* Coupon */}
       <div className="mt-2">
