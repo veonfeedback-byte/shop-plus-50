@@ -405,7 +405,7 @@ const selectedCount = selectedItems.length;
                   onChange={(e) =>
                     setSelected({ ...selected, [it.id]: e.target.checked })
                   }
-                  className="w-4 h-4 accent-blue-600" // smaller
+                  className="w-3 h-3 accent-blue-600" // smaller
                 />
               </div>
 
