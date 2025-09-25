@@ -12,7 +12,7 @@
       "type": "image/png"
     },
     {
-      "src": "/assets/Logo.png",
+      "src": "/asserts/Logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
