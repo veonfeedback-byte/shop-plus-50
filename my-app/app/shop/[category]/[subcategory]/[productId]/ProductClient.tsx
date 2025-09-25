@@ -8,7 +8,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { supabase } from "@/app/lib/supabase";
 import Catalog from "@/app/lib/catalog";
-import { Trash2 } from "lucide-react";
+import { Trash2, X as LucidX } from "lucide-react";
 import Confetti from "react-confetti";
 
 export default function ProductClient({
@@ -31,6 +31,9 @@ export default function ProductClient({
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  const [fullImage, setFullImage] = useState<string | null>(null);
+
 
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
@@ -222,18 +225,20 @@ async function addToCart(goCheckout = false) {
             style={{ width: `${product.images.length * 100}%` }}
           >
             {product.images.map((src, i) => (
-              <div key={i} className="w-full flex-shrink-0 relative">
+              <div key={i} className="w-full flex-shrink-0 relative aspect-auto cursor-pointer">
                 <Image
                   src={src}
                   alt={`${product.title} ${i + 1}`}
                   fill
-                  className="object-cover"
+                  className="object-contain"
                   unoptimized
                   priority={i === 0}
                   placeholder="blur"
                   blurDataURL={blurData}
+                  onClick={() => setFullImage(src)}
                 />
               </div>
+
             ))}
           </motion.div>
           <div className="absolute bottom-2 w-full flex justify-center gap-2">
@@ -513,6 +518,25 @@ async function addToCart(goCheckout = false) {
   />
 )}
 
+
+      {fullImage && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4">
+          <button
+            onClick={() => setFullImage(null)}
+            className="absolute top-4 right-4 text-white p-2 rounded-full hover:bg-gray-800"
+          >
+            <LucidX size={32} />
+          </button>
+          <Image
+            src={fullImage}
+            alt="Full view"
+            width={800}
+            height={800}
+            className="object-contain max-h-full max-w-full"
+            unoptimized
+          />
+        </div>
+      )}
 
     </div>
   );
