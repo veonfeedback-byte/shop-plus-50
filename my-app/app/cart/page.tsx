@@ -398,14 +398,14 @@ const selectedCount = selectedItems.length;
             className="rounded-2xl shadow-md p-4 bg-white border border-gray-200 flex gap-4 items-start hover:shadow-lg transition"
           >
               {/* Checkbox on top */}
-              <div className="flex justify-center mb-2">
+              <div className="grid justify-center mb-2">
                 <input
                   type="checkbox"
                   checked={!!selected[it.id]}
                   onChange={(e) =>
                     setSelected({ ...selected, [it.id]: e.target.checked })
                   }
-                  className="w-3 h-3 accent-blue-600" // smaller
+                  className="w-4 h-4 accent-blue-600" // smaller
                 />
               </div>
 
