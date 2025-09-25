@@ -282,11 +282,32 @@ async function addToCart(goCheckout = false) {
         )}
       </div>
 
+      {/* Description */}
       {product.description && (
-        <div className="prose max-w-none text-sm text-gray-700">
-          {product.description}
-        </div>
-      )}
+      <div className="text-sm text-gray-700 space-y-1">
+        <ul className="list-disc pl-5">
+          {product.description
+            .split("\n") // split by new lines
+            .flatMap((line) => line.split(/(?<=:)/)) // further split by colon
+            .map((line) => line.trim())
+            .filter(
+              (line) =>
+                line.length > 0 &&
+                !/^product\s*code\s*:/i.test(line) // 🚫 remove Product Code
+            )
+            .map((line, i) => {
+              const [label, ...rest] = line.split(":");
+              const value = rest.join(":").trim(); // join back if multiple colons
+              return (
+                <li key={i}>
+                  <span className="font-semibold">{label.trim()}:</span>{" "}
+                  <span>{value}</span>
+                </li>
+              );
+            })}
+        </ul>
+      </div>
+    )}
 
       {/* Coupon */}
       <div className="mt-2">
