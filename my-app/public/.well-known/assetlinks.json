@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.trollypk.twa",
+    "sha256_cert_fingerprints": [
+      "E6:FB:D0:B7:AD:9E:D1:14:63:C1:C4:28:35:F0:49:3A:07:F5:49:17:03:6F:E5:08:3A:64:5F:86:7B:66:74:15"
+    ]
+  }
+}]
