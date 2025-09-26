@@ -440,6 +440,7 @@ export default function HomePage() {
 
       <div className="space-y-6 px-1 sm:px-2 md:px-4 pb-28">
         {/* Search Row (modern style) */}
+        {!activePriceTag && (
         <div className="sticky top-0 z-30 backdrop-blur-md py-3 px-1 border-b border-transparent">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
             {showBackButton && (
@@ -507,6 +508,7 @@ export default function HomePage() {
                 />
 
               </div>
+              )}
 
               {/* suggestions dropdown (keeps your existing logic but styled) */}
               {categorySuggestions.length > 0 && (
@@ -549,7 +551,7 @@ export default function HomePage() {
         </div>
 
       {/* Price Filter Section (only show when not searching) */}
-      {!searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
+      {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
         <div className="mt-6 px-3">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">💰 Best Value</h2>
           
@@ -627,20 +629,30 @@ export default function HomePage() {
             </div>
         
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-              {priceFilteredResults
-                .filter((p) =>
-                  p.title.toLowerCase().includes(priceQuery.toLowerCase())
-                )
-                .slice(0, visiblePriceFiltered)
-                .map((p, idx) => (
-                  <ProductCard
-                    key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
-                    p={p}
-                    href={productUrl(p)}
-                    eager={idx < 4}
-                  />
-                ))}
-            </div>
+            {priceFilteredResults
+              .filter((p) =>
+                p.title.toLowerCase().includes(priceQuery.toLowerCase())
+              )
+              .slice(0, visiblePriceFiltered).length === 0 ? (
+                <p className="col-span-full text-center text-gray-500 mt-6">
+                  🚫 No product found
+                </p>
+              ) : (
+                priceFilteredResults
+                  .filter((p) =>
+                    p.title.toLowerCase().includes(priceQuery.toLowerCase())
+                  )
+                  .slice(0, visiblePriceFiltered)
+                  .map((p, idx) => (
+                    <ProductCard
+                      key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                      p={p}
+                      href={productUrl(p)}
+                      eager={idx < 4}
+                    />
+                  ))
+              )}
+          </div>
         
             {visiblePriceFiltered < priceFilteredResults.length && (
               <div className="flex justify-center mt-6">
@@ -742,6 +754,8 @@ export default function HomePage() {
             )}
           </>
             ) : (
+
+          !activePriceTag && (
             <section>
             <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 via-pink-500 to-orange-400 bg-clip-text text-transparent">
               ✨ Trending Products
@@ -775,6 +789,7 @@ export default function HomePage() {
               </div>
             )}
           </section>
+            )
         )}
       </div>
     </HomeContext.Provider>
