@@ -508,7 +508,6 @@ export default function HomePage() {
                 />
 
               </div>
-              )}
 
               {/* suggestions dropdown (keeps your existing logic but styled) */}
               {categorySuggestions.length > 0 && (
@@ -549,6 +548,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      )}
 
       {/* Price Filter Section (only show when not searching) */}
       {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
