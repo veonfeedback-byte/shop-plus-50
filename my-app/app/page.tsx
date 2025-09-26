@@ -15,6 +15,7 @@ import Fuse from "fuse.js";
 import Catalog, { Product } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
 import { ArrowLeft, Search, Camera } from "lucide-react";
+import { X, Minus } from "lucide-react"; // X for close, Minus for lines
 
 /* ----------------- types ----------------- */
 type IndexedProduct = Product & {
@@ -332,6 +333,7 @@ export default function HomePage() {
 
     try {
       sessionStorage.clear();
+      sessionStorage.removeItem("lastQuery");
     } catch {}
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -458,62 +460,6 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
       </Head>
 
       <div className="space-y-6 px-1 sm:px-2 md:px-4 pb-28">
-
-
-              {/* Price Filter Section (only show when not searching) */}
-      {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
-        <div className="mt-6 px-3">
-          <h1 className="text-sm font-semibold tracking-tight text-gray-900 mb-2
-               bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Best Value
-          </h1>
-          
-          <div className="overflow-x-auto scrollbar-hide mt-3 px-2">
-          <div className="flex space-x-3">
-            {[
-              { label: "Under Rs150", min: 0, max: 150 },
-              { label: "Rs150 – Rs200", min: 150, max: 200 },
-              { label: "Rs200 – Rs300", min: 200, max: 300 },
-              { label: "Rs300 – Rs500", min: 300, max: 500 },
-              { label: "Rs500 – Rs999", min: 500, max: 1000 },
-              { label: "Rs1000 – Rs1999", min: 1000, max: 2000 },
-            ].map((tag) => (
-             <button
-                key={tag.label}
-                onClick={() => {
-                  // reset states
-                  setActiveCategory(null);
-                  setActiveSubcategory(null);
-                  setPriceSort(null);
-                  setSearchTriggered(false);   // 🚨 make sure not to trigger search
-                  setQuery("");                // reset main search
-                  setShowBackButton(true);
-              
-                  // filter directly with range
-                  const filtered = allProducts.filter(
-                    (p) => Number(p.price) >= tag.min && Number(p.price) < tag.max
-                  );
-              
-                  setPriceFilteredResults(filtered);
-                  setActivePriceTag(tag);      // save whole tag object
-                  setVisiblePriceFiltered(20);
-                }}
-                className={`px-6 py-2 rounded-l-2xl rounded-r-2xl text-sm font-semibold shadow 
-                           whitespace-nowrap transition-transform active:scale-95
-                           ${
-                             activePriceTag?.label === tag.label
-                               ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
-                               : "bg-gradient-to-r from-gray-100 to-gray-300 text-gray-700 hover:from-gray-200 hover:to-gray-400"
-                           }`}
-              >
-                🎟 {tag.label}
-              </button>
-
-            ))}
-          </div>
-        </div>
-        </div>
-      )}
         
         {/* Search Row (modern style) */}
         {!activePriceTag && (
@@ -585,6 +531,56 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
               </div>
 
+              {/* Price Filter Section (only show when not searching) */}
+              {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
+                <div className="mt-6 px-3">
+                  <div className="overflow-x-auto scrollbar-hide mt-3 px-2">
+                  <div className="flex space-x-3">
+                    {[
+                      { label: "Under Rs150", min: 0, max: 150 },
+                      { label: "Rs150 – Rs200", min: 150, max: 200 },
+                      { label: "Rs200 – Rs300", min: 200, max: 300 },
+                      { label: "Rs300 – Rs500", min: 300, max: 500 },
+                      { label: "Rs500 – Rs999", min: 500, max: 1000 },
+                      { label: "Rs1000 – Rs1999", min: 1000, max: 2000 },
+                    ].map((tag) => (
+                     <button
+                        key={tag.label}
+                        onClick={() => {
+                          // reset states
+                          setActiveCategory(null);
+                          setActiveSubcategory(null);
+                          setPriceSort(null);
+                          setSearchTriggered(false);   // 🚨 make sure not to trigger search
+                          setQuery("");                // reset main search
+                          setShowBackButton(true);
+                      
+                          // filter directly with range
+                          const filtered = allProducts.filter(
+                            (p) => Number(p.price) >= tag.min && Number(p.price) < tag.max
+                          );
+                      
+                          setPriceFilteredResults(filtered);
+                          setActivePriceTag(tag);      // save whole tag object
+                          setVisiblePriceFiltered(20);
+                        }}
+                       className={`px-4 py-2 rounded-md text-sm font-medium shadow-sm
+                        whitespace-nowrap transition-colors
+                        ${
+                          activePriceTag?.label === tag.label
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        🎟 {tag.label}
+                      </button>
+        
+                    ))}
+                  </div>
+                </div>
+                </div>
+              )}
+
               {/* suggestions dropdown (keeps your existing logic but styled) */}
               {categorySuggestions.length > 0 && (
                 <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
@@ -626,7 +622,44 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
         </div>
       )}
 
-
+        {/* Value Filters Trigger */}
+        <div className="flex items-center gap-2 mt-4 px-2">
+          <button
+            onClick={() => setShowFilters(true)}
+            className="flex flex-col items-start justify-center leading-none"
+          >
+            <Minus className="h-3 w-6 text-gray-700" />
+            <Minus className="h-3 w-3 text-gray-700 ml-2" />
+            <Minus className="h-3 w-6 text-gray-700" />
+          </button>
+          <span className="text-sm font-medium text-gray-700">Value filters</span>
+        </div>
+        
+        {/* Popup Box */}
+        {showFilters && (
+          <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
+            <div className="bg-white w-80 rounded-xl shadow-lg p-4 relative">
+              <button
+                onClick={() => setShowFilters(false)}
+                className="absolute top-2 right-2 text-gray-600 hover:text-black"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex flex-col gap-2 mt-6">
+                {[ /* same price tags */ ].map(tag => (
+                  <button
+                    key={tag.label}
+                    className="w-full px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-sm text-gray-700 text-left"
+                    onClick={() => { /* apply filter logic */ }}
+                  >
+                    {tag.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        
       {/* Price Filtered View */}
       {activePriceTag && !searchTriggered && (
         <div className="mt-6">
@@ -692,7 +725,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
             />
 
             {priceSuggestions.length > 0 && (
-              <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
+             <div className="absolute z-40 mt-2 w-full bg-white rounded-lg shadow-lg max-h-60 overflow-y-auto border border-gray-200">
                 {priceSuggestions.map((p) => (
                   <button
                     key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
