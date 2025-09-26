@@ -547,47 +547,48 @@ export default function HomePage() {
           </div>
         </div>
 
-      {/* Price Filter Section */}
-      <div className="mt-6 px-3">
-        <h2 className="text-lg font-semibold text-gray-800 mb-2">💰 Best Value</h2>
-        
-        <div className="overflow-x-auto no-scrollbar">
+      {/* Price Filter Section (only show when not searching) */}
+      {!searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
+        <div className="mt-6 px-3">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">💰 Best Value</h2>
+          
+          <div className="overflow-x-auto no-scrollbar">
           <div className="flex space-x-3">
             {[
-              { label: "Under Rs150", value: 150 },
-              { label: "Under Rs200", value: 200 },
-              { label: "Under Rs300", value: 300 },
-              { label: "Under Rs500", value: 500 },
-              { label: "Under Rs999", value: 1000 },
-              { label: "Under Rs1999", value: 2000 },
+              { label: "Under Rs150", min: 0, max: 150 },
+              { label: "Rs150 – Rs200", min: 150, max: 200 },
+              { label: "Rs200 – Rs300", min: 200, max: 300 },
+              { label: "Rs300 – Rs500", min: 300, max: 500 },
+              { label: "Rs500 – Rs999", min: 500, max: 1000 },
+              { label: "Rs1000 – Rs1999", min: 1000, max: 2000 },
             ].map((tag) => (
               <button
-                key={tag.value}
+                key={tag.label}
                 onClick={() => {
                   setActiveCategory(null);
                   setActiveSubcategory(null);
                   setPriceSort(null);
                   setVisibleSearch(20);
                   setSearchTriggered(true);
-      
-                  // filter directly
+        
+                  // filter directly with range
                   const filtered = allProducts.filter(
-                    (p) => Number(p.price) <= tag.value
+                    (p) => Number(p.price) >= tag.min && Number(p.price) < tag.max
                   );
-      
+        
                   setPriceFilteredResults(filtered);
-                  setActivePriceTag(tag.value);
+                  setActivePriceTag(tag.max);
                   setShowBackButton(true);
-      
+        
                   try {
-                    sessionStorage.setItem("lastPriceFilter", String(tag.value));
+                    sessionStorage.setItem("lastPriceFilter", `${tag.min}-${tag.max}`);
                     sessionStorage.setItem("visibleSearch", "20");
                   } catch {}
                 }}
                 className={`px-6 py-2 rounded-l-2xl rounded-r-2xl text-sm font-semibold shadow 
                            whitespace-nowrap transition-transform active:scale-95
                            ${
-                             activePriceTag === tag.value
+                             activePriceTag === tag.max
                                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
                                : "bg-gradient-to-r from-gray-100 to-gray-300 text-gray-700 hover:from-gray-200 hover:to-gray-400"
                            }`}
@@ -597,9 +598,9 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-      </div>
-
-
+        </div>
+      )}
+        
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
           <>
