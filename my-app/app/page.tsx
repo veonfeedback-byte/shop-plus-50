@@ -533,6 +533,45 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Price Filter Tags */}
+        <div className="flex flex-wrap gap-2 mt-3 px-2">
+          {[
+            { label: "Under Rs150", value: 150 },
+            { label: "Under Rs200", value: 200 },
+            { label: "Under Rs300", value: 300 },
+            { label: "Under Rs500", value: 500 },
+            { label: "Under Rs999", value: 1000 },
+            { label: "Under Rs1999", value: 2000 },
+          ].map((tag) => (
+            <button
+              key={tag.value}
+              onClick={() => {
+                setActiveCategory(null);
+                setActiveSubcategory(null);
+                setPriceSort(null);
+                setVisibleSearch(20);
+                setSearchTriggered(true);
+        
+                // filter directly by price
+                const filtered = allProducts.filter(
+                  (p) => Number(p.price) <= tag.value
+                );
+                setQuery(tag.label); // show in search box
+                setDebouncedQuery(""); // skip fuse search
+                setShowBackButton(true);
+        
+                try {
+                  sessionStorage.setItem("lastQuery", tag.label);
+                  sessionStorage.setItem("visibleSearch", "20");
+                } catch {}
+              }}
+              className="px-4 py-2 rounded-full text-sm font-medium border border-gray-200 bg-white hover:bg-indigo-50 hover:text-indigo-600 transition"
+            >
+              {tag.label}
+            </button>
+          ))}
+        </div>
+
 
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
@@ -622,7 +661,10 @@ export default function HomePage() {
           </>
             ) : (
             <section>
-            <h1 className="text-2xl font-semibold">🔥 Trending</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-pink-500 to-orange-400 bg-clip-text text-transparent">
+              ✨ Trending Products
+            </h1>
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
 
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
