@@ -573,7 +573,10 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
       {/* Price Filter Section (only show when not searching) */}
       {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
         <div className="mt-6 px-3">
-          <h2 className="text-lg text-gray-800 mb-2">Best Value</h2>
+          <h1 className="text-lg font-semibold tracking-tight text-gray-900 mb-2 
+               bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+            Best Value
+          </h1>
           
           <div className="overflow-x-auto scrollbar-hide mt-3 px-2">
           <div className="flex space-x-3">
@@ -780,7 +783,8 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
           !activePriceTag && (
             <section>
-            <h1 className="text-lg text-black bg-clip-text">
+            <h1 className="text-lg font-semibold tracking-tight text-gray-900 
+               bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Trending Products
             </h1>
 
