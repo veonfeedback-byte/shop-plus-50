@@ -387,6 +387,14 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [visibleHome]);
 
+
+
+     // choose between price filter results or normal search results
+            const productsToShow =
+              priceFilteredResults && priceFilteredResults.length > 0
+                ? priceFilteredResults
+                : finalResults;
+
   /* ---------- Render ---------- */
   return (
     <HomeContext.Provider value={{ resetHome }}>
@@ -637,13 +645,6 @@ export default function HomePage() {
                 </button>
               )}
             </div>
-
-            // choose between price filter results or normal search results
-            const productsToShow =
-              priceFilteredResults && priceFilteredResults.length > 0
-                ? priceFilteredResults
-                : finalResults;
-
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               
