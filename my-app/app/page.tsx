@@ -533,43 +533,48 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Price Filter Tags */}
-        <div className="flex flex-wrap gap-2 mt-3 px-2">
-          {[
-            { label: "Under Rs150", value: 150 },
-            { label: "Under Rs200", value: 200 },
-            { label: "Under Rs300", value: 300 },
-            { label: "Under Rs500", value: 500 },
-            { label: "Under Rs999", value: 1000 },
-            { label: "Under Rs1999", value: 2000 },
-          ].map((tag) => (
-            <button
-              key={tag.value}
-              onClick={() => {
-                setActiveCategory(null);
-                setActiveSubcategory(null);
-                setPriceSort(null);
-                setVisibleSearch(20);
-                setSearchTriggered(true);
+       {/* Price Filter Slider */}
+        <div className="overflow-x-auto no-scrollbar mt-3 px-2">
+          <div className="flex space-x-3">
+            {[
+              { label: "Under Rs150", value: 150 },
+              { label: "Under Rs200", value: 200 },
+              { label: "Under Rs300", value: 300 },
+              { label: "Under Rs500", value: 500 },
+              { label: "Under Rs999", value: 1000 },
+              { label: "Under Rs1999", value: 2000 },
+            ].map((tag) => (
+              <button
+                key={tag.value}
+                onClick={() => {
+                  // reset states
+                  setActiveCategory(null);
+                  setActiveSubcategory(null);
+                  setPriceSort(null);
+                  setSearchTriggered(true);
+                  setVisibleSearch(20);
         
-                // filter directly by price
-                const filtered = allProducts.filter(
-                  (p) => Number(p.price) <= tag.value
-                );
-                setQuery(tag.label); // show in search box
-                setDebouncedQuery(""); // skip fuse search
-                setShowBackButton(true);
+                  // filter products directly by price
+                  const filtered = allProducts.filter(
+                    (p) => Number(p.price) <= tag.value
+                  );
+                  setFilteredProducts(filtered);
+                  setShowBackButton(true);
         
-                try {
-                  sessionStorage.setItem("lastQuery", tag.label);
-                  sessionStorage.setItem("visibleSearch", "20");
-                } catch {}
-              }}
-              className="px-4 py-2 rounded-full text-sm font-medium border border-gray-200 bg-white hover:bg-indigo-50 hover:text-indigo-600 transition"
-            >
-              {tag.label}
-            </button>
-          ))}
+                  try {
+                    sessionStorage.setItem("lastPriceFilter", String(tag.value));
+                    sessionStorage.setItem("visibleSearch", "20");
+                  } catch {}
+                }}
+                className="px-5 py-2 rounded-full text-sm font-semibold 
+                           bg-gradient-to-r from-indigo-500 to-purple-500 
+                           text-white shadow hover:from-indigo-600 hover:to-purple-600 
+                           active:scale-95 transition-transform"
+              >
+                {tag.label}
+              </button>
+            ))}
+          </div>
         </div>
 
 
@@ -661,7 +666,7 @@ export default function HomePage() {
           </>
             ) : (
             <section>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-pink-500 to-orange-400 bg-clip-text text-transparent">
+            <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 via-pink-500 to-orange-400 bg-clip-text text-transparent">
               ✨ Trending Products
             </h1>
 
