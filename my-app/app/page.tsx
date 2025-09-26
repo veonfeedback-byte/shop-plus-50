@@ -114,6 +114,9 @@ export default function HomePage() {
   const [query, setQuery] = useState("");
   const [showBackButton, setShowBackButton] = useState(false);
 
+  // add this state at top of your page component
+  const [priceFilteredResults, setPriceFilteredResults] = useState<IndexedProduct[] | null>(null);
+  const [activePriceTag, setActivePriceTag] = useState<number | null>(null);
 
   /* ---------- Build product index once ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
@@ -533,48 +536,55 @@ export default function HomePage() {
           </div>
         </div>
 
-      {/* Price Filter Slider */}
-      <div className="overflow-x-auto no-scrollbar mt-3 px-2">
-        <div className="flex space-x-3">
-          {[
-            { label: "Under Rs150", value: 150 },
-            { label: "Under Rs200", value: 200 },
-            { label: "Under Rs300", value: 300 },
-            { label: "Under Rs500", value: 500 },
-            { label: "Under Rs999", value: 1000 },
-            { label: "Under Rs1999", value: 2000 },
-          ].map((tag) => (
-            <button
-              key={tag.value}
-              onClick={() => {
-                // reset states
-                setActiveCategory(null);
-                setActiveSubcategory(null);
-                setPriceSort(null);
-                setVisibleSearch(20);
-                setSearchTriggered(true);
+      {/* Price Filter Section */}
+      <div className="mt-6 px-3">
+        <h2 className="text-lg font-semibold text-gray-800 mb-2">💰 Best Value</h2>
+        
+        <div className="overflow-x-auto no-scrollbar">
+          <div className="flex space-x-3">
+            {[
+              { label: "Under Rs150", value: 150 },
+              { label: "Under Rs200", value: 200 },
+              { label: "Under Rs300", value: 300 },
+              { label: "Under Rs500", value: 500 },
+              { label: "Under Rs999", value: 1000 },
+              { label: "Under Rs1999", value: 2000 },
+            ].map((tag) => (
+              <button
+                key={tag.value}
+                onClick={() => {
+                  setActiveCategory(null);
+                  setActiveSubcategory(null);
+                  setPriceSort(null);
+                  setVisibleSearch(20);
+                  setSearchTriggered(true);
       
-                // filter directly by price
-                const filtered = allProducts.filter(
-                  (p) => Number(p.price) <= tag.value
-                );
+                  // filter directly
+                  const filtered = allProducts.filter(
+                    (p) => Number(p.price) <= tag.value
+                  );
       
-                setSearchResults(filtered);
-                setShowBackButton(true);
+                  setPriceFilteredResults(filtered);
+                  setActivePriceTag(tag.value);
+                  setShowBackButton(true);
       
-                try {
-                  sessionStorage.setItem("lastPriceFilter", String(tag.value));
-                  sessionStorage.setItem("visibleSearch", "20");
-                } catch {}
-              }}
-              className="px-5 py-2 rounded-full text-sm font-semibold 
-                         bg-gradient-to-r from-gray-100 to-gray-300 text-gray-800
-                         shadow hover:from-gray-200 hover:to-gray-400 
-                         active:scale-95 transition-transform whitespace-nowrap"
-            >
-              {tag.label}
-            </button>
-          ))}
+                  try {
+                    sessionStorage.setItem("lastPriceFilter", String(tag.value));
+                    sessionStorage.setItem("visibleSearch", "20");
+                  } catch {}
+                }}
+                className={`px-6 py-2 rounded-l-2xl rounded-r-2xl text-sm font-semibold shadow 
+                           whitespace-nowrap transition-transform active:scale-95
+                           ${
+                             activePriceTag === tag.value
+                               ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
+                               : "bg-gradient-to-r from-gray-100 to-gray-300 text-gray-700 hover:from-gray-200 hover:to-gray-400"
+                           }`}
+              >
+                🎟 {tag.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
