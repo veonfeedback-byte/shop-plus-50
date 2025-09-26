@@ -459,6 +459,63 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
       </Head>
 
       <div className="space-y-6 px-1 sm:px-2 md:px-4 pb-28">
+
+
+              {/* Price Filter Section (only show when not searching) */}
+      {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
+        <div className="mt-6 px-3">
+          <h1 className="text-sm font-semibold tracking-tight text-gray-900 mb-2
+               bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            Best Value
+          </h1>
+          
+          <div className="overflow-x-auto scrollbar-hide mt-3 px-2">
+          <div className="flex space-x-3">
+            {[
+              { label: "Under Rs150", min: 0, max: 150 },
+              { label: "Rs150 – Rs200", min: 150, max: 200 },
+              { label: "Rs200 – Rs300", min: 200, max: 300 },
+              { label: "Rs300 – Rs500", min: 300, max: 500 },
+              { label: "Rs500 – Rs999", min: 500, max: 1000 },
+              { label: "Rs1000 – Rs1999", min: 1000, max: 2000 },
+            ].map((tag) => (
+             <button
+                key={tag.label}
+                onClick={() => {
+                  // reset states
+                  setActiveCategory(null);
+                  setActiveSubcategory(null);
+                  setPriceSort(null);
+                  setSearchTriggered(false);   // 🚨 make sure not to trigger search
+                  setQuery("");                // reset main search
+                  setShowBackButton(true);
+              
+                  // filter directly with range
+                  const filtered = allProducts.filter(
+                    (p) => Number(p.price) >= tag.min && Number(p.price) < tag.max
+                  );
+              
+                  setPriceFilteredResults(filtered);
+                  setActivePriceTag(tag);      // save whole tag object
+                  setVisiblePriceFiltered(20);
+                }}
+                className={`px-6 py-2 rounded-l-2xl rounded-r-2xl text-sm font-semibold shadow 
+                           whitespace-nowrap transition-transform active:scale-95
+                           ${
+                             activePriceTag?.label === tag.label
+                               ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
+                               : "bg-gradient-to-r from-gray-100 to-gray-300 text-gray-700 hover:from-gray-200 hover:to-gray-400"
+                           }`}
+              >
+                🎟 {tag.label}
+              </button>
+
+            ))}
+          </div>
+        </div>
+        </div>
+      )}
+        
         {/* Search Row (modern style) */}
         {!activePriceTag && (
         <div className="sticky top-0 z-30 backdrop-blur-md py-3 px-1 border-b border-transparent">
@@ -570,136 +627,150 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
         </div>
       )}
 
-      {/* Price Filter Section (only show when not searching) */}
-      {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
-        <div className="mt-6 px-3">
-          <h1 className="text-sm font-semibold tracking-tight text-gray-900 mb-2
-               bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Best Value
-          </h1>
-          
-          <div className="overflow-x-auto scrollbar-hide mt-3 px-2">
-          <div className="flex space-x-3">
-            {[
-              { label: "Under Rs150", min: 0, max: 150 },
-              { label: "Rs150 – Rs200", min: 150, max: 200 },
-              { label: "Rs200 – Rs300", min: 200, max: 300 },
-              { label: "Rs300 – Rs500", min: 300, max: 500 },
-              { label: "Rs500 – Rs999", min: 500, max: 1000 },
-              { label: "Rs1000 – Rs1999", min: 1000, max: 2000 },
-            ].map((tag) => (
-             <button
-                key={tag.label}
-                onClick={() => {
-                  // reset states
-                  setActiveCategory(null);
-                  setActiveSubcategory(null);
-                  setPriceSort(null);
-                  setSearchTriggered(false);   // 🚨 make sure not to trigger search
-                  setQuery("");                // reset main search
-                  setShowBackButton(true);
-              
-                  // filter directly with range
-                  const filtered = allProducts.filter(
-                    (p) => Number(p.price) >= tag.min && Number(p.price) < tag.max
-                  );
-              
-                  setPriceFilteredResults(filtered);
-                  setActivePriceTag(tag);      // save whole tag object
-                  setVisiblePriceFiltered(20);
-                }}
-                className={`px-6 py-2 rounded-l-2xl rounded-r-2xl text-sm font-semibold shadow 
-                           whitespace-nowrap transition-transform active:scale-95
-                           ${
-                             activePriceTag?.label === tag.label
-                               ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
-                               : "bg-gradient-to-r from-gray-100 to-gray-300 text-gray-700 hover:from-gray-200 hover:to-gray-400"
-                           }`}
-              >
-                🎟 {tag.label}
-              </button>
 
-            ))}
+      {/* Price Filtered View */}
+      {activePriceTag && !searchTriggered && (
+        <div className="mt-6">
+          <div className="flex items-center mb-4">
+            <button
+              onClick={resetHome}
+              className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="flex-1 text-center text-lg font-bold text-gray-800">
+              {activePriceTag.label}
+            </h2>
           </div>
-        </div>
-        </div>
-      )}
-
-        {/* Price Filtered View */}
-        {activePriceTag && !searchTriggered && (
-          <div className="mt-6">
-            <div className="flex items-center mb-4">
+      
+          {/* Total products + clear filter */}
+          <div className="flex items-center justify-between mb-4 px-2">
+            <p className="text-sm text-gray-600">
+              {priceFilteredResults.filter((p) =>
+                p.title.toLowerCase().includes(priceQuery.toLowerCase())
+              ).length} products found
+            </p>
+            <button
+              onClick={() => {
+                setActivePriceTag(null);
+                setPriceFilteredResults([]);
+                setPriceQuery("");
+                setPriceSort(null);
+                try {
+                  sessionStorage.removeItem("lastPriceFilter");
+                  sessionStorage.removeItem("priceQuery");
+                  sessionStorage.removeItem("lastSort");
+                } catch {}
+              }}
+              className="text-xs px-3 py-1 rounded-full border border-gray-300 text-gray-500 hover:bg-gray-100"
+            >
+              Clear Filter ✕
+            </button>
+          </div>
+      
+          {/* Search only inside price filtered */}
+          <div className="mb-4">
+            <input
+              type="search"
+              value={priceQuery}
+              onChange={(e) => setPriceQuery(e.target.value)}
+              placeholder={`Search in ${activePriceTag.label}`}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
+            />
+          </div>
+      
+          {/* Sorting buttons */}
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => setPriceSort("asc")}
+              className={`px-4 py-2 rounded-lg border text-sm ${
+                priceSort === "asc" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"
+              }`}
+            >
+              Price ↑
+            </button>
+            <button
+              onClick={() => setPriceSort("desc")}
+              className={`px-4 py-2 rounded-lg border text-sm ${
+                priceSort === "desc" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"
+              }`}
+            >
+              Price ↓
+            </button>
+            {priceSort && (
               <button
-                onClick={resetHome}
-                className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition"
+                onClick={() => setPriceSort(null)}
+                className="px-4 py-2 rounded-lg border text-sm bg-white text-gray-500"
               >
-                <ArrowLeft className="w-5 h-5" />
+                Reset
               </button>
-              <h2 className="flex-1 text-center text-lg font-bold text-gray-800">
-                {activePriceTag.label}
-              </h2>
-            </div>
-        
-            {/* Search only inside price filtered */}
-            <div className="mb-4">
-              <input
-                type="search"
-                value={priceQuery}
-                onChange={(e) => setPriceQuery(e.target.value)}
-                placeholder={`Search in ${activePriceTag.label}`}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
-              />
-            </div>
-        
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            )}
+          </div>
+      
+          {/* Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {priceFilteredResults
               .filter((p) =>
                 p.title.toLowerCase().includes(priceQuery.toLowerCase())
               )
+              .sort((a, b) => {
+                if (!priceSort) return 0;
+                const pa = Number(a.price) || 0;
+                const pb = Number(b.price) || 0;
+                return priceSort === "asc" ? pa - pb : pb - pa;
+              })
               .slice(0, visiblePriceFiltered).length === 0 ? (
                 <p className="col-span-full text-center text-gray-500 mt-6">
                   🚫 No product found
                 </p>
               ) : (
-               priceFilteredResults
-                .filter((p) =>
-                  p.title.toLowerCase().includes(priceQuery.toLowerCase())
-                )
-                .slice(0, visiblePriceFiltered)
-                .map((p, idx) => (
-                  <ProductCard
-                    key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
-                    p={p}
-                    href={productUrl(p)}
-                    eager={idx < 4}
-                    onClick={() => {
-                      try {
-                        sessionStorage.setItem("scrollY", String(window.scrollY));
-                        if (activePriceTag)
-                          sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
-                        if (priceQuery)
-                          sessionStorage.setItem("priceQuery", priceQuery);
-                        sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
-                      } catch {}
-                    }}
-                  />
-                ))
-                
+                priceFilteredResults
+                  .filter((p) =>
+                    p.title.toLowerCase().includes(priceQuery.toLowerCase())
+                  )
+                  .sort((a, b) => {
+                    if (!priceSort) return 0;
+                    const pa = Number(a.price) || 0;
+                    const pb = Number(b.price) || 0;
+                    return priceSort === "asc" ? pa - pb : pb - pa;
+                  })
+                  .slice(0, visiblePriceFiltered)
+                  .map((p, idx) => (
+                    <ProductCard
+                      key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                      p={p}
+                      href={productUrl(p)}
+                      eager={idx < 4}
+                      onClick={() => {
+                        try {
+                          sessionStorage.setItem("scrollY", String(window.scrollY));
+                          if (activePriceTag)
+                            sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
+                          if (priceQuery)
+                            sessionStorage.setItem("priceQuery", priceQuery);
+                          if (priceSort)
+                            sessionStorage.setItem("lastSort", priceSort);
+                          sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
+                        } catch {}
+                      }}
+                    />
+                  ))
               )}
           </div>
-        
-            {visiblePriceFiltered < priceFilteredResults.length && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => setVisiblePriceFiltered((v) => v + 20)}
-                  className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
-                >
-                  Load more
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+      
+          {visiblePriceFiltered < priceFilteredResults.length && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => setVisiblePriceFiltered((v) => v + 20)}
+                className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
+              >
+                Load more
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
         
         {/* Search results */}
         {searchTriggered && !activePriceTag && (debouncedQuery || activeCategory || activeSubcategory) ? (
