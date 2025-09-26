@@ -118,6 +118,7 @@ export default function HomePage() {
   const [activePriceTag, setActivePriceTag] = useState<{ label: string; min: number; max: number } | null>(null);
   const [visiblePriceFiltered, setVisiblePriceFiltered] = useState(20);
   const [priceQuery, setPriceQuery] = useState("");
+  const [priceSuggestions, setPriceSuggestions] = useState<IndexedProduct[]>([]);
 
   /* ---------- Build product index once ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
@@ -334,6 +335,12 @@ export default function HomePage() {
     } catch {}
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+  
+  // choose between price filter results or normal search results
+  const productsToShow =
+    priceFilteredResults && priceFilteredResults.length > 0
+      ? priceFilteredResults
+      : finalResults;
 
   /* ---------- product url ---------- */
   const productUrl = useCallback(
@@ -407,14 +414,6 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [visibleHome]);
-
-
-
-     // choose between price filter results or normal search results
-            const productsToShow =
-              priceFilteredResults && priceFilteredResults.length > 0
-                ? priceFilteredResults
-                : finalResults;
 
   /* ---------- Render ---------- */
   return (
@@ -673,10 +672,41 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
             <input
               type="search"
               value={priceQuery}
-              onChange={(e) => setPriceQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setPriceQuery(val);
+            
+                // live suggestions from filtered products
+                if (val.trim()) {
+                  const q = val.toLowerCase();
+                  const suggestions = priceFilteredResults.filter((p) =>
+                    p.title.toLowerCase().includes(q)
+                  );
+                  setPriceSuggestions(suggestions.slice(0, 8)); // top 8 suggestions
+                } else {
+                  setPriceSuggestions([]);
+                }
+              }}
               placeholder={`Search in ${activePriceTag.label}`}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
             />
+
+            {priceSuggestions.length > 0 && (
+              <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
+                {priceSuggestions.map((p) => (
+                  <button
+                    key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                    onClick={() => {
+                      setPriceQuery(p.title);
+                      setPriceSuggestions([]);
+                    }}
+                    className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                  >
+                    {p.title}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
       
           {/* Sorting buttons */}
