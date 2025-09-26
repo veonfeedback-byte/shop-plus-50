@@ -533,49 +533,50 @@ export default function HomePage() {
           </div>
         </div>
 
-       {/* Price Filter Slider */}
-        <div className="overflow-x-auto no-scrollbar mt-3 px-2">
-          <div className="flex space-x-3">
-            {[
-              { label: "Under Rs150", value: 150 },
-              { label: "Under Rs200", value: 200 },
-              { label: "Under Rs300", value: 300 },
-              { label: "Under Rs500", value: 500 },
-              { label: "Under Rs999", value: 1000 },
-              { label: "Under Rs1999", value: 2000 },
-            ].map((tag) => (
-              <button
-                key={tag.value}
-                onClick={() => {
-                  // reset states
-                  setActiveCategory(null);
-                  setActiveSubcategory(null);
-                  setPriceSort(null);
-                  setSearchTriggered(true);
-                  setVisibleSearch(20);
-        
-                  // filter products directly by price
-                  const filtered = allProducts.filter(
-                    (p) => Number(p.price) <= tag.value
-                  );
-                  setFilteredProducts(filtered);
-                  setShowBackButton(true);
-        
-                  try {
-                    sessionStorage.setItem("lastPriceFilter", String(tag.value));
-                    sessionStorage.setItem("visibleSearch", "20");
-                  } catch {}
-                }}
-                className="px-5 py-2 rounded-full text-sm font-semibold 
-                           bg-gradient-to-r from-indigo-500 to-purple-500 
-                           text-white shadow hover:from-indigo-600 hover:to-purple-600 
-                           active:scale-95 transition-transform"
-              >
-                {tag.label}
-              </button>
-            ))}
-          </div>
+      {/* Price Filter Slider */}
+      <div className="overflow-x-auto no-scrollbar mt-3 px-2">
+        <div className="flex space-x-3">
+          {[
+            { label: "Under Rs150", value: 150 },
+            { label: "Under Rs200", value: 200 },
+            { label: "Under Rs300", value: 300 },
+            { label: "Under Rs500", value: 500 },
+            { label: "Under Rs999", value: 1000 },
+            { label: "Under Rs1999", value: 2000 },
+          ].map((tag) => (
+            <button
+              key={tag.value}
+              onClick={() => {
+                // reset states
+                setActiveCategory(null);
+                setActiveSubcategory(null);
+                setPriceSort(null);
+                setVisibleSearch(20);
+                setSearchTriggered(true);
+      
+                // filter directly by price
+                const filtered = allProducts.filter(
+                  (p) => Number(p.price) <= tag.value
+                );
+      
+                setSearchResults(filtered);
+                setShowBackButton(true);
+      
+                try {
+                  sessionStorage.setItem("lastPriceFilter", String(tag.value));
+                  sessionStorage.setItem("visibleSearch", "20");
+                } catch {}
+              }}
+              className="px-5 py-2 rounded-full text-sm font-semibold 
+                         bg-gradient-to-r from-gray-100 to-gray-300 text-gray-800
+                         shadow hover:from-gray-200 hover:to-gray-400 
+                         active:scale-95 transition-transform whitespace-nowrap"
+            >
+              {tag.label}
+            </button>
+          ))}
         </div>
+      </div>
 
 
         {/* Search results */}
