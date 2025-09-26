@@ -353,6 +353,26 @@ export default function HomePage() {
     const lastSub = sessionStorage.getItem("lastSubcategory");
     const lastSort = sessionStorage.getItem("lastSort");
 
+    const lastPriceFilter = sessionStorage.getItem("lastPriceFilter");
+    if (lastPriceFilter) {
+      try {
+        const parsed = JSON.parse(lastPriceFilter);
+        setActivePriceTag(parsed);
+    
+        const filtered = allProducts.filter(
+          (p) => Number(p.price) >= parsed.min && Number(p.price) < parsed.max
+        );
+        setPriceFilteredResults(filtered);
+      } catch {}
+    }
+
+const lastPriceQuery = sessionStorage.getItem("priceQuery");
+if (lastPriceQuery) setPriceQuery(lastPriceQuery);
+
+const lastVisiblePrice = sessionStorage.getItem("visiblePriceFiltered");
+if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
+
+
     if (lastQ) {
       setQuery(lastQ);
       setShowBackButton(true);
@@ -771,6 +791,9 @@ export default function HomePage() {
                   onClick={() => {
                     try {
                       sessionStorage.setItem("scrollY", String(window.scrollY));
+                      sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
+                      sessionStorage.setItem("priceQuery", priceQuery);
+                      sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
                     } catch {}
                   }}
                   eager={idx < 4}
