@@ -573,8 +573,8 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
       {/* Price Filter Section (only show when not searching) */}
       {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
         <div className="mt-6 px-3">
-          <h1 className="text-lg font-semibold tracking-tight text-gray-900 mb-2 
-               bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+          <h1 className="text-sm font-semibold tracking-tight text-gray-900 mb-2
+               bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Best Value
           </h1>
           
@@ -661,19 +661,30 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                   🚫 No product found
                 </p>
               ) : (
-                priceFilteredResults
-                  .filter((p) =>
-                    p.title.toLowerCase().includes(priceQuery.toLowerCase())
-                  )
-                  .slice(0, visiblePriceFiltered)
-                  .map((p, idx) => (
-                    <ProductCard
-                      key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
-                      p={p}
-                      href={productUrl(p)}
-                      eager={idx < 4}
-                    />
-                  ))
+               priceFilteredResults
+                .filter((p) =>
+                  p.title.toLowerCase().includes(priceQuery.toLowerCase())
+                )
+                .slice(0, visiblePriceFiltered)
+                .map((p, idx) => (
+                  <ProductCard
+                    key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                    p={p}
+                    href={productUrl(p)}
+                    eager={idx < 4}
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem("scrollY", String(window.scrollY));
+                        if (activePriceTag)
+                          sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
+                        if (priceQuery)
+                          sessionStorage.setItem("priceQuery", priceQuery);
+                        sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
+                      } catch {}
+                    }}
+                  />
+                ))
+                
               )}
           </div>
         
@@ -783,7 +794,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
           !activePriceTag && (
             <section>
-            <h1 className="text-lg font-semibold tracking-tight text-gray-900 
+            <h1 className="text-sm font-semibold tracking-tight text-gray-900 
                bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Trending Products
             </h1>
