@@ -780,8 +780,8 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
           !activePriceTag && (
             <section>
-            <h1 className="text-lg text-black bg-clip-text text-transparent">
-              ✨ Trending Products
+            <h1 className="text-lg text-black bg-clip-text">
+              Trending Products
             </h1>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
