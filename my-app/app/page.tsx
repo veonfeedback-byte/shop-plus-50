@@ -573,7 +573,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
       {/* Price Filter Section (only show when not searching) */}
       {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
         <div className="mt-6 px-3">
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">💰 Best Value</h2>
+          <h2 className="text-lg text-gray-800 mb-2">Best Value</h2>
           
           <div className="overflow-x-auto scrollbar-hide mt-3 px-2">
           <div className="flex space-x-3">
@@ -780,7 +780,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
           !activePriceTag && (
             <section>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 via-pink-500 to-orange-400 bg-clip-text text-transparent">
+            <h1 className="text-lg text-black bg-clip-text text-transparent">
               ✨ Trending Products
             </h1>
 
@@ -799,10 +799,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                         sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
                       if (priceQuery)
                         sessionStorage.setItem("priceQuery", priceQuery);
-                      sessionStorage.setItem(
-                        "visiblePriceFiltered",
-                        String(visiblePriceFiltered)
-                      );
+                      sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
                     } catch {}
                   }}
                 />
