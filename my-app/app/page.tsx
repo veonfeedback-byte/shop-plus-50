@@ -746,9 +746,12 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       sessionStorage.setItem("lastQuery", query);
                       sessionStorage.setItem("visibleSearch", String(visibleSearch));
                       if (activeCategory) sessionStorage.setItem("lastCategory", activeCategory);
-                      if (activeSubcategory)
-                        sessionStorage.setItem("lastSubcategory", activeSubcategory);
+                      if (activeSubcategory) sessionStorage.setItem("lastSubcategory", activeSubcategory);
                       if (priceSort) sessionStorage.setItem("lastSort", priceSort);
+
+                      if (activePriceTag) sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
+                      if (priceQuery) sessionStorage.setItem("priceQuery", priceQuery);
+                      sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
                     } catch {}
                   }}
                   eager={idx < 4}
