@@ -325,6 +325,9 @@ export default function HomePage() {
     setSearchTriggered(false);
     setActiveCategory(null);
     setActiveSubcategory(null);
+    setPriceFilteredResults(null);
+    setActivePriceTag(null);
+
     try {
       sessionStorage.clear();
     } catch {}
@@ -635,9 +638,16 @@ export default function HomePage() {
               )}
             </div>
 
+            // choose between price filter results or normal search results
+            const productsToShow =
+              priceFilteredResults && priceFilteredResults.length > 0
+                ? priceFilteredResults
+                : finalResults;
+
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               
-              {finalResults.slice(0, visibleSearch).map((p, idx) => (
+              {productsToShow.slice(0, visibleSearch).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
                   p={p}
