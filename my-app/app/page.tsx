@@ -47,6 +47,23 @@ function ProductCard({
 
   const inflated = Math.round(Number(p.price) * 1.2);
 
+  // Pool of random tags
+  const tags = [
+    "20% OFF",
+    "30% OFF",
+    "Hot",
+    "Sale",
+    "Popular",
+    null, // null = no tag
+    null, // higher chance of no tag
+  ];
+
+  // Always stable per product (not re-randomized on every render)
+  const tag = useMemo(() => {
+    const index = (p.id.charCodeAt(0) + p.id.length) % tags.length;
+    return tags[index];
+  }, [p.id]);
+
   return (
     <Link
       href={href}
@@ -69,10 +86,12 @@ function ProductCard({
           <div className="w-full h-full bg-gray-200 animate-pulse" />
         )}
 
-        {/* Badge (Sale / Hot / New) */}
-        <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm">
-          Sale
-        </span>
+        {/* Show tag only if not null */}
+        {tag && (
+          <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm">
+            {tag}
+          </span>
+        )}
       </div>
 
       {/* Content */}
@@ -82,18 +101,13 @@ function ProductCard({
         </h3>
 
         <div className="mt-1">
-          <p className="text-xs text-gray-400 line-through">
-            Rs {inflated}
-          </p>
-          <p className="text-lg font-bold text-gray-900">
-            Rs {p.price}
-          </p>
+          <p className="text-xs text-gray-400 line-through">Rs {inflated}</p>
+          <p className="text-lg font-bold text-gray-900">Rs {p.price}</p>
         </div>
       </div>
     </Link>
   );
 }
-
 
 /* ---------- main component ---------- */
 export default function HomePage() {
