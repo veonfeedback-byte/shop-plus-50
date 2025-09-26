@@ -35,43 +35,32 @@ const cachedCategories = Catalog.getCategories();
 function ProductCard({
   p,
   href,
-  preconnect,
   onClick,
   eager,
 }: {
   p: IndexedProduct;
   href: string;
   onClick?: () => void;
-  preconnect?: boolean;
   eager?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
 
-  const inflated = Math.round(Number(p.price) * 1.2); // +20%
-  const tags = ["Latest", "Sale", "Hot"]; // you can customize logic later
-
-  // inside ProductCard
-const tag = useMemo(() => {
-  // pick based on product id → always the same
-  const index = (p.id.charCodeAt(0) + p.id.length) % tags.length;
-  return tags[index];
-}, [p.id]);
-
+  const inflated = Math.round(Number(p.price) * 1.2);
 
   return (
     <Link
       href={href}
       onClick={onClick}
-      className="block group rounded-xl overflow-hidden shadow hover:shadow-xl transition "
+      className="group block"
     >
-      {/* image with badge */}
+      {/* Image */}
       <div className="relative w-full aspect-square overflow-hidden">
         {p.mainImage ? (
           <img
             src={p.mainImage}
             alt={p.title}
             className={`w-full h-full object-cover transition duration-500 group-hover:scale-105 ${
-              loaded ? "blur-0 grayscale-0" : "blur-xl grayscale"
+              loaded ? "blur-0" : "blur-md"
             }`}
             loading={eager ? "eager" : "lazy"}
             onLoad={() => setLoaded(true)}
@@ -80,24 +69,25 @@ const tag = useMemo(() => {
           <div className="w-full h-full bg-gray-200 animate-pulse" />
         )}
 
-        {/* product tag */}
-        <span className="absolute top-2 left-2 bg-black text-white text-xs font-medium px-2 py-1 rounded-md border border-white-300 shadow-sm">
-          {tag}
+        {/* Badge (Sale / Hot / New) */}
+        <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm">
+          Sale
         </span>
       </div>
 
-      {/* content */}
-      <div className="p-3">
-        <div className="text-sm font-medium line-clamp-2 group-hover:text-indigo-600 transition">
+      {/* Content */}
+      <div className="mt-2">
+        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 group-hover:text-indigo-600 transition">
           {p.title}
-        </div>
+        </h3>
+
         <div className="mt-1">
-          <span className="text-gray-400 line-through text-sm mr-2">
+          <p className="text-xs text-gray-400 line-through">
             Rs {inflated}
-          </span>
-          <span className="text-lg font-semibold text-gray-900">
+          </p>
+          <p className="text-lg font-bold text-gray-900">
             Rs {p.price}
-          </span>
+          </p>
         </div>
       </div>
     </Link>
