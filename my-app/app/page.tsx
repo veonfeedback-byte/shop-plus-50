@@ -530,54 +530,6 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
               </div>
 
-             {/* Price Slider (always visible under search bar) */}
-            {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
-              <div className="mt-4 px-3">
-                <div className="overflow-x-auto scrollbar-hide">
-                  <div className="flex space-x-3">
-                    {[
-                      { label: "Under Rs150", min: 0, max: 150 },
-                      { label: "Rs150 – Rs200", min: 150, max: 200 },
-                      { label: "Rs200 – Rs300", min: 200, max: 300 },
-                      { label: "Rs300 – Rs500", min: 300, max: 500 },
-                      { label: "Rs500 – Rs999", min: 500, max: 1000 },
-                      { label: "Rs1000 – Rs1999", min: 1000, max: 2000 },
-                    ].map((tag) => (
-                      <button
-                        key={tag.label}
-                        onClick={() => {
-                          setActiveCategory(null);
-                          setActiveSubcategory(null);
-                          setPriceSort(null);
-                          setSearchTriggered(false);
-                          setQuery("");
-                          setShowBackButton(true);
-            
-                          const filtered = allProducts.filter(
-                            (p) => Number(p.price) >= tag.min && Number(p.price) < tag.max
-                          );
-            
-                          setPriceFilteredResults(filtered);
-                          setActivePriceTag(tag);
-                          setVisiblePriceFiltered(20);
-                        }}
-                        className={`px-4 py-2 rounded-full text-sm font-medium shadow-sm
-                          whitespace-nowrap transition-colors
-                          ${
-                            activePriceTag?.label === tag.label
-                              ? "bg-indigo-600 text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
-                      >
-                        {tag.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-
               {/* suggestions dropdown (keeps your existing logic but styled) */}
               {categorySuggestions.length > 0 && (
                 <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
@@ -618,6 +570,55 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
           </div>
         </div>
       )}
+
+       {/* Price Slider (always visible under search bar) */}
+            {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
+              <div className="mt-4 px-3">
+               <div className="overflow-x-auto scrollbar-hide">
+                <div className="flex space-x-3 w-max px-1">
+                  {[
+                    { label: "Under Rs150", min: 0, max: 150 },
+                    { label: "Rs150 – Rs200", min: 150, max: 200 },
+                    { label: "Rs200 – Rs300", min: 200, max: 300 },
+                    { label: "Rs300 – Rs500", min: 300, max: 500 },
+                    { label: "Rs500 – Rs999", min: 500, max: 1000 },
+                    { label: "Rs1000 – Rs1999", min: 1000, max: 2000 },
+                  ].map((tag) => (
+                    <button
+                      key={tag.label}
+                      onClick={() => {
+                        setActiveCategory(null);
+                        setActiveSubcategory(null);
+                        setPriceSort(null);
+                        setSearchTriggered(false);
+                        setQuery("");
+                        setShowBackButton(true);
+              
+                        const filtered = allProducts.filter(
+                          (p) => Number(p.price) >= tag.min && Number(p.price) < tag.max
+                        );
+              
+                        setPriceFilteredResults(filtered);
+                        setActivePriceTag(tag);
+                        setVisiblePriceFiltered(20);
+                      }}
+                      className={`relative flex-shrink-0 px-6 py-3 
+                        rounded-lg border-2 font-semibold text-sm
+                        bg-gradient-to-r from-indigo-500 to-indigo-600 text-white
+                        shadow-md whitespace-nowrap transition 
+                        ${activePriceTag?.label === tag.label ? "scale-105 ring-2 ring-indigo-400" : "hover:from-indigo-600 hover:to-indigo-700"}`}
+                      style={{
+                        clipPath: "polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%)", // 🎟 ticket shape
+                      }}
+                    >
+                      {tag.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              </div>
+            )}
         
       {/* Price Filtered View */}
       {activePriceTag && !searchTriggered && (
