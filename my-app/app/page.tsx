@@ -120,6 +120,7 @@ export default function HomePage() {
   const [visiblePriceFiltered, setVisiblePriceFiltered] = useState(20);
   const [priceQuery, setPriceQuery] = useState("");
   const [priceSuggestions, setPriceSuggestions] = useState<IndexedProduct[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   /* ---------- Build product index once ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
