@@ -575,7 +575,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
         <div className="mt-6 px-3">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">💰 Best Value</h2>
           
-          <div className="overflow-x-auto no-scrollbar">
+          <div className="overflow-x-auto scrollbar-hide mt-3 px-2">
           <div className="flex space-x-3">
             {[
               { label: "Under Rs150", min: 0, max: 150 },
@@ -787,19 +787,24 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
 
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
-                <ProductCard
+               <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
                   p={p}
                   href={productUrl(p)}
+                  eager={idx < 4}
                   onClick={() => {
                     try {
                       sessionStorage.setItem("scrollY", String(window.scrollY));
-                      sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
-                      sessionStorage.setItem("priceQuery", priceQuery);
-                      sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
+                      if (activePriceTag)
+                        sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
+                      if (priceQuery)
+                        sessionStorage.setItem("priceQuery", priceQuery);
+                      sessionStorage.setItem(
+                        "visiblePriceFiltered",
+                        String(visiblePriceFiltered)
+                      );
                     } catch {}
                   }}
-                  eager={idx < 4}
                 />
               ))}
             </div>
