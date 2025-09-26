@@ -531,8 +531,8 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               </div>
 
               {/* suggestions dropdown (keeps your existing logic but styled) */}
-              {categorySuggestions.length > 0 && (
-                <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
+              {categorySuggestions.length > 0 && !searchTriggered && (
+                <div className="absolute z-40 mt-2 left-[1px] right-[1px] bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
                   {categorySuggestions.map((s) => (
                     <button
                       key={`${s.type}-${s.parent || "root"}-${s.slug}`}
@@ -554,7 +554,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                         }
                         setSearchTriggered(true);
                         setShowBackButton(true);
-                        setQuery(s.title);
+                        setQuery(""); // reset input after selecting
                         try {
                           sessionStorage.setItem("lastQuery", s.title);
                         } catch {}
@@ -680,6 +680,34 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                   setPriceSuggestions([]);
                 }
               }}
+              
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  inputRef.current?.blur(); // close keyboard
+                  setCategorySuggestions([]); // close suggestions
+              
+                  const normalized = query.trim().toLowerCase();
+                  setDebouncedQuery(normalized);
+              
+                  setActiveCategory(null);
+                  setActiveSubcategory(null);
+                  setPriceSort(null);
+                  setVisibleSearch(10);
+              
+                  setSearchTriggered(true);
+                  setShowBackButton(true);
+              
+                  try {
+                    sessionStorage.setItem("lastQuery", query);
+                    sessionStorage.removeItem("lastCategory");
+                    sessionStorage.removeItem("lastSubcategory");
+                    sessionStorage.removeItem("lastSort");
+                    sessionStorage.setItem("visibleSearch", "10");
+                  } catch {}
+                }
+              }}
+
               placeholder={`Search in ${activePriceTag.label}`}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
             />
@@ -888,10 +916,11 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
           !activePriceTag && (
             <section>
-            <h1 className="text-sm font-semibold tracking-tight text-gray-900 
-               bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Trending Products
-            </h1>
+            <h2 className="relative text-2xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 drop-shadow-sm my-6">
+              <span className="inline-block px-6 py-2 rounded-full bg-gradient-to-r from-indigo-50 via-white to-indigo-50 shadow-md border border-gray-100">
+                ✨ Trending Products ✨
+              </span>
+            </h2>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
 
