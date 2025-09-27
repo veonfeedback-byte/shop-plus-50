@@ -917,9 +917,9 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
           !activePriceTag && (
             <section>
-            <h2 className="relative text-2xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 drop-shadow-sm my-6">
+            <h2 className="relative text-2xl font-extrabold text-center text-black bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 drop-shadow-sm my-6">
               <span className="inline-block px-6 py-2 rounded-full bg-gradient-to-r from-indigo-50 via-white to-indigo-50 shadow-md border border-gray-100">
-                ✨ Trending Products ✨
+                Trending Products
               </span>
             </h2>
 
