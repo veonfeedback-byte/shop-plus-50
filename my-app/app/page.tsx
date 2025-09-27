@@ -729,11 +729,11 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                   setPriceFilteredResults(
                     allProducts.filter(
                       (p) =>
+                        (!activeSubcategory || p.subcategorySlug === activeSubcategory) &&
                         Number(p.price) >= (activePriceTag?.min ?? 0) &&
                         Number(p.price) < (activePriceTag?.max ?? Infinity)
                     )
                   );
-                }
               }}
               
               onKeyDown={(e) => {
@@ -771,12 +771,12 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       setShowBackButton(true);
                       setPriceQuery(s.title);
                     
-                      // ✅ filter by BOTH subcategory AND active price range
+                      // Ensure price filter is applied correctly
+                      if (!activePriceTag) return; // safety check
+                    
+                      const { min, max } = activePriceTag;
                       const filtered = allProducts.filter(
-                        (p) =>
-                          p.subcategorySlug === s.slug &&
-                          Number(p.price) >= (activePriceTag?.min ?? 0) &&
-                          Number(p.price) < (activePriceTag?.max ?? Infinity)
+                        (p) => p.subcategorySlug === s.slug && Number(p.price) >= min && Number(p.price) < max
                       );
                       setPriceFilteredResults(filtered);
                     }}
