@@ -402,12 +402,12 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
   useLayoutEffect(() => {
     const y = (window as any).__restoreScrollY ?? sessionStorage.getItem("scrollY");
-    if (y && (searchTriggered || activePriceTag) && finalResults.length > 0) {
+    if (y && (searchTriggered || activePriceTag) && productsToShow.length > 0) {
       setTimeout(() => {
         window.scrollTo({ top: Number(y), behavior: "instant" as ScrollBehavior });
       }, 0);
     }
-  }, [finalResults, visibleSearch, visiblePriceFiltered]);
+  }, [productsToShow, searchTriggered, activePriceTag, visibleSearch, visiblePriceFiltered]);
 
   useEffect(() => {
   const saveScroll = () => {
@@ -699,35 +699,42 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               type="search"
               value={priceQuery}
               onChange={(e) => {
-              const val = e.target.value;
-              setPriceQuery(val);
-            
-              if (val.trim()) {
-                const q = val.toLowerCase();
-            
-                // find unique subcategories inside filtered results
-                const matchedSubs: { slug: string; title: string; parent: string }[] = [];
-                for (const p of priceFilteredResults) {
-                  const sub = cachedCategories
-                    .find((c) => c.slug === p.categorySlug)
-                    ?.subcategories.find((s) => s.slug === p.subcategorySlug);
-            
-                  if (sub && sub.name.toLowerCase().includes(q)) {
-                    if (!matchedSubs.some((m) => m.slug === sub.slug)) {
-                      matchedSubs.push({
-                        slug: sub.slug,
-                        title: sub.name,
-                        parent: p.categorySlug,
-                      });
+                const val = e.target.value;
+                setPriceQuery(val);
+              
+                if (val.trim()) {
+                  const q = val.toLowerCase();
+              
+                  // find unique subcategories inside filtered results
+                  const matchedSubs: { slug: string; title: string; parent: string }[] = [];
+                  for (const p of priceFilteredResults) {
+                    const sub = cachedCategories
+                      .find((c) => c.slug === p.categorySlug)
+                      ?.subcategories.find((s) => s.slug === p.subcategorySlug);
+              
+                    if (sub && sub.name.toLowerCase().includes(q)) {
+                      if (!matchedSubs.some((m) => m.slug === sub.slug)) {
+                        matchedSubs.push({
+                          slug: sub.slug,
+                          title: sub.name,
+                          parent: p.categorySlug,
+                        });
+                      }
                     }
                   }
+                  setPriceSubSuggestions(matchedSubs.slice(0, 6));
+                } else {
+                  // 🔑 clear → restore full results again
+                  setPriceSubSuggestions([]);
+                  setPriceFilteredResults(
+                    allProducts.filter(
+                      (p) =>
+                        Number(p.price) >= (activePriceTag?.min ?? 0) &&
+                        Number(p.price) < (activePriceTag?.max ?? Infinity)
+                    )
+                  );
                 }
-            
-                setPriceSubSuggestions(matchedSubs.slice(0, 6));
-              } else {
-                setPriceSubSuggestions([]);
-              }
-            }}
+              }}
               
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -762,6 +769,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       setActiveSubcategory(s.slug);
                       setPriceSubSuggestions([]);
                       setShowBackButton(true);
+                      setPriceQuery(s.title);
                     
                       const filtered = priceFilteredResults.filter(
                         (p) => p.subcategorySlug === s.slug
