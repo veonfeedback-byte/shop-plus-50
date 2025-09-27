@@ -118,7 +118,8 @@ export default function HomePage() {
   const [activePriceTag, setActivePriceTag] = useState<{ label: string; min: number; max: number } | null>(null);
   const [visiblePriceFiltered, setVisiblePriceFiltered] = useState(20);
   const [priceQuery, setPriceQuery] = useState("");
-  const [priceSuggestions, setPriceSuggestions] = useState<IndexedProduct[]>([]);
+  const [priceSubSuggestions, setPriceSubSuggestions] = useState< { slug: string; title: string; parent: string }[] >([]);
+
 
 
   /* ---------- Build product index once ---------- */
@@ -416,6 +417,15 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
     return () => window.removeEventListener("scroll", onScroll);
   }, [visibleHome]);
 
+  useEffect(() => {
+  const onPopState = () => {
+    resetHome();
+  };
+  window.addEventListener("popstate", onPopState);
+  return () => window.removeEventListener("popstate", onPopState);
+}, [resetHome]);
+
+
   /* ---------- Render ---------- */
   return (
     <HomeContext.Provider value={{ resetHome }}>
@@ -512,7 +522,8 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       setActiveSubcategory(null);
                       setPriceSort(null);
                       setVisibleSearch(10);
-
+                      
+                      setPriceSubSuggestions([]);
                       setSearchTriggered(true);
                       setShowBackButton(true);
 
@@ -666,20 +677,35 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               type="search"
               value={priceQuery}
               onChange={(e) => {
-                const val = e.target.value;
-                setPriceQuery(val);
+              const val = e.target.value;
+              setPriceQuery(val);
             
-                // live suggestions from filtered products
-                if (val.trim()) {
-                  const q = val.toLowerCase();
-                  const suggestions = priceFilteredResults.filter((p) =>
-                    p.title.toLowerCase().includes(q)
-                  );
-                  setPriceSuggestions(suggestions.slice(0, 8)); // top 8 suggestions
-                } else {
-                  setPriceSuggestions([]);
+              if (val.trim()) {
+                const q = val.toLowerCase();
+            
+                // find unique subcategories inside filtered results
+                const matchedSubs: { slug: string; title: string; parent: string }[] = [];
+                for (const p of priceFilteredResults) {
+                  const sub = cachedCategories
+                    .find((c) => c.slug === p.categorySlug)
+                    ?.subcategories.find((s) => s.slug === p.subcategorySlug);
+            
+                  if (sub && sub.name.toLowerCase().includes(q)) {
+                    if (!matchedSubs.some((m) => m.slug === sub.slug)) {
+                      matchedSubs.push({
+                        slug: sub.slug,
+                        title: sub.name,
+                        parent: p.categorySlug,
+                      });
+                    }
+                  }
                 }
-              }}
+            
+                setPriceSubSuggestions(matchedSubs.slice(0, 6));
+              } else {
+                setPriceSubSuggestions([]);
+              }
+            }}
               
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -713,18 +739,21 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
             />
 
-            {priceSuggestions.length > 0 && (
-             <div className="absolute z-40 mt-2 w-full bg-white rounded-lg shadow-lg max-h-60 overflow-y-auto border border-gray-200">
-                {priceSuggestions.map((p) => (
+           {priceSubSuggestions.length > 0 && (
+              <div className="absolute z-40 mt-2 w-full bg-white rounded-lg shadow-lg max-h-60 overflow-y-auto border border-gray-200">
+                {priceSubSuggestions.map((s) => (
                   <button
-                    key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                    key={s.slug}
                     onClick={() => {
-                      setPriceQuery(p.title);
-                      setPriceSuggestions([]);
+                      setActiveCategory(s.parent);
+                      setActiveSubcategory(s.slug);
+                      setPriceSubSuggestions([]);
+                      setSearchTriggered(true);
+                      setShowBackButton(true);
                     }}
                     className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
                   >
-                    {p.title}
+                    {s.title}
                   </button>
                 ))}
               </div>
