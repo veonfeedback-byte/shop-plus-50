@@ -201,10 +201,12 @@ export default function HomePage() {
       try {
         const f = new Fuse(allProducts, {
           keys: ["title"],
-          threshold: 0.4,
+          threshold: 0.6,            // allow looser matching (catch typos)
+          distance: 200,             // allow matches far apart
           ignoreLocation: true,
-          minMatchCharLength: 1,
+          minMatchCharLength: 2,     // avoid noise for 1-char
         });
+
         setFuse(f);
       } catch {
         setFuse(null);
@@ -261,42 +263,33 @@ export default function HomePage() {
     const q = debouncedQuery.trim().toLowerCase();
   
     // ✅ Detect numbers in query for price search
-    const priceMatch = q.match(/(\d+)/); // find first number
+    const priceMatch = q.match(/(\d+)/);
     if (priceMatch) {
       const priceVal = Number(priceMatch[1]);
-      if (q.includes("under") || q.includes("below")) {
-        // "under 100" → show products ≤ priceVal
-        return allProducts.filter((p) => Number(p.price) <= priceVal);
-      } else {
-        // "100" or "rs 100" → treat as "under 100"
-        return allProducts.filter((p) => Number(p.price) <= priceVal);
-      }
+      return allProducts.filter((p) => Number(p.price) <= priceVal);
     }
   
     if (!fuse) return [];
   
-    // 🔍 fallback → text search like before
-    const words = q.split(/\s+/).filter(Boolean);
+    // 🔍 Primary fuzzy results
+    let fuzzy = fuse.search(q, { limit: 300 }).map((r) => r.item);
   
-    const exact = allProducts.filter((p) => p.title.toLowerCase() === q);
-    const phrase = allProducts.filter(
-      (p) => p.title.toLowerCase().includes(q) && !exact.includes(p)
-    );
-    const multiWord = allProducts.filter(
-      (p) =>
-        words.length > 1 &&
-        words.every((w) => p.title.toLowerCase().includes(w)) &&
-        !exact.includes(p) &&
-        !phrase.includes(p)
-    );
-    const fuzzy = fuse
-      .search(q, { limit: 300 })
-      .map((r) => r.item)
-      .filter((p) => !exact.includes(p) && !phrase.includes(p) && !multiWord.includes(p));
+    // ✅ If nothing matched, try partial word split (guess intent)
+    if (fuzzy.length === 0) {
+      const words = q.split(/\s+/).filter(Boolean);
+      fuzzy = allProducts.filter((p) =>
+        words.some((w) => p.title.toLowerCase().includes(w))
+      );
+    }
   
-    const merged = [...exact, ...phrase, ...multiWord, ...fuzzy];
+    // ✅ Still nothing? → return top trending/home products as "best guess"
+    if (fuzzy.length === 0) {
+      fuzzy = homeProducts.slice(0, 10);
+    }
+  
+    // ✅ Deduplicate & apply price sort
     const deduped = Array.from(
-      new Map(merged.map((m) => [`${m.categorySlug}-${m.subcategorySlug}-${m.id}`, m])).values()
+      new Map(fuzzy.map((m) => [`${m.categorySlug}-${m.subcategorySlug}-${m.id}`, m])).values()
     );
   
     if (priceSort) {
@@ -308,7 +301,8 @@ export default function HomePage() {
     }
   
     return deduped;
-  }, [debouncedQuery, searchTriggered, fuse, allProducts, priceSort]);
+  }, [debouncedQuery, searchTriggered, fuse, allProducts, priceSort, homeProducts]);
+
 
 
   /* ---------- Final results ---------- */
@@ -471,7 +465,7 @@ export default function HomePage() {
                   type="search"
                   inputMode="search"
                   enterKeyHint="search"
-                  placeholder="Search Products here"
+                  placeholder="Search by name or price (e.g. shoes, under 500)"
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -599,26 +593,40 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-              
-              {finalResults.slice(0, visibleSearch).map((p, idx) => (
-                <ProductCard
-                  key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
-                  p={p}
-                  href={productUrl(p)}
-                  onClick={() => {
-                    try {
-                      sessionStorage.setItem("scrollY", String(window.scrollY));
-                      sessionStorage.setItem("lastQuery", query);
-                      sessionStorage.setItem("visibleSearch", String(visibleSearch));
-                      if (activeCategory) sessionStorage.setItem("lastCategory", activeCategory);
-                      if (activeSubcategory)
-                        sessionStorage.setItem("lastSubcategory", activeSubcategory);
-                      if (priceSort) sessionStorage.setItem("lastSort", priceSort);
-                    } catch {}
-                  }}
-                  eager={idx < 4}
-                />
-              ))}
+             {finalResults.length === 0 ? (
+                <p className="col-span-full text-center text-gray-500 py-8 text-lg font-medium">
+                  No products found
+                </p>
+              ) : (
+                <>
+                  {debouncedQuery &&
+                    finalResults.length > 0 &&
+                    finalResults[0].title.toLowerCase() !== debouncedQuery && (
+                      <p className="col-span-full text-center text-gray-400 text-sm mb-2">
+                        Did you mean:{" "}
+                        <span className="font-semibold">{finalResults[0].title}</span>?
+                      </p>
+                    )}
+                  {finalResults.slice(0, visibleSearch).map((p, idx) => (
+                    <ProductCard
+                      key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                      p={p}
+                      href={productUrl(p)}
+                      onClick={() => {
+                        try {
+                          sessionStorage.setItem("scrollY", String(window.scrollY));
+                          sessionStorage.setItem("lastQuery", query);
+                          sessionStorage.setItem("visibleSearch", String(visibleSearch));
+                          if (activeCategory) sessionStorage.setItem("lastCategory", activeCategory);
+                          if (activeSubcategory) sessionStorage.setItem("lastSubcategory", activeSubcategory);
+                          if (priceSort) sessionStorage.setItem("lastSort", priceSort);
+                        } catch {}
+                      }}
+                      eager={idx < 4}
+                    />
+                  ))}
+                </>
+              )}
             </div>
 
             {visibleSearch < finalResults.length && (
