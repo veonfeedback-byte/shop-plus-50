@@ -329,14 +329,22 @@ export default function HomePage() {
     setSearchTriggered(false);
     setActiveCategory(null);
     setActiveSubcategory(null);
-    setPriceFilteredResults(null);
+    setPriceFilteredResults([]);
     setActivePriceTag(null);
-
+  
     try {
       sessionStorage.clear();
     } catch {}
     window.scrollTo({ top: 0, behavior: "smooth" });
+    setQuery("");
+    setDebouncedQuery("");
+    setPriceQuery("");
+    setPriceSubSuggestions([]);
+  
+    // push clean state so back doesn’t exit app
+    window.history.pushState(null, "", window.location.pathname);
   }, []);
+
   
   // choose between price filter results or normal search results
   const productsToShow =
@@ -512,11 +520,11 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                     if (e.key === "Enter") {
                       e.preventDefault();
                       inputRef.current?.blur();
-
+                  
                       // immediately apply query to debouncedQuery so Enter is instant
                       const normalized = query.trim().toLowerCase();
                       setDebouncedQuery(normalized);
-
+                  
                       // reset some search state and trigger
                       setActiveCategory(null);
                       setActiveSubcategory(null);
@@ -526,7 +534,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       setPriceSubSuggestions([]);
                       setSearchTriggered(true);
                       setShowBackButton(true);
-
+                  
                       try {
                         sessionStorage.setItem("lastQuery", query);
                         sessionStorage.removeItem("lastCategory");
@@ -536,6 +544,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       } catch {}
                     }
                   }}
+
                   className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-500"
                 />
 
