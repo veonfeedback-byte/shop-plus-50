@@ -120,9 +120,7 @@ export default function HomePage() {
   const [priceQuery, setPriceQuery] = useState("");
   const [priceSubSuggestions, setPriceSubSuggestions] = useState< { slug: string; title: string; parent: string }[] >([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
-
-
-
+  const [selectedDropdownValue, setSelectedDropdownValue] = useState<string | null>(null);
 
   /* ---------- Build product index once ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
@@ -466,6 +464,20 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
   }
 };
 
+
+const categoryDropdownOptions = useMemo(() => {
+  const options: { label: string; value: string | null }[] = [];
+  options.push({ label: "All Categories", value: null }); // default option
+
+  for (const cat of cachedCategories) {
+    options.push({ label: cat.name, value: cat.slug }); // category
+    for (const sub of cat.subcategories) {
+      options.push({ label: `-- ${sub.name}`, value: sub.slug }); // subcategory
+    }
+  }
+  return options;
+}, []);
+
   /* ---------- Render ---------- */
   return (
     <HomeContext.Provider value={{ resetHome }}>
@@ -714,6 +726,11 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                 setPriceQuery("");
                 setPriceSort(null);
                 setSelectedSubcategory(null); // ✅ reset subcategory
+                
+                setSelectedDropdownValue(null); // reset dropdown
+                setActiveCategory(null);
+                setActiveSubcategory(null);
+
                 try {
                   sessionStorage.removeItem("lastPriceFilter");
                   sessionStorage.removeItem("priceQuery");
@@ -775,19 +792,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               placeholder={`Search in ${activePriceTag.label}`}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
             />
-           {priceSubSuggestions.length > 0 && (
-            <div className="absolute z-50 mt-2 left-0 right-0 bg-white rounded-xl shadow-xl max-h-60 overflow-auto border border-gray-200 scrollbar-hide p-1">
-              {priceSubSuggestions.map((s) => (
-                <button
-                  key={s.slug}
-                  className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition"
-                  onClick={() => selectSubcategory(s)}
-                >
-                  {s.title}
-                </button>
-              ))}
-            </div>
-          )}
+           
           </div>
       
           {/* Sorting buttons */}
@@ -817,6 +822,48 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               </button>
             )}
           </div>
+
+          <div className="mb-4">
+            <label className="block mb-2 font-medium text-gray-700">Filter by Category</label>
+            <select
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={selectedDropdownValue ?? ""}
+              onChange={(e) => {
+                const val = e.target.value || null;
+                setSelectedDropdownValue(val);
+          
+                // Reset category/subcategory based on selection
+                if (val === null) {
+                  setActiveCategory(null);
+                  setActiveSubcategory(null);
+                } else {
+                  // check if val matches a category
+                  const cat = cachedCategories.find((c) => c.slug === val);
+                  if (cat) {
+                    setActiveCategory(cat.slug);
+                    setActiveSubcategory(null);
+                  } else {
+                    // must be a subcategory
+                    for (const c of cachedCategories) {
+                      const sub = c.subcategories.find((s) => s.slug === val);
+                      if (sub) {
+                        setActiveCategory(c.slug);
+                        setActiveSubcategory(sub.slug);
+                        break;
+                      }
+                    }
+                  }
+                }
+              }}
+            >
+              {categoryDropdownOptions.map((opt) => (
+                <option key={opt.value ?? "all"} value={opt.value ?? ""}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
       
           {/* Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
