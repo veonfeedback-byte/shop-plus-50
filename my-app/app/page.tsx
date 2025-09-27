@@ -402,7 +402,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 
   useLayoutEffect(() => {
     const y = (window as any).__restoreScrollY ?? sessionStorage.getItem("scrollY");
-    if (y && finalResults.length > 0) {
+    if (y && (searchTriggered || activePriceTag) && finalResults.length > 0) {
       setTimeout(() => {
         window.scrollTo({ top: Number(y), behavior: "instant" as ScrollBehavior });
       }, 0);
@@ -732,30 +732,21 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  inputRef.current?.blur(); // close keyboard
+                  // Close keyboard & suggestions
+                  (e.target as HTMLInputElement).blur();
+                  setPriceSubSuggestions([]);
               
-                  const normalized = query.trim().toLowerCase();
-                  setDebouncedQuery(normalized);
-              
-                  setActiveCategory(null);
-                  setActiveSubcategory(null);
-                  setPriceSort(null);
-                  setVisibleSearch(10);
-              
-                  setSearchTriggered(true);
-                  setShowBackButton(true);
-              
-                  try {
-                    sessionStorage.setItem("lastQuery", query);
-                    sessionStorage.removeItem("lastCategory");
-                    sessionStorage.removeItem("lastSubcategory");
-                    sessionStorage.removeItem("lastSort");
-                    sessionStorage.setItem("visibleSearch", "10");
-                    sessionStorage.removeItem("lastQuery"); // instead of setItem
-
-                  } catch {}
+                  // Just stay inside price range, don’t trigger global search
+                  if (priceQuery.trim()) {
+                    const q = priceQuery.toLowerCase();
+                    const filtered = priceFilteredResults.filter((p) =>
+                      p.title.toLowerCase().includes(q)
+                    );
+                    setPriceFilteredResults(filtered);
+                  }
                 }
               }}
+
 
               placeholder={`Search in ${activePriceTag.label}`}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
@@ -770,9 +761,14 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       setActiveCategory(s.parent);
                       setActiveSubcategory(s.slug);
                       setPriceSubSuggestions([]);
-                      setSearchTriggered(true);
                       setShowBackButton(true);
+                    
+                      const filtered = priceFilteredResults.filter(
+                        (p) => p.subcategorySlug === s.slug
+                      );
+                      setPriceFilteredResults(filtered);
                     }}
+
                     className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
                   >
                     {s.title}
