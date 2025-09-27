@@ -119,6 +119,8 @@ export default function HomePage() {
   const [visiblePriceFiltered, setVisiblePriceFiltered] = useState(20);
   const [priceQuery, setPriceQuery] = useState("");
   const [priceSubSuggestions, setPriceSubSuggestions] = useState< { slug: string; title: string; parent: string }[] >([]);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+
 
 
 
@@ -446,13 +448,13 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
   }, [resetHome]);
 
 
-  const selectSubcategory = (s: { slug: string; title: string; parent: string }) => {
+ const selectSubcategory = (s: { slug: string; title: string; parent: string }) => {
   setActiveCategory(s.parent);
   setActiveSubcategory(s.slug);
+  setSelectedSubcategory(s.slug); // ✅ track selected subcategory
   setPriceSubSuggestions([]);
   setShowBackButton(true);
 
-  // 🚀 Step 4: Apply both price + subcategory filter
   if (activePriceTag) {
     const filtered = allProducts.filter(
       (p) =>
@@ -463,7 +465,6 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
     setPriceFilteredResults(filtered);
   }
 };
-
 
   /* ---------- Render ---------- */
   return (
@@ -701,6 +702,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                 setPriceFilteredResults([]);
                 setPriceQuery("");
                 setPriceSort(null);
+                setSelectedSubcategory(null); // ✅ reset subcategory
                 try {
                   sessionStorage.removeItem("lastPriceFilter");
                   sessionStorage.removeItem("priceQuery");
@@ -720,46 +722,46 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               value={priceQuery}
               onChange={(e) => {
                 const val = e.target.value;
-                setPriceQuery(val);
-              
-                if (!val.trim()) {
-                  // reset to full price filtered products
-                  setPriceFilteredResults(
-                    allProducts.filter(
-                      (p) =>
-                        Number(p.price) >= activePriceTag!.min &&
-                        Number(p.price) < activePriceTag!.max
-                    )
-                  );
-                  setPriceSubSuggestions([]);
-                  return;
-                }
-              
-                const q = val.toLowerCase();
-              
-                // find related products inside filtered price range
-                const filtered = allProducts.filter(
-                  (p) =>
-                    Number(p.price) >= activePriceTag!.min &&
-                    Number(p.price) < activePriceTag!.max &&
-                    (p.title.toLowerCase().includes(q) || 
-                     p.subcategorySlug === activeSubcategory)
-                );
-              
-                setPriceFilteredResults(filtered);
-              
-                // suggestion list (subcategories matching query)
-                const matchedSubs: { slug: string; title: string; parent: string }[] = [];
-                for (const cat of cachedCategories) {
-                  for (const sub of cat.subcategories) {
-                    const hasProducts = filtered.some(
-                      (p) => p.subcategorySlug === sub.slug
+                  setPriceQuery(val);
+                  
+                  if (!val.trim()) {
+                    // Reset to full price filtered products
+                    setPriceFilteredResults(
+                      allProducts.filter(
+                        (p) =>
+                          Number(p.price) >= activePriceTag!.min &&
+                          Number(p.price) < activePriceTag!.max
+                      )
                     );
-                    if (hasProducts) matchedSubs.push({ slug: sub.slug, title: sub.name, parent: cat.slug });
+                    setPriceSubSuggestions([]);
+                    setSelectedSubcategory(null); // clear subcategory
+                    return;
                   }
-                }
-                setPriceSubSuggestions(matchedSubs.slice(0, 6));
-              }}
+                  
+                  const q = val.toLowerCase();
+                  
+                  const filtered = allProducts.filter(
+                    (p) =>
+                      Number(p.price) >= activePriceTag!.min &&
+                      Number(p.price) < activePriceTag!.max &&
+                      (p.title.toLowerCase().includes(q) || 
+                       p.subcategorySlug === selectedSubcategory) // search inside selected subcategory
+                  );
+                  
+                  setPriceFilteredResults(filtered);
+                  
+                  // Generate related subcategories suggestions
+                  const matchedSubs: { slug: string; title: string; parent: string }[] = [];
+                  for (const cat of cachedCategories) {
+                    for (const sub of cat.subcategories) {
+                      const hasProducts = filtered.some(
+                        (p) => p.subcategorySlug === sub.slug
+                      );
+                      if (hasProducts) matchedSubs.push({ slug: sub.slug, title: sub.name, parent: cat.slug });
+                    }
+                  }
+                  setPriceSubSuggestions(matchedSubs.slice(0, 6));
+               }}
               
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -786,20 +788,19 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               placeholder={`Search in ${activePriceTag.label}`}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
             />
-
            {priceSubSuggestions.length > 0 && (
-             <div className="absolute z-50 mt-2 left-0 right-0 bg-white rounded-xl shadow-xl max-h-60 overflow-auto border border-gray-200 scrollbar-hide p-1">
-                {priceSubSuggestions.map((s) => (
-                  <button
-                    key={s.slug}
-                    className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition"
-                     onClick={() => selectSubcategory(s)}
-                      >
-                        {s.title}
-                      </button>
-                    ))}
-                  </div>
-            )}
+            <div className="absolute z-50 mt-2 left-0 right-0 bg-white rounded-xl shadow-xl max-h-60 overflow-auto border border-gray-200 scrollbar-hide p-1">
+              {priceSubSuggestions.map((s) => (
+                <button
+                  key={s.slug}
+                  className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition"
+                  onClick={() => selectSubcategory(s)}
+                >
+                  {s.title}
+                </button>
+              ))}
+            </div>
+          )}
           </div>
       
           {/* Sorting buttons */}
