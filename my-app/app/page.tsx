@@ -450,25 +450,22 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
 useEffect(() => {
   if (!activePriceTag) return;
 
-  // Only consider products in the current price filter AND query
+  // Only consider products in the current price filter AND search query
   const filtered = priceFilteredResults.filter((p) =>
     p.title.toLowerCase().includes(priceQuery.toLowerCase())
   );
 
-  const subsWithProducts: { slug: string; title: string; parent: string }[] = [];
+  const subsWithProducts: { slug: string; title: string; parent: string; hasProducts: boolean }[] = [];
 
   for (const cat of cachedCategories) {
     for (const sub of cat.subcategories) {
-      if (filtered.some((p) => p.subcategorySlug === sub.slug)) {
-        subsWithProducts.push({ slug: sub.slug, title: sub.name, parent: cat.slug });
-      }
+      const hasProducts = filtered.some((p) => p.subcategorySlug === sub.slug);
+      subsWithProducts.push({ slug: sub.slug, title: sub.name, parent: cat.slug, hasProducts });
     }
   }
 
   setPriceSubSuggestions(subsWithProducts);
 }, [priceFilteredResults, priceQuery, activePriceTag]);
-
-
 
  const selectSubcategory = (s: { slug: string; title: string; parent: string }) => {
   setActiveCategory(s.parent);
