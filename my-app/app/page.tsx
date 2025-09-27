@@ -169,16 +169,6 @@ export default function HomePage() {
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
 
-  // Price filter tags (skip under 150)
-  const priceTags = [
-    { label: "Under 200", min: 0, max: 200 },
-    { label: "200 - 500", min: 200, max: 500 },
-    { label: "500 - 1000", min: 500, max: 1000 },
-    { label: "1000 - 2000", min: 1000, max: 2000 },
-    { label: "2000+", min: 2000, max: Infinity },
-  ];
-  
-  const [activePriceTag, setActivePriceTag] = useState<typeof priceTags[0] | null>(null);
 
   useEffect(() => {
     const hydrate = () => {
@@ -304,39 +294,24 @@ export default function HomePage() {
   }, [debouncedQuery, searchTriggered, fuse, allProducts, priceSort]);
 
   /* ---------- Final results ---------- */
- const finalResults = useMemo<IndexedProduct[]>(() => {
-  let filtered = allProducts;
-
-  // Filter by active price tag
-  if (activePriceTag) {
-    filtered = filtered.filter(
-      (p) =>
-        Number(p.price) >= activePriceTag.min &&
-        Number(p.price) < activePriceTag.max
-    );
-  }
-
-  // Existing category/subcategory filter
-  if (activeCategory || activeSubcategory) {
-    filtered = filtered.filter(
-      (p) =>
-        (!activeCategory || p.categorySlug === activeCategory) &&
-        (!activeSubcategory || p.subcategorySlug === activeSubcategory)
-    );
-  }
-
-  // Price sort
-  if (priceSort) {
-    filtered.sort((a, b) => {
-      const pa = Number(a.price) || 0;
-      const pb = Number(b.price) || 0;
-      return priceSort === "asc" ? pa - pb : pb - pa;
-    });
-  }
-
-  return filtered;
-}, [allProducts, activePriceTag, activeCategory, activeSubcategory, priceSort]);
-
+  const finalResults = useMemo<IndexedProduct[]>(() => {
+    if (activeCategory || activeSubcategory) {
+      let filtered = allProducts.filter(
+        (p) =>
+          (!activeCategory || p.categorySlug === activeCategory) &&
+          (!activeSubcategory || p.subcategorySlug === activeSubcategory)
+      );
+      if (priceSort) {
+        filtered.sort((a, b) => {
+          const pa = Number(a.price) || 0;
+          const pb = Number(b.price) || 0;
+          return priceSort === "asc" ? pa - pb : pb - pa;
+        });
+      }
+      return filtered;
+    }
+    return searchResults;
+  }, [activeCategory, activeSubcategory, allProducts, searchResults, priceSort]);
 
   /* ---------- Reset Home ---------- */
   const resetHome = useCallback(() => {
@@ -558,58 +533,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Price Slider */}
-        <div className="w-full py-3 px-1 border-b border-gray-100">
-          <div className="max-w-4xl mx-auto relative flex items-center">
-            {/* Left arrow */}
-            <button
-              onClick={() => {
-                const container = document.getElementById("price-slider");
-                if (container) container.scrollBy({ left: -120, behavior: "smooth" });
-              }}
-              className="absolute left-0 z-10 p-2 text-gray-700 hover:text-black transition"
-            >
-              &lt;
-            </button>
-        
-            {/* Slider */}
-            <div
-              id="price-slider"
-              className="flex gap-3 overflow-x-auto scrollbar-hide px-8"
-              style={{ scrollbarWidth: "none" }}
-            >
-              {priceTags.map((tag) => (
-                <button
-                  key={tag.label}
-                  onClick={() => {
-                    setActivePriceTag(tag);
-                    setQuery("");
-                    setSearchTriggered(true);
-                    setShowBackButton(true);
-                  }}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full border text-sm transition ${
-                    activePriceTag?.label === tag.label
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "bg-transparent text-gray-700 border-gray-300"
-                  }`}
-                >
-                  {tag.label}
-                </button>
-              ))}
-            </div>
-        
-            {/* Right arrow */}
-            <button
-              onClick={() => {
-                const container = document.getElementById("price-slider");
-                if (container) container.scrollBy({ left: 120, behavior: "smooth" });
-              }}
-              className="absolute right-0 z-10 p-2 text-gray-700 hover:text-black transition"
-            >
-              &gt;
-            </button>
-          </div>
-        </div>
 
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
