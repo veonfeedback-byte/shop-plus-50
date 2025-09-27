@@ -256,11 +256,28 @@ export default function HomePage() {
 
   /* ---------- Search results ---------- */
   const searchResults = useMemo<IndexedProduct[]>(() => {
-    if (!debouncedQuery || !searchTriggered || !fuse) return [];
-
+    if (!debouncedQuery || !searchTriggered) return [];
+  
     const q = debouncedQuery.trim().toLowerCase();
+  
+    // ✅ Detect numbers in query for price search
+    const priceMatch = q.match(/(\d+)/); // find first number
+    if (priceMatch) {
+      const priceVal = Number(priceMatch[1]);
+      if (q.includes("under") || q.includes("below")) {
+        // "under 100" → show products ≤ priceVal
+        return allProducts.filter((p) => Number(p.price) <= priceVal);
+      } else {
+        // "100" or "rs 100" → treat as "under 100"
+        return allProducts.filter((p) => Number(p.price) <= priceVal);
+      }
+    }
+  
+    if (!fuse) return [];
+  
+    // 🔍 fallback → text search like before
     const words = q.split(/\s+/).filter(Boolean);
-
+  
     const exact = allProducts.filter((p) => p.title.toLowerCase() === q);
     const phrase = allProducts.filter(
       (p) => p.title.toLowerCase().includes(q) && !exact.includes(p)
@@ -276,12 +293,12 @@ export default function HomePage() {
       .search(q, { limit: 300 })
       .map((r) => r.item)
       .filter((p) => !exact.includes(p) && !phrase.includes(p) && !multiWord.includes(p));
-
+  
     const merged = [...exact, ...phrase, ...multiWord, ...fuzzy];
     const deduped = Array.from(
       new Map(merged.map((m) => [`${m.categorySlug}-${m.subcategorySlug}-${m.id}`, m])).values()
     );
-
+  
     if (priceSort) {
       deduped.sort((a, b) => {
         const pa = Number(a.price) || 0;
@@ -289,9 +306,10 @@ export default function HomePage() {
         return priceSort === "asc" ? pa - pb : pb - pa;
       });
     }
-
+  
     return deduped;
   }, [debouncedQuery, searchTriggered, fuse, allProducts, priceSort]);
+
 
   /* ---------- Final results ---------- */
   const finalResults = useMemo<IndexedProduct[]>(() => {
