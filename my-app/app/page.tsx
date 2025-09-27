@@ -771,8 +771,12 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       setShowBackButton(true);
                       setPriceQuery(s.title);
                     
-                      const filtered = priceFilteredResults.filter(
-                        (p) => p.subcategorySlug === s.slug
+                      // ✅ filter by BOTH subcategory AND active price range
+                      const filtered = allProducts.filter(
+                        (p) =>
+                          p.subcategorySlug === s.slug &&
+                          Number(p.price) >= (activePriceTag?.min ?? 0) &&
+                          Number(p.price) < (activePriceTag?.max ?? Infinity)
                       );
                       setPriceFilteredResults(filtered);
                     }}
