@@ -545,31 +545,35 @@ export default function Profile() {
                             ×{item.qty}
                           </span>
                         </div>
+                        
                         <div className="mt-1 text-sm">
-                          {item.discountedPrice ? (
-                            <>
-                              <span className="line-through text-gray-400 mr-2">
-                                Rs {item.price}
-                              </span>
-                              <span className="text-green-600 font-semibold">
-                                Rs {item.discountedPrice}
-                              </span>
-                            </>
-                          ) : (
-                         <div className="mt-1 text-sm text-gray-700">
-                          id: {item.id}
-                        </div>
-                        <div className="mt-1 text-sm">
-                          qty: {item.qty}
-                        </div>
-                        <div className="mt-1 text-sm">
-                          price: Rs {item.discountedPrice || item.price}
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-gray-900">
-                          Total: Rs {(item.discountedPrice || item.price) * item.qty}
-                        </div>
-                          )}
-                        </div>         
+                        {item.discountedPrice ? (
+                          <>
+                            <span className="line-through text-gray-400 mr-2">
+                              Rs {item.price}
+                            </span>
+                            <span className="text-green-600 font-semibold">
+                              Rs {item.discountedPrice}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="mt-1 text-sm text-gray-700">
+                              id: {item.id}
+                            </div>
+                            <div className="mt-1 text-sm">
+                              qty: {item.qty}
+                            </div>
+                            <div className="mt-1 text-sm">
+                              price: Rs {item.discountedPrice || item.price}
+                            </div>
+                            <div className="mt-1 text-sm font-semibold text-gray-900">
+                              Total: Rs {(item.discountedPrice || item.price) * item.qty}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      
                       </div>
                       <div className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0">
                         {item.image ? (
