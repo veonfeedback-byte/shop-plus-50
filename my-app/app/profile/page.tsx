@@ -592,7 +592,7 @@ export default function Profile() {
                   ))}
                 </div>
                 {/* Order total */}
-                <div className="border-t pt-2 mt-2 text-right text-sm font-medium text-gray-900">
+                <div className="border-t pt-2 mt-2 text-sm font-bold text-gray-900">
                   Order total: Rs {grandTotal}
                 </div>
 
