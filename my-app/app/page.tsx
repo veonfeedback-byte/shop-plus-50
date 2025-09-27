@@ -655,6 +655,17 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                         setPriceFilteredResults(filtered);
                         setActivePriceTag(tag);
                         setVisiblePriceFiltered(20);
+
+                        // ✅ Generate subcategory dropdown
+                        const subsWithProducts: { slug: string; title: string; parent: string }[] = [];
+                        for (const cat of cachedCategories) {
+                          for (const sub of cat.subcategories) {
+                            if (filtered.some((p) => p.subcategorySlug === sub.slug)) {
+                              subsWithProducts.push({ slug: sub.slug, title: sub.name, parent: cat.slug });
+                            }
+                          }
+                        }
+                        setPriceSubSuggestions(subsWithProducts);
                       }}
                       className={`relative flex-shrink-0 px-6 py-3 
                         rounded-lg border-2 font-semibold text-sm
@@ -737,30 +748,6 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                     setSelectedSubcategory(null); // clear subcategory
                     return;
                   }
-                  
-                  const q = val.toLowerCase();
-                  
-                  const filtered = allProducts.filter(
-                    (p) =>
-                      Number(p.price) >= activePriceTag!.min &&
-                      Number(p.price) < activePriceTag!.max &&
-                      (p.title.toLowerCase().includes(q) || 
-                       p.subcategorySlug === selectedSubcategory) // search inside selected subcategory
-                  );
-                  
-                  setPriceFilteredResults(filtered);
-                  
-                  // Generate related subcategories suggestions
-                  const matchedSubs: { slug: string; title: string; parent: string }[] = [];
-                  for (const cat of cachedCategories) {
-                    for (const sub of cat.subcategories) {
-                      const hasProducts = filtered.some(
-                        (p) => p.subcategorySlug === sub.slug
-                      );
-                      if (hasProducts) matchedSubs.push({ slug: sub.slug, title: sub.name, parent: cat.slug });
-                    }
-                  }
-                  setPriceSubSuggestions(matchedSubs.slice(0, 6));
                }}
               
               onKeyDown={(e) => {
