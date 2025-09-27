@@ -331,18 +331,16 @@ export default function HomePage() {
     setActiveSubcategory(null);
     setPriceFilteredResults([]);
     setActivePriceTag(null);
+    setPriceQuery("");
+    setPriceSubSuggestions([]);
   
     try {
       sessionStorage.clear();
     } catch {}
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setQuery("");
-    setDebouncedQuery("");
-    setPriceQuery("");
-    setPriceSubSuggestions([]);
   
-    // push clean state so back doesn’t exit app
-    window.history.pushState(null, "", window.location.pathname);
+    // Force redirect to home
+    window.history.pushState(null, "", "/");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   
@@ -403,14 +401,28 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
   }, []);
 
   useLayoutEffect(() => {
-    if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
-      const y = (window as any).__restoreScrollY;
-      delete (window as any).__restoreScrollY;
+    const y = (window as any).__restoreScrollY ?? sessionStorage.getItem("scrollY");
+    if (y && finalResults.length > 0) {
       setTimeout(() => {
-        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+        window.scrollTo({ top: Number(y), behavior: "instant" as ScrollBehavior });
       }, 0);
     }
-  }, [finalResults, visibleSearch]);
+  }, [finalResults, visibleSearch, visiblePriceFiltered]);
+
+  useEffect(() => {
+  const saveScroll = () => {
+    try {
+      sessionStorage.setItem("scrollY", String(window.scrollY));
+      sessionStorage.setItem("visibleSearch", String(visibleSearch));
+      sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
+    } catch {}
+  };
+
+  window.addEventListener("scroll", saveScroll, { passive: true });
+  return () => window.removeEventListener("scroll", saveScroll);
+}, [visibleSearch, visiblePriceFiltered]);
+
+
 
   useEffect(() => {
     function onScroll() {
@@ -426,13 +438,12 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
   }, [visibleHome]);
 
   useEffect(() => {
-  const onPopState = () => {
-    resetHome();
-  };
-  window.addEventListener("popstate", onPopState);
-  return () => window.removeEventListener("popstate", onPopState);
-}, [resetHome]);
-
+    const onPopState = () => {
+      resetHome(); // always hard reset
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [resetHome]);
 
   /* ---------- Render ---------- */
   return (
@@ -519,29 +530,31 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      inputRef.current?.blur();
+                      inputRef.current?.blur(); // close keyboard
+                      setPriceSubSuggestions([]); // close dropdown
                   
-                      // immediately apply query to debouncedQuery so Enter is instant
-                      const normalized = query.trim().toLowerCase();
-                      setDebouncedQuery(normalized);
+                      // If user has selected a category/subcategory → just show its products
+                      if (activeCategory || activeSubcategory) {
+                        setSearchTriggered(true);
+                        setShowBackButton(true);
+                        return; // 🚀 stop here, don’t trigger global search
+                      }
                   
-                      // reset some search state and trigger
-                      setActiveCategory(null);
-                      setActiveSubcategory(null);
-                      setPriceSort(null);
-                      setVisibleSearch(10);
-                      
-                      setPriceSubSuggestions([]);
-                      setSearchTriggered(true);
-                      setShowBackButton(true);
+                      // Otherwise run a normal search only if query is typed
+                      if (query.trim()) {
+                        const normalized = query.trim().toLowerCase();
+                        setDebouncedQuery(normalized);
+                        setSearchTriggered(true);
+                        setShowBackButton(true);
                   
-                      try {
-                        sessionStorage.setItem("lastQuery", query);
-                        sessionStorage.removeItem("lastCategory");
-                        sessionStorage.removeItem("lastSubcategory");
-                        sessionStorage.removeItem("lastSort");
-                        sessionStorage.setItem("visibleSearch", "10");
-                      } catch {}
+                        try {
+                          sessionStorage.setItem("lastQuery", query);
+                          sessionStorage.removeItem("lastCategory");
+                          sessionStorage.removeItem("lastSubcategory");
+                          sessionStorage.removeItem("lastSort");
+                          sessionStorage.setItem("visibleSearch", "10");
+                        } catch {}
+                      }
                     }
                   }}
 
