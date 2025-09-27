@@ -558,12 +558,6 @@ export default function Profile() {
                           </>
                         ) : (
                           <>
-                            <div className="mt-1 text-sm text-gray-700">
-                              id: {item.id}
-                            </div>
-                            <div className="mt-1 text-sm">
-                              qty: {item.qty}
-                            </div>
                             <div className="mt-1 text-sm">
                               price: Rs {item.discountedPrice || item.price}
                             </div>
