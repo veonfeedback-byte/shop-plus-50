@@ -685,7 +685,6 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                 if (e.key === "Enter") {
                   e.preventDefault();
                   inputRef.current?.blur(); // close keyboard
-                  setCategorySuggestions([]); // close suggestions
               
                   const normalized = query.trim().toLowerCase();
                   setDebouncedQuery(normalized);
@@ -704,6 +703,8 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                     sessionStorage.removeItem("lastSubcategory");
                     sessionStorage.removeItem("lastSort");
                     sessionStorage.setItem("visibleSearch", "10");
+                    sessionStorage.removeItem("lastQuery"); // instead of setItem
+
                   } catch {}
                 }
               }}
