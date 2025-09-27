@@ -28,6 +28,7 @@ type OrderRow = {
   completed_at?: string | null;
   profile?: any | null;
   return_reason?: string | null;
+  track_link?: string | null;
 };
 
 const ADMIN_PASSWORD = "ShopAdmin786";
@@ -189,6 +190,33 @@ export default function AdminOrdersPage() {
       });
     }
   }
+  
+  async function updateTrackLink(orderId: string, trackLink: string) {
+  setUpdatingMap((s) => ({ ...s, [orderId]: true }));
+  try {
+    const { error } = await supabase
+      .from("orders")
+      .update({ track_link: trackLink })
+      .eq("id", orderId);
+
+    if (error) throw error;
+
+    toast.success("Tracking link updated");
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, track_link: trackLink } : o))
+    );
+  } catch (e: any) {
+    console.error(e);
+    toast.error(e?.message || "Failed to update tracking link");
+  } finally {
+    setUpdatingMap((s) => {
+      const copy = { ...s };
+      delete copy[orderId];
+      return copy;
+    });
+  }
+}
+
 
   // filter
   const filtered = orders.filter((o) => {
@@ -352,7 +380,7 @@ export default function AdminOrdersPage() {
                           value={o.status ?? ""}
                           onChange={(e) => updateStatus(o.id, e.target.value)}
                           disabled={!!updatingMap[o.id]}
-                          className="border rounded px-2 py-1"
+                          className="border rounded px-2 py-1 w-full"
                         >
                           {STATUS_OPTIONS.map((s) => (
                             <option key={s} value={s}>
@@ -363,6 +391,30 @@ export default function AdminOrdersPage() {
                         {updatingMap[o.id] && (
                           <div className="text-xs text-gray-500 mt-1">Updating…</div>
                         )}
+                      
+                        {/* 👇 Tracking link editor */}
+                        <div className="mt-2 flex gap-1">
+                          <input
+                            type="text"
+                            defaultValue={o.track_link ?? ""}
+                            placeholder="Enter track link"
+                            className="border rounded px-2 py-1 text-xs flex-1"
+                            onChange={(e) =>
+                              setOrders((prev) =>
+                                prev.map((oo) =>
+                                  oo.id === o.id ? { ...oo, track_link: e.target.value } : oo
+                                )
+                              )
+                            }
+                          />
+                          <button
+                            onClick={() => updateTrackLink(o.id, o.track_link || "")}
+                            disabled={!!updatingMap[o.id]}
+                            className="px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                          >
+                            OK
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
