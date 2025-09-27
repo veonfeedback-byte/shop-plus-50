@@ -169,6 +169,16 @@ export default function HomePage() {
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
 
+  // Price filter tags (skip under 150)
+  const priceTags = [
+    { label: "Under 200", min: 0, max: 200 },
+    { label: "200 - 500", min: 200, max: 500 },
+    { label: "500 - 1000", min: 500, max: 1000 },
+    { label: "1000 - 2000", min: 1000, max: 2000 },
+    { label: "2000+", min: 2000, max: Infinity },
+  ];
+  
+  const [activePriceTag, setActivePriceTag] = useState<typeof priceTags[0] | null>(null);
 
   useEffect(() => {
     const hydrate = () => {
@@ -294,24 +304,39 @@ export default function HomePage() {
   }, [debouncedQuery, searchTriggered, fuse, allProducts, priceSort]);
 
   /* ---------- Final results ---------- */
-  const finalResults = useMemo<IndexedProduct[]>(() => {
-    if (activeCategory || activeSubcategory) {
-      let filtered = allProducts.filter(
-        (p) =>
-          (!activeCategory || p.categorySlug === activeCategory) &&
-          (!activeSubcategory || p.subcategorySlug === activeSubcategory)
-      );
-      if (priceSort) {
-        filtered.sort((a, b) => {
-          const pa = Number(a.price) || 0;
-          const pb = Number(b.price) || 0;
-          return priceSort === "asc" ? pa - pb : pb - pa;
-        });
-      }
-      return filtered;
-    }
-    return searchResults;
-  }, [activeCategory, activeSubcategory, allProducts, searchResults, priceSort]);
+ const finalResults = useMemo<IndexedProduct[]>(() => {
+  let filtered = allProducts;
+
+  // Filter by active price tag
+  if (activePriceTag) {
+    filtered = filtered.filter(
+      (p) =>
+        Number(p.price) >= activePriceTag.min &&
+        Number(p.price) < activePriceTag.max
+    );
+  }
+
+  // Existing category/subcategory filter
+  if (activeCategory || activeSubcategory) {
+    filtered = filtered.filter(
+      (p) =>
+        (!activeCategory || p.categorySlug === activeCategory) &&
+        (!activeSubcategory || p.subcategorySlug === activeSubcategory)
+    );
+  }
+
+  // Price sort
+  if (priceSort) {
+    filtered.sort((a, b) => {
+      const pa = Number(a.price) || 0;
+      const pb = Number(b.price) || 0;
+      return priceSort === "asc" ? pa - pb : pb - pa;
+    });
+  }
+
+  return filtered;
+}, [allProducts, activePriceTag, activeCategory, activeSubcategory, priceSort]);
+
 
   /* ---------- Reset Home ---------- */
   const resetHome = useCallback(() => {
@@ -492,6 +517,67 @@ export default function HomePage() {
                 />
 
               </div>
+
+              {/* Price Filter */}
+              <div className="sticky top-[72px] z-20 bg-white py-3 px-1 border-b border-gray-100">
+                <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+                  {/* Back Button */}
+                  {activePriceTag && (
+                    <button
+                      onClick={() => {
+                        setActivePriceTag(null);
+                        setQuery("");
+                        setSearchTriggered(false);
+                        setShowBackButton(false);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </button>
+                  )}
+              
+                  {/* Price Tag Title */}
+                  <h2 className="flex-1 text-center font-semibold text-gray-800">
+                    {activePriceTag ? activePriceTag.label : "Select Price"}
+                  </h2>
+                </div>
+              
+                {/* Tags */}
+                <div className="mt-2 flex flex-wrap gap-2 justify-center">
+                  {priceTags.map((tag) => (
+                    <button
+                      key={tag.label}
+                      onClick={() => {
+                        setActivePriceTag(tag);
+                        setQuery("");
+                        setSearchTriggered(true); // show filtered products
+                        setShowBackButton(true);
+                      }}
+                      className={`px-4 py-2 rounded-lg text-sm border transition ${
+                        activePriceTag?.label === tag.label
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "bg-white text-gray-700 border-gray-300"
+                      }`}
+                    >
+                      {tag.label}
+                    </button>
+                  ))}
+                </div>
+              
+                {/* Product Count */}
+                {activePriceTag && (
+                  <div className="mt-2 text-center text-gray-500 text-sm">
+                    {allProducts.filter(
+                      (p) =>
+                        Number(p.price) >= activePriceTag.min &&
+                        Number(p.price) < activePriceTag.max
+                    ).length}{" "}
+                    products
+                  </div>
+                )}
+              </div>
+
 
               {/* suggestions dropdown (keeps your existing logic but styled) */}
               {categorySuggestions.length > 0 && (
