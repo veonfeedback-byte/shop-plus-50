@@ -446,6 +446,30 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
   }, [resetHome]);
 
 
+  // Update subcategory dropdown for price filter
+useEffect(() => {
+  if (!activePriceTag) return;
+
+  // Only consider products in the current price filter AND query
+  const filtered = priceFilteredResults.filter((p) =>
+    p.title.toLowerCase().includes(priceQuery.toLowerCase())
+  );
+
+  const subsWithProducts: { slug: string; title: string; parent: string }[] = [];
+
+  for (const cat of cachedCategories) {
+    for (const sub of cat.subcategories) {
+      if (filtered.some((p) => p.subcategorySlug === sub.slug)) {
+        subsWithProducts.push({ slug: sub.slug, title: sub.name, parent: cat.slug });
+      }
+    }
+  }
+
+  setPriceSubSuggestions(subsWithProducts);
+}, [priceFilteredResults, priceQuery, activePriceTag]);
+
+
+
  const selectSubcategory = (s: { slug: string; title: string; parent: string }) => {
   setActiveCategory(s.parent);
   setActiveSubcategory(s.slug);
