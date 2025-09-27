@@ -556,13 +556,17 @@ export default function Profile() {
                               </span>
                             </>
                           ) : (
-                              <div className="mt-2 text-sm font-semibold text-gray-900">
-                          Total: Rs {grandTotal} 
-                          {o.delivery_charges > 0 && (
-                            <span className="text-xs text-gray-500 ml-2">
-                              (includes Rs {o.delivery_charges} delivery)
-                            </span>
-                          )}
+                         <div className="mt-1 text-sm text-gray-700">
+                          id: {item.id}
+                        </div>
+                        <div className="mt-1 text-sm">
+                          qty: {item.qty}
+                        </div>
+                        <div className="mt-1 text-sm">
+                          price: Rs {item.discountedPrice || item.price}
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-gray-900">
+                          Total: Rs {(item.discountedPrice || item.price) * item.qty}
                         </div>
                           )}
                         </div>         
@@ -582,6 +586,10 @@ export default function Profile() {
                       </div>
                     </div>
                   ))}
+                </div>
+                {/* Order total */}
+                <div className="border-t pt-2 mt-2 text-right text-sm font-medium text-gray-900">
+                  Order total: Rs {grandTotal}
                 </div>
 
                 {/* Order footer + return reason */}
