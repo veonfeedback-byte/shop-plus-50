@@ -707,21 +707,24 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
               
                   // find unique subcategories inside filtered results
                   const matchedSubs: { slug: string; title: string; parent: string }[] = [];
-                  for (const p of priceFilteredResults) {
-                    const sub = cachedCategories
-                      .find((c) => c.slug === p.categorySlug)
-                      ?.subcategories.find((s) => s.slug === p.subcategorySlug);
-              
-                    if (sub && sub.name.toLowerCase().includes(q)) {
-                      if (!matchedSubs.some((m) => m.slug === sub.slug)) {
-                        matchedSubs.push({
-                          slug: sub.slug,
-                          title: sub.name,
-                          parent: p.categorySlug,
-                        });
+                    for (const cat of cachedCategories) {
+                      for (const sub of cat.subcategories) {
+                        // Check if subcategory has any product within price filter and query
+                        const hasProducts = allProducts.some(
+                          (p) =>
+                            p.categorySlug === cat.slug &&
+                            p.subcategorySlug === sub.slug &&
+                            activePriceTag &&
+                            Number(p.price) >= activePriceTag.min &&
+                            Number(p.price) < activePriceTag.max &&
+                            (!q || sub.name.toLowerCase().includes(q))
+                        );
+                        if (hasProducts) {
+                          matchedSubs.push({ slug: sub.slug, title: sub.name, parent: cat.slug });
+                        }
                       }
                     }
-                  }
+
                   setPriceSubSuggestions(matchedSubs.slice(0, 6));
                 } else {
                   // 🔑 clear → restore full results again
@@ -775,25 +778,16 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       setShowBackButton(true);
                       setPriceQuery(s.title);
                     
-                      // Ensure price filter is applied correctly
-                      if (!activePriceTag) return; // safety check
-                    
-                      const tag = activePriceTag;
-                      if (!tag) return; // safety check
-                      
                       // Filter products by BOTH price and selected subcategory
-                      const filtered = allProducts.filter(
-                        (p) =>
-                          p.subcategorySlug === s.slug &&
-                          Number(p.price) >= tag.min &&
-                          Number(p.price) < tag.max
-                      );
-                      setPriceFilteredResults(filtered);
-                      
-                      // Update active category/subcategory
-                      setActiveCategory(s.parent);
-                      setActiveSubcategory(s.slug);
-
+                      if (activePriceTag) {
+                        const filtered = allProducts.filter(
+                          (p) =>
+                            p.subcategorySlug === s.slug &&
+                            Number(p.price) >= activePriceTag.min &&
+                            Number(p.price) < activePriceTag.max
+                        );
+                        setPriceFilteredResults(filtered);
+                      }
                     }}
 
                     className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
