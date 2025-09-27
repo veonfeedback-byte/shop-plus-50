@@ -14,7 +14,7 @@ import Head from "next/head";
 import Fuse from "fuse.js";
 import Catalog, { Product } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
-import { ArrowLeft, Search} from "lucide-react";
+import { ArrowLeft, Search, Camera } from "lucide-react";
 
 /* ----------------- types ----------------- */
 type IndexedProduct = Product & {
@@ -114,13 +114,6 @@ export default function HomePage() {
   const [query, setQuery] = useState("");
   const [showBackButton, setShowBackButton] = useState(false);
 
-  const [priceFilteredResults, setPriceFilteredResults] = useState<IndexedProduct[]>([]);
-  const [activePriceTag, setActivePriceTag] = useState<{ label: string; min: number; max: number } | null>(null);
-  const [visiblePriceFiltered, setVisiblePriceFiltered] = useState(20);
-  const [priceQuery, setPriceQuery] = useState("");
-  const [priceSubSuggestions, setPriceSubSuggestions] = useState< { slug: string; title: string; parent: string }[] >([]);
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
-  const [selectedDropdownValue, setSelectedDropdownValue] = useState<string | null>(null);
 
   /* ---------- Build product index once ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
@@ -329,26 +322,11 @@ export default function HomePage() {
     setSearchTriggered(false);
     setActiveCategory(null);
     setActiveSubcategory(null);
-    setPriceFilteredResults([]);
-    setActivePriceTag(null);
-    setPriceQuery("");
-    setPriceSubSuggestions([]);
-  
     try {
       sessionStorage.clear();
     } catch {}
-  
-    // Force redirect to home
-    window.history.pushState(null, "", "/");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
-
-  
-  // choose between price filter results or normal search results
-  const productsToShow =
-    priceFilteredResults && priceFilteredResults.length > 0
-      ? priceFilteredResults
-      : finalResults;
 
   /* ---------- product url ---------- */
   const productUrl = useCallback(
@@ -368,26 +346,6 @@ export default function HomePage() {
     const lastSub = sessionStorage.getItem("lastSubcategory");
     const lastSort = sessionStorage.getItem("lastSort");
 
-    const lastPriceFilter = sessionStorage.getItem("lastPriceFilter");
-    if (lastPriceFilter) {
-      try {
-        const parsed = JSON.parse(lastPriceFilter);
-        setActivePriceTag(parsed);
-    
-        const filtered = allProducts.filter(
-          (p) => Number(p.price) >= parsed.min && Number(p.price) < parsed.max
-        );
-        setPriceFilteredResults(filtered);
-      } catch {}
-    }
-
-const lastPriceQuery = sessionStorage.getItem("priceQuery");
-if (lastPriceQuery) setPriceQuery(lastPriceQuery);
-
-const lastVisiblePrice = sessionStorage.getItem("visiblePriceFiltered");
-if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
-
-
     if (lastQ) {
       setQuery(lastQ);
       setShowBackButton(true);
@@ -401,28 +359,14 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
   }, []);
 
   useLayoutEffect(() => {
-    const y = (window as any).__restoreScrollY ?? sessionStorage.getItem("scrollY");
-    if (y && (searchTriggered || activePriceTag) && productsToShow.length > 0) {
+    if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
+      const y = (window as any).__restoreScrollY;
+      delete (window as any).__restoreScrollY;
       setTimeout(() => {
-        window.scrollTo({ top: Number(y), behavior: "instant" as ScrollBehavior });
+        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
       }, 0);
     }
-  }, [productsToShow, searchTriggered, activePriceTag, visibleSearch, visiblePriceFiltered]);
-
-  useEffect(() => {
-  const saveScroll = () => {
-    try {
-      sessionStorage.setItem("scrollY", String(window.scrollY));
-      sessionStorage.setItem("visibleSearch", String(visibleSearch));
-      sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
-    } catch {}
-  };
-
-  window.addEventListener("scroll", saveScroll, { passive: true });
-  return () => window.removeEventListener("scroll", saveScroll);
-}, [visibleSearch, visiblePriceFiltered]);
-
-
+  }, [finalResults, visibleSearch]);
 
   useEffect(() => {
     function onScroll() {
@@ -436,68 +380,6 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [visibleHome]);
-
-  useEffect(() => {
-    const onPopState = () => {
-      resetHome(); // always hard reset
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [resetHome]);
-
-
-  // Update subcategory dropdown for price filter
-useEffect(() => {
-  if (!activePriceTag) return;
-
-  // Only consider products in the current price filter AND search query
-  const filtered = priceFilteredResults.filter((p) =>
-    p.title.toLowerCase().includes(priceQuery.toLowerCase())
-  );
-
-  const subsWithProducts: { slug: string; title: string; parent: string; hasProducts: boolean }[] = [];
-
-  for (const cat of cachedCategories) {
-    for (const sub of cat.subcategories) {
-      const hasProducts = filtered.some((p) => p.subcategorySlug === sub.slug);
-      subsWithProducts.push({ slug: sub.slug, title: sub.name, parent: cat.slug, hasProducts });
-    }
-  }
-
-  setPriceSubSuggestions(subsWithProducts);
-}, [priceFilteredResults, priceQuery, activePriceTag]);
-
- const selectSubcategory = (s: { slug: string; title: string; parent: string }) => {
-  setActiveCategory(s.parent);
-  setActiveSubcategory(s.slug);
-  setSelectedSubcategory(s.slug); // ✅ track selected subcategory
-  setPriceSubSuggestions([]);
-  setShowBackButton(true);
-
-  if (activePriceTag) {
-    const filtered = allProducts.filter(
-      (p) =>
-        p.subcategorySlug === s.slug &&
-        Number(p.price) >= activePriceTag.min &&
-        Number(p.price) < activePriceTag.max
-    );
-    setPriceFilteredResults(filtered);
-  }
-};
-
-
-const categoryDropdownOptions = useMemo(() => {
-  const options: { label: string; value: string | null }[] = [];
-  options.push({ label: "All Categories", value: null }); // default option
-
-  for (const cat of cachedCategories) {
-    options.push({ label: cat.name, value: cat.slug }); // category
-    for (const sub of cat.subcategories) {
-      options.push({ label: `-- ${sub.name}`, value: sub.slug }); // subcategory
-    }
-  }
-  return options;
-}, []);
 
   /* ---------- Render ---------- */
   return (
@@ -542,9 +424,7 @@ const categoryDropdownOptions = useMemo(() => {
       </Head>
 
       <div className="space-y-6 px-1 sm:px-2 md:px-4 pb-28">
-        
         {/* Search Row (modern style) */}
-        {!activePriceTag && (
         <div className="sticky top-0 z-30 backdrop-blur-md py-3 px-1 border-b border-transparent">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
             {showBackButton && (
@@ -584,42 +464,38 @@ const categoryDropdownOptions = useMemo(() => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      inputRef.current?.blur(); // close keyboard
-                      setPriceSubSuggestions([]); // close dropdown
-                  
-                      // If user has selected a category/subcategory → just show its products
-                      if (activeCategory || activeSubcategory) {
-                        setSearchTriggered(true);
-                        setShowBackButton(true);
-                        return; // 🚀 stop here, don’t trigger global search
-                      }
-                  
-                      // Otherwise run a normal search only if query is typed
-                      if (query.trim()) {
-                        const normalized = query.trim().toLowerCase();
-                        setDebouncedQuery(normalized);
-                        setSearchTriggered(true);
-                        setShowBackButton(true);
-                  
-                        try {
-                          sessionStorage.setItem("lastQuery", query);
-                          sessionStorage.removeItem("lastCategory");
-                          sessionStorage.removeItem("lastSubcategory");
-                          sessionStorage.removeItem("lastSort");
-                          sessionStorage.setItem("visibleSearch", "10");
-                        } catch {}
-                      }
+                      inputRef.current?.blur();
+
+                      // immediately apply query to debouncedQuery so Enter is instant
+                      const normalized = query.trim().toLowerCase();
+                      setDebouncedQuery(normalized);
+
+                      // reset some search state and trigger
+                      setActiveCategory(null);
+                      setActiveSubcategory(null);
+                      setPriceSort(null);
+                      setVisibleSearch(10);
+
+                      setSearchTriggered(true);
+                      setShowBackButton(true);
+
+                      try {
+                        sessionStorage.setItem("lastQuery", query);
+                        sessionStorage.removeItem("lastCategory");
+                        sessionStorage.removeItem("lastSubcategory");
+                        sessionStorage.removeItem("lastSort");
+                        sessionStorage.setItem("visibleSearch", "10");
+                      } catch {}
                     }
                   }}
-
                   className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-500"
                 />
 
               </div>
 
               {/* suggestions dropdown (keeps your existing logic but styled) */}
-              {categorySuggestions.length > 0 && !searchTriggered && (
-                <div className="absolute z-40 mt-2 left-[1px] right-[1px] bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
+              {categorySuggestions.length > 0 && (
+                <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
                   {categorySuggestions.map((s) => (
                     <button
                       key={`${s.type}-${s.parent || "root"}-${s.slug}`}
@@ -641,7 +517,7 @@ const categoryDropdownOptions = useMemo(() => {
                         }
                         setSearchTriggered(true);
                         setShowBackButton(true);
-                        setQuery(""); // reset input after selecting
+                        setQuery(s.title);
                         try {
                           sessionStorage.setItem("lastQuery", s.title);
                         } catch {}
@@ -656,303 +532,10 @@ const categoryDropdownOptions = useMemo(() => {
             </div>
           </div>
         </div>
-      )}
 
-       {/* Price Slider (always visible under search bar) */}
-            {!activePriceTag && !searchTriggered && !debouncedQuery && !activeCategory && !activeSubcategory && (
-              <div className="mt-4 px-3">
-               <div className="overflow-x-auto scrollbar-hide">
-                <div className="flex space-x-3 w-max px-1">
-                  {[
-                    { label: "Under Rs150", min: 0, max: 150 },
-                    { label: "Rs150 – Rs200", min: 150, max: 200 },
-                    { label: "Rs200 – Rs300", min: 200, max: 300 },
-                    { label: "Rs300 – Rs500", min: 300, max: 500 },
-                    { label: "Rs500 – Rs999", min: 500, max: 1000 },
-                    { label: "Rs1000 – Rs1999", min: 1000, max: 2000 },
-                  ].map((tag) => (
-                    <button
-                      key={tag.label}
-                      onClick={() => {
-                        setActiveCategory(null);
-                        setActiveSubcategory(null);
-                        setPriceSort(null);
-                        setSearchTriggered(false);
-                        setQuery("");
-                        setShowBackButton(true);
-              
-                        const filtered = allProducts.filter(
-                          (p) => Number(p.price) >= tag.min && Number(p.price) < tag.max
-                        );
-              
-                        setPriceFilteredResults(filtered);
-                        setActivePriceTag(tag);
-                        setVisiblePriceFiltered(20);
 
-                        // ✅ Generate subcategory dropdown
-                        const subsWithProducts: { slug: string; title: string; parent: string }[] = [];
-                        for (const cat of cachedCategories) {
-                          for (const sub of cat.subcategories) {
-                            if (filtered.some((p) => p.subcategorySlug === sub.slug)) {
-                              subsWithProducts.push({ slug: sub.slug, title: sub.name, parent: cat.slug });
-                            }
-                          }
-                        }
-                        setPriceSubSuggestions(subsWithProducts);
-                      }}
-                      className={`relative flex-shrink-0 px-6 py-3 
-                        rounded-lg border-2 font-semibold text-sm
-                        bg-gradient-to-r from-indigo-500 to-indigo-600 text-white
-                        shadow-md whitespace-nowrap transition 
-                        ${activePriceTag?.label === tag.label ? "scale-105 ring-2 ring-indigo-400" : "hover:from-indigo-600 hover:to-indigo-700"}`}
-                      style={{
-                        clipPath: "polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%)", // 🎟 ticket shape
-                      }}
-                    >
-                      {tag.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              </div>
-            )}
-        
-      {/* Price Filtered View */}
-      {activePriceTag && !searchTriggered && (
-        <div className="mt-6">
-          <div className="flex items-center mb-4">
-            <button
-              onClick={resetHome}
-              className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h2 className="flex-1 text-center text-lg font-bold text-gray-800">
-              {activePriceTag.label}
-            </h2>
-          </div>
-      
-          {/* Total products + clear filter */}
-          <div className="flex items-center justify-between mb-4 px-2">
-            <p className="text-sm text-gray-600">
-              {priceFilteredResults.filter((p) =>
-                p.title.toLowerCase().includes(priceQuery.toLowerCase())
-              ).length} products found
-            </p>
-            <button
-              onClick={() => {
-                setActivePriceTag(null);
-                setPriceFilteredResults([]);
-                setPriceQuery("");
-                setPriceSort(null);
-                setSelectedSubcategory(null); // ✅ reset subcategory
-                
-                setSelectedDropdownValue(null); // reset dropdown
-                setActiveCategory(null);
-                setActiveSubcategory(null);
-
-                try {
-                  sessionStorage.removeItem("lastPriceFilter");
-                  sessionStorage.removeItem("priceQuery");
-                  sessionStorage.removeItem("lastSort");
-                } catch {}
-              }}
-              className="text-xs px-3 py-1 rounded-full border border-gray-300 text-gray-500 hover:bg-gray-100"
-            >
-              Clear Filter ✕
-            </button>
-          </div>
-      
-          {/* Search only inside price filtered */}
-          <div className="mb-4">
-            <input
-              type="search"
-              value={priceQuery}
-              onChange={(e) => {
-                const val = e.target.value;
-                  setPriceQuery(val);
-                  
-                  if (!val.trim()) {
-                    // Reset to full price filtered products
-                    setPriceFilteredResults(
-                      allProducts.filter(
-                        (p) =>
-                          Number(p.price) >= activePriceTag!.min &&
-                          Number(p.price) < activePriceTag!.max
-                      )
-                    );
-                    setPriceSubSuggestions([]);
-                    setSelectedSubcategory(null); // clear subcategory
-                    return;
-                  }
-               }}
-              
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  // Close keyboard & suggestions
-                  (e.target as HTMLInputElement).blur();
-                  setPriceSubSuggestions([]);
-              
-                  // Just stay inside price range, don’t trigger global search
-                  if (priceQuery.trim()) {
-                    const q = priceQuery.toLowerCase();
-                    const filteredWithRelated = priceFilteredResults.filter((p) => {
-                    const q = priceQuery.toLowerCase();
-                      const isMatch = p.title.toLowerCase().includes(q); // exact/partial match
-                      const isRelated = p.subcategorySlug === selectedSubcategory; // related products
-                      return isMatch || isRelated;
-                    });
-                    setPriceFilteredResults(filteredWithRelated);
-
-                  }
-                }
-              }}
-
-              placeholder={`Search in ${activePriceTag.label}`}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
-            />
-           
-          </div>
-      
-          {/* Sorting buttons */}
-          <div className="flex items-center gap-3 mb-4">
-            <button
-              onClick={() => setPriceSort("asc")}
-              className={`px-4 py-2 rounded-lg border text-sm ${
-                priceSort === "asc" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"
-              }`}
-            >
-              Price ↑
-            </button>
-            <button
-              onClick={() => setPriceSort("desc")}
-              className={`px-4 py-2 rounded-lg border text-sm ${
-                priceSort === "desc" ? "bg-indigo-600 text-white" : "bg-white text-gray-700"
-              }`}
-            >
-              Price ↓
-            </button>
-            {priceSort && (
-              <button
-                onClick={() => setPriceSort(null)}
-                className="px-4 py-2 rounded-lg border text-sm bg-white text-gray-500"
-              >
-                Reset
-              </button>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="block mb-2 font-medium text-gray-700">Filter by Category</label>
-            <select
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              value={selectedDropdownValue ?? ""}
-              onChange={(e) => {
-                const val = e.target.value || null;
-                setSelectedDropdownValue(val);
-          
-                // Reset category/subcategory based on selection
-                if (val === null) {
-                  setActiveCategory(null);
-                  setActiveSubcategory(null);
-                } else {
-                  // check if val matches a category
-                  const cat = cachedCategories.find((c) => c.slug === val);
-                  if (cat) {
-                    setActiveCategory(cat.slug);
-                    setActiveSubcategory(null);
-                  } else {
-                    // must be a subcategory
-                    for (const c of cachedCategories) {
-                      const sub = c.subcategories.find((s) => s.slug === val);
-                      if (sub) {
-                        setActiveCategory(c.slug);
-                        setActiveSubcategory(sub.slug);
-                        break;
-                      }
-                    }
-                  }
-                }
-              }}
-            >
-              {categoryDropdownOptions.map((opt) => (
-                <option key={opt.value ?? "all"} value={opt.value ?? ""}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-      
-          {/* Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            {priceFilteredResults
-              .filter((p) =>
-                p.title.toLowerCase().includes(priceQuery.toLowerCase())
-              )
-              .sort((a, b) => {
-                if (!priceSort) return 0;
-                const pa = Number(a.price) || 0;
-                const pb = Number(b.price) || 0;
-                return priceSort === "asc" ? pa - pb : pb - pa;
-              })
-              .slice(0, visiblePriceFiltered).length === 0 ? (
-                <p className="col-span-full text-center text-gray-500 mt-6">
-                  🚫 No product found
-                </p>
-              ) : (
-                priceFilteredResults
-                  .filter((p) =>
-                    p.title.toLowerCase().includes(priceQuery.toLowerCase())
-                  )
-                  .sort((a, b) => {
-                    if (!priceSort) return 0;
-                    const pa = Number(a.price) || 0;
-                    const pb = Number(b.price) || 0;
-                    return priceSort === "asc" ? pa - pb : pb - pa;
-                  })
-                  .slice(0, visiblePriceFiltered)
-                  .map((p, idx) => (
-                    <ProductCard
-                      key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
-                      p={p}
-                      href={productUrl(p)}
-                      eager={idx < 4}
-                      onClick={() => {
-                        try {
-                          sessionStorage.setItem("scrollY", String(window.scrollY));
-                          if (activePriceTag)
-                            sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
-                          if (priceQuery)
-                            sessionStorage.setItem("priceQuery", priceQuery);
-                          if (priceSort)
-                            sessionStorage.setItem("lastSort", priceSort);
-                          sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
-                        } catch {}
-                      }}
-                    />
-                  ))
-              )}
-          </div>
-      
-          {visiblePriceFiltered < priceFilteredResults.length && (
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => setVisiblePriceFiltered((v) => v + 20)}
-                className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
-              >
-                Load more
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-        
         {/* Search results */}
-        {searchTriggered && !activePriceTag && (debouncedQuery || activeCategory || activeSubcategory) ? (
+        {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
           <>
             {/* sort buttons */}
             <div className="flex items-center gap-3 mb-4">
@@ -999,7 +582,7 @@ const categoryDropdownOptions = useMemo(() => {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               
-              {productsToShow.slice(0, visibleSearch).map((p, idx) => (
+              {finalResults.slice(0, visibleSearch).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
                   p={p}
@@ -1010,12 +593,9 @@ const categoryDropdownOptions = useMemo(() => {
                       sessionStorage.setItem("lastQuery", query);
                       sessionStorage.setItem("visibleSearch", String(visibleSearch));
                       if (activeCategory) sessionStorage.setItem("lastCategory", activeCategory);
-                      if (activeSubcategory) sessionStorage.setItem("lastSubcategory", activeSubcategory);
+                      if (activeSubcategory)
+                        sessionStorage.setItem("lastSubcategory", activeSubcategory);
                       if (priceSort) sessionStorage.setItem("lastSort", priceSort);
-
-                      if (activePriceTag) sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
-                      if (priceQuery) sessionStorage.setItem("priceQuery", priceQuery);
-                      sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
                     } catch {}
                   }}
                   eager={idx < 4}
@@ -1041,33 +621,21 @@ const categoryDropdownOptions = useMemo(() => {
             )}
           </>
             ) : (
-
-          !activePriceTag && (
             <section>
-            <h2 className="relative text-2xl font-extrabold text-center text-black bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 drop-shadow-sm my-6">
-              <span className="inline-block px-6 py-2 rounded-full bg-gradient-to-r from-indigo-50 via-white to-indigo-50 shadow-md border border-gray-100">
-                Trending Products
-              </span>
-            </h2>
-
+            <h1 className="text-2xl font-semibold">🔥 Trending</h1>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
 
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
-               <ProductCard
+                <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
                   p={p}
                   href={productUrl(p)}
-                  eager={idx < 4}
                   onClick={() => {
                     try {
                       sessionStorage.setItem("scrollY", String(window.scrollY));
-                      if (activePriceTag)
-                        sessionStorage.setItem("lastPriceFilter", JSON.stringify(activePriceTag));
-                      if (priceQuery)
-                        sessionStorage.setItem("priceQuery", priceQuery);
-                      sessionStorage.setItem("visiblePriceFiltered", String(visiblePriceFiltered));
                     } catch {}
                   }}
+                  eager={idx < 4}
                 />
               ))}
             </div>
@@ -1083,7 +651,6 @@ const categoryDropdownOptions = useMemo(() => {
               </div>
             )}
           </section>
-            )
         )}
       </div>
     </HomeContext.Provider>
