@@ -169,6 +169,8 @@ export default function HomePage() {
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
 
+  const [bestSuggestion, setBestSuggestion] = useState<string | null>(null);
+
 
   useEffect(() => {
     const hydrate = () => {
@@ -258,52 +260,72 @@ export default function HomePage() {
 
   /* ---------- Search results ---------- */
   const searchResults = useMemo<IndexedProduct[]>(() => {
-    if (!debouncedQuery || !searchTriggered) return [];
-  
-    const q = debouncedQuery.trim().toLowerCase();
-  
-    // ✅ Detect numbers in query for price search
-    const priceMatch = q.match(/(\d+)/);
-    if (priceMatch) {
-      const priceVal = Number(priceMatch[1]);
-      return allProducts.filter((p) => Number(p.price) <= priceVal);
+  if (!debouncedQuery || !searchTriggered) {
+    setBestSuggestion(null);
+    return [];
+  }
+
+  const q = debouncedQuery.trim().toLowerCase();
+
+  // ✅ Detect numbers in query for price search
+  const priceMatch = q.match(/(\d+)/);
+  if (priceMatch) {
+    const priceVal = Number(priceMatch[1]);
+    const res = allProducts.filter((p) => Number(p.price) <= priceVal);
+    setBestSuggestion(null);
+    return res;
+  }
+
+  if (!fuse) {
+    setBestSuggestion(null);
+    return [];
+  }
+
+  // 🔍 Get results WITH scores
+  const fuseResults = fuse.search(q, { limit: 300 });
+
+  // ✅ Pick best suggestion (closest match)
+  if (fuseResults.length > 0) {
+    const best = fuseResults[0];
+    if (best.score !== undefined && best.score < 0.4) {
+      setBestSuggestion(best.item.title);
+    } else {
+      setBestSuggestion(null);
     }
-  
-    if (!fuse) return [];
-  
-    // 🔍 Primary fuzzy results
-    let fuzzy = fuse.search(q, { limit: 300 }).map((r) => r.item);
-  
-    // ✅ If nothing matched, try partial word split (guess intent)
-    if (fuzzy.length === 0) {
-      const words = q.split(/\s+/).filter(Boolean);
-      fuzzy = allProducts.filter((p) =>
-        words.some((w) => p.title.toLowerCase().includes(w))
-      );
-    }
-  
-    // ✅ Still nothing? → return top trending/home products as "best guess"
-    if (fuzzy.length === 0) {
-      fuzzy = homeProducts.slice(0, 10);
-    }
-  
-    // ✅ Deduplicate & apply price sort
-    const deduped = Array.from(
-      new Map(fuzzy.map((m) => [`${m.categorySlug}-${m.subcategorySlug}-${m.id}`, m])).values()
+  } else {
+    setBestSuggestion(null);
+  }
+
+  let fuzzy = fuseResults.map((r) => r.item);
+
+  // ✅ Fallback partial word match
+  if (fuzzy.length === 0) {
+    const words = q.split(/\s+/).filter(Boolean);
+    fuzzy = allProducts.filter((p) =>
+      words.some((w) => p.title.toLowerCase().includes(w))
     );
-  
-    if (priceSort) {
-      deduped.sort((a, b) => {
-        const pa = Number(a.price) || 0;
-        const pb = Number(b.price) || 0;
-        return priceSort === "asc" ? pa - pb : pb - pa;
-      });
-    }
-  
-    return deduped;
-  }, [debouncedQuery, searchTriggered, fuse, allProducts, priceSort, homeProducts]);
+  }
 
+  // ✅ Fallback trending products
+  if (fuzzy.length === 0) {
+    fuzzy = homeProducts.slice(0, 10);
+  }
 
+  // ✅ Dedup + sort
+  const deduped = Array.from(
+    new Map(fuzzy.map((m) => [`${m.categorySlug}-${m.subcategorySlug}-${m.id}`, m])).values()
+  );
+
+  if (priceSort) {
+    deduped.sort((a, b) => {
+      const pa = Number(a.price) || 0;
+      const pb = Number(b.price) || 0;
+      return priceSort === "asc" ? pa - pb : pb - pa;
+    });
+  }
+
+  return deduped;
+}, [debouncedQuery, searchTriggered, fuse, allProducts, priceSort, homeProducts]);
 
   /* ---------- Final results ---------- */
   const finalResults = useMemo<IndexedProduct[]>(() => {
@@ -465,7 +487,7 @@ export default function HomePage() {
                   type="search"
                   inputMode="search"
                   enterKeyHint="search"
-                  placeholder="Search by name or price (e.g. shoes, under 500)"
+                  placeholder="Search by name or price (e.g. Rs 300, Shoes)"
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -599,14 +621,22 @@ export default function HomePage() {
                 </p>
               ) : (
                 <>
-                  {debouncedQuery &&
-                    finalResults.length > 0 &&
-                    finalResults[0].title.toLowerCase() !== debouncedQuery && (
-                      <p className="col-span-full text-center text-gray-400 text-sm mb-2">
-                        Did you mean:{" "}
-                        <span className="font-semibold">{finalResults[0].title}</span>?
-                      </p>
-                    )}
+                  {bestSuggestion && bestSuggestion.toLowerCase() !== debouncedQuery && (
+                    <p className="col-span-full text-center text-gray-400 text-sm mb-2">
+                      Did you mean:{" "}
+                      <button
+                        onClick={() => {
+                          setQuery(bestSuggestion);
+                          setDebouncedQuery(bestSuggestion.toLowerCase());
+                          setSearchTriggered(true);
+                        }}
+                        className="font-semibold text-indigo-600 hover:underline"
+                      >
+                        {bestSuggestion}
+                      </button>
+                      ?
+                    </p>
+                  )}
                   {finalResults.slice(0, visibleSearch).map((p, idx) => (
                     <ProductCard
                       key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
