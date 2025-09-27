@@ -726,14 +726,18 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                 } else {
                   // 🔑 clear → restore full results again
                   setPriceSubSuggestions([]);
-                  setPriceFilteredResults(
-                    allProducts.filter(
-                      (p) =>
-                        (!activeSubcategory || p.subcategorySlug === activeSubcategory) &&
-                        Number(p.price) >= (activePriceTag?.min ?? 0) &&
-                        Number(p.price) < (activePriceTag?.max ?? Infinity)
-                    )
-                  );
+                  setActiveSubcategory(null);
+                  if (activePriceTag) {
+                    setPriceFilteredResults(
+                      allProducts.filter(
+                        (p) =>
+                          Number(p.price) >= activePriceTag.min &&
+                          Number(p.price) < activePriceTag.max
+                      )
+                    );
+                  } else {
+                    setPriceFilteredResults([]);
+                  }
                 }
               }}
               
@@ -755,7 +759,6 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                 }
               }}
 
-
               placeholder={`Search in ${activePriceTag.label}`}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-indigo-500 outline-none"
             />
@@ -775,11 +778,22 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                       // Ensure price filter is applied correctly
                       if (!activePriceTag) return; // safety check
                     
-                      const { min, max } = activePriceTag;
+                      const tag = activePriceTag;
+                      if (!tag) return; // safety check
+                      
+                      // Filter products by BOTH price and selected subcategory
                       const filtered = allProducts.filter(
-                        (p) => p.subcategorySlug === s.slug && Number(p.price) >= min && Number(p.price) < max
+                        (p) =>
+                          p.subcategorySlug === s.slug &&
+                          Number(p.price) >= tag.min &&
+                          Number(p.price) < tag.max
                       );
                       setPriceFilteredResults(filtered);
+                      
+                      // Update active category/subcategory
+                      setActiveCategory(s.parent);
+                      setActiveSubcategory(s.slug);
+
                     }}
 
                     className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
