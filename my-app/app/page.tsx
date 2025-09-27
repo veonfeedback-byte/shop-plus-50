@@ -734,6 +734,7 @@ if (lastVisiblePrice) setVisiblePriceFiltered(Number(lastVisiblePrice));
                         Number(p.price) < (activePriceTag?.max ?? Infinity)
                     )
                   );
+                }
               }}
               
               onKeyDown={(e) => {
