@@ -559,7 +559,7 @@ export default function HomePage() {
         </div>
 
         {/* Price Slider */}
-        <div className="sticky top-[72px] z-20 bg-white py-3 px-1 border-b border-gray-100">
+        <div className="w-full py-3 px-1 border-b border-gray-100">
           <div className="max-w-4xl mx-auto relative flex items-center">
             {/* Left arrow */}
             <button
