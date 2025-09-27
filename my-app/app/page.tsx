@@ -518,67 +518,6 @@ export default function HomePage() {
 
               </div>
 
-              {/* Price Filter */}
-              <div className="sticky top-[72px] z-20 bg-white py-3 px-1 border-b border-gray-100">
-                <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-                  {/* Back Button */}
-                  {activePriceTag && (
-                    <button
-                      onClick={() => {
-                        setActivePriceTag(null);
-                        setQuery("");
-                        setSearchTriggered(false);
-                        setShowBackButton(false);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      className="flex items-center justify-center p-2 text-gray-700 hover:text-black transition"
-                    >
-                      <ArrowLeft className="w-5 h-5" />
-                    </button>
-                  )}
-              
-                  {/* Price Tag Title */}
-                  <h2 className="flex-1 text-center font-semibold text-gray-800">
-                    {activePriceTag ? activePriceTag.label : "Select Price"}
-                  </h2>
-                </div>
-              
-                {/* Tags */}
-                <div className="mt-2 flex flex-wrap gap-2 justify-center">
-                  {priceTags.map((tag) => (
-                    <button
-                      key={tag.label}
-                      onClick={() => {
-                        setActivePriceTag(tag);
-                        setQuery("");
-                        setSearchTriggered(true); // show filtered products
-                        setShowBackButton(true);
-                      }}
-                      className={`px-4 py-2 rounded-lg text-sm border transition ${
-                        activePriceTag?.label === tag.label
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-gray-700 border-gray-300"
-                      }`}
-                    >
-                      {tag.label}
-                    </button>
-                  ))}
-                </div>
-              
-                {/* Product Count */}
-                {activePriceTag && (
-                  <div className="mt-2 text-center text-gray-500 text-sm">
-                    {allProducts.filter(
-                      (p) =>
-                        Number(p.price) >= activePriceTag.min &&
-                        Number(p.price) < activePriceTag.max
-                    ).length}{" "}
-                    products
-                  </div>
-                )}
-              </div>
-
-
               {/* suggestions dropdown (keeps your existing logic but styled) */}
               {categorySuggestions.length > 0 && (
                 <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
@@ -619,6 +558,58 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Price Slider */}
+        <div className="sticky top-[72px] z-20 bg-white py-3 px-1 border-b border-gray-100">
+          <div className="max-w-4xl mx-auto relative flex items-center">
+            {/* Left arrow */}
+            <button
+              onClick={() => {
+                const container = document.getElementById("price-slider");
+                if (container) container.scrollBy({ left: -120, behavior: "smooth" });
+              }}
+              className="absolute left-0 z-10 p-2 text-gray-700 hover:text-black transition"
+            >
+              &lt;
+            </button>
+        
+            {/* Slider */}
+            <div
+              id="price-slider"
+              className="flex gap-3 overflow-x-auto scrollbar-hide px-8"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {priceTags.map((tag) => (
+                <button
+                  key={tag.label}
+                  onClick={() => {
+                    setActivePriceTag(tag);
+                    setQuery("");
+                    setSearchTriggered(true);
+                    setShowBackButton(true);
+                  }}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full border text-sm transition ${
+                    activePriceTag?.label === tag.label
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-transparent text-gray-700 border-gray-300"
+                  }`}
+                >
+                  {tag.label}
+                </button>
+              ))}
+            </div>
+        
+            {/* Right arrow */}
+            <button
+              onClick={() => {
+                const container = document.getElementById("price-slider");
+                if (container) container.scrollBy({ left: 120, behavior: "smooth" });
+              }}
+              className="absolute right-0 z-10 p-2 text-gray-700 hover:text-black transition"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
 
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
