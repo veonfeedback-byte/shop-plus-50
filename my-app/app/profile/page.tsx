@@ -38,12 +38,14 @@ type DBOrder = {
     | "return_approved"
     | "return_dropped"
     | "return_completed";
+  
   items: CartItem[];
   total: number;
   delivery_charges: number; 
   created_at: string;
   completed_at?: string | null;
   expires_at?: string | null;
+  track_link?: string | null;
 };
 
 type ReturnReasonState = {
@@ -623,6 +625,18 @@ export default function Profile() {
                         Return
                       </button>
                     )}
+
+                    {o.track_link && (
+                  <a
+                    href={o.track_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1 text-xs rounded-md border border-indigo-400 text-indigo-600 hover:bg-indigo-50"
+                    onClick={(e) => e.stopPropagation()} // 👈 prevent Link wrapping from hijacking
+                  >
+                    Track Order
+                  </a>
+                )}
                   </div>
 
                   {showReturnInput[o.id] && (
