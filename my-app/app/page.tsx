@@ -728,17 +728,6 @@ export default function HomePage() {
                 </div>
               </>
             )}
-           {visibleHome >= 20 && visibleHome < homeProducts.length && (
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => setVisibleHome((v) => v + 20)}
-                className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
-              >
-                Load more
-              </button>
-            </div>
-          )}
-          
           <section>
             {/* <h1 className="text-2xl font-semibold">🔥 Trending</h1> */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
@@ -756,6 +745,16 @@ export default function HomePage() {
                 />
               ))}
             </div>
+            {visibleHome >= 20 && visibleHome < homeProducts.length && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => setVisibleHome((v) => v + 20)}
+                  className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
+                >
+                  Load more
+                </button>
+              </div>
+            )}
           </section>
       </div>
     </HomeContext.Provider>
