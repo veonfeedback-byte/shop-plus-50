@@ -419,26 +419,48 @@ export default function HomePage() {
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [visibleHome]);  
+    }, [visibleHome]);  
   
+    const [currentSlide, setCurrentSlide] = useState(1); // start at first "real" slide
+    const [isTransitioning, setIsTransitioning] = useState(true);
+    
     const sliderItems = [
-    { text: "Free delivery", highlight: "100,000+ products", icon: "truck" },
-    { text: "Find goods at", highlight: "your price range", icon: "tag" },
-    { text: "Just name it,", highlight: "get it on Trolly.pk", icon: "shopping-bag" },
-    { text: "Daily hot deals", highlight: "& discounts", icon: "flame" },
-    { text: "Cash on Delivery", highlight: "available nationwide", icon: "credit-card" },
-  ];
-
-    // inside HomePage
+      { text: "Free delivery", highlight: "100,000+ products", icon: "truck" },
+      { text: "Find goods at", highlight: "your price range", icon: "tag" },
+      { text: "Just name it,", highlight: "get it on Trolly.pk", icon: "shopping-bag" },
+      { text: "Daily hot deals", highlight: "& discounts", icon: "flame" },
+      { text: "Cash on Delivery", highlight: "available nationwide", icon: "credit-card" },
+    ];
+    
+    // Clone first & last
+    const extendedSlides = [
+      sliderItems[sliderItems.length - 1],
+      ...sliderItems,
+      sliderItems[0],
+    ];
+    
     useEffect(() => {
       const interval = setInterval(() => {
-        setCurrentSlide((prev) =>
-          (prev + 1) % sliderItems.length // ✅ loops back to first card
-        );
-      }, 4000); // ✅ slower: every 4s (adjust as needed)
+        setCurrentSlide((prev) => prev + 1);
+        setIsTransitioning(true);
+      }, 4000);
     
       return () => clearInterval(interval);
-    }, [sliderItems.length]);
+    }, []);
+    
+    const handleTransitionEnd = () => {
+      // If we moved past the last real slide → reset to first
+      if (currentSlide === extendedSlides.length - 1) {
+        setIsTransitioning(false);
+        setCurrentSlide(1); // jump back to first real
+      }
+    
+      // If we moved before the first real slide → reset to last
+      if (currentSlide === 0) {
+        setIsTransitioning(false);
+        setCurrentSlide(extendedSlides.length - 2);
+      }
+    };
 
   /* ---------- Render ---------- */
   return (
@@ -596,14 +618,14 @@ export default function HomePage() {
         {!searchTriggered && (
         <div className="w-full relative">
           <div className="overflow-hidden rounded-2xl shadow-md">
-            <div
-              className="flex transition-transform duration-1000 ease-in-out" 
-              style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-            >
-              {sliderItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between transition-all duration-500
+              <div
+                className={`flex ${isTransitioning ? "transition-transform duration-1000 ease-in-out" : ""}`}
+                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                onTransitionEnd={handleTransitionEnd}
+              >
+              {extendedSlides.map((item, idx) => (
+                <div key={idx} className="flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between">
+                  {/* ... card content ... */}
                     ${idx === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
                     ${idx === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
                     ${idx === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
@@ -646,7 +668,6 @@ export default function HomePage() {
                   </div>
                 </div>
               ))}
-
             </div>
           </div>
       
