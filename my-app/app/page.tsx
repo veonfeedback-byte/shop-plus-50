@@ -379,52 +379,61 @@ export default function HomePage() {
 
   /* ---------- Restore state ---------- */
   useEffect(() => {
-    const lastQ = sessionStorage.getItem("lastQuery");
-    const lastScroll = sessionStorage.getItem("scrollY");
-    const lastVisible = sessionStorage.getItem("visibleSearch");
-    const lastCat = sessionStorage.getItem("lastCategory");
-    const lastSub = sessionStorage.getItem("lastSubcategory");
-    const lastSort = sessionStorage.getItem("lastSort");
-    const lastTag = sessionStorage.getItem("lastTag");
-    const cachedProducts = sessionStorage.getItem("homeProducts");
-  
-    if (lastTag) {
-      setActiveTag(lastTag);
-  
-      if (cachedProducts) {
-        // ✅ Restore EXACT homeProducts from cache
-        try {
-          setHomeProducts(JSON.parse(cachedProducts));
-        } catch {
-          setHomeProducts(initialHomePicks);
-        }
-      } else {
+  const lastQ = sessionStorage.getItem("lastQuery");
+  const lastScroll = sessionStorage.getItem("scrollY");
+  const lastVisible = sessionStorage.getItem("visibleSearch");
+  const lastCat = sessionStorage.getItem("lastCategory");
+  const lastSub = sessionStorage.getItem("lastSubcategory");
+  const lastSort = sessionStorage.getItem("lastSort");
+  const lastTag = sessionStorage.getItem("lastTag");
+
+  const cachedProducts = sessionStorage.getItem("homeProducts");
+
+  if (lastTag) {
+    setActiveTag(lastTag);
+
+    if (cachedProducts) {
+      // ✅ Restore EXACT homeProducts from cache
+      try {
+        setHomeProducts(JSON.parse(cachedProducts));
+      } catch {
+        // fallback if cache is broken
         if (lastTag === "trending") {
-          // shuffle only first time
-          const shuffled = shuffle(initialHomePicks);
-          setHomeProducts(shuffled);
-          sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+          setHomeProducts(initialHomePicks);
         } else {
           const limit = Number(lastTag);
-          const filtered = allProducts.filter((p) => Number(p.price) <= limit);
-          setHomeProducts(filtered);
-          sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
+          setHomeProducts(allProducts.filter((p) => Number(p.price) <= limit));
         }
       }
+    } else {
+      if (lastTag === "trending") {
+        // shuffle only first time
+        const shuffled = shuffle(initialHomePicks);
+        setHomeProducts(shuffled);
+        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+      } else {
+        const limit = Number(lastTag);
+        const filtered = allProducts.filter((p) => Number(p.price) <= limit);
+        setHomeProducts(filtered);
+        sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
+      }
     }
-  
-    if (lastQ) {
-      setQuery(lastQ);
-      setShowBackButton(true);
-      setSearchTriggered(true);
-    }
-    if (lastVisible) setVisibleSearch(Number(lastVisible));
-    if (lastScroll) (window as any).__restoreScrollY = Number(lastScroll);
-    if (lastCat) setActiveCategory(lastCat);
-    if (lastSub) setActiveSubcategory(lastSub);
-    if (lastSort) setPriceSort(lastSort as "asc" | "desc");
-  }, [allProducts, initialHomePicks]);
-    
+  } else {
+    // ✅ Default first load: show trending
+    setHomeProducts(initialHomePicks);
+  }
+
+  if (lastQ) {
+    setQuery(lastQ);
+    setShowBackButton(true);
+    setSearchTriggered(true);
+  }
+  if (lastVisible) setVisibleSearch(Number(lastVisible));
+  if (lastScroll) (window as any).__restoreScrollY = Number(lastScroll);
+  if (lastCat) setActiveCategory(lastCat);
+  if (lastSub) setActiveSubcategory(lastSub);
+  if (lastSort) setPriceSort(lastSort as "asc" | "desc");
+}, [allProducts, initialHomePicks]);
 
   useLayoutEffect(() => {
     if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
@@ -731,19 +740,21 @@ export default function HomePage() {
                     sessionStorage.setItem("lastTag", f.value);
                   
                     if (f.value === "trending") {
-                      if (!sessionStorage.getItem("homeProducts")) {
-                        const shuffled = shuffle(initialHomePicks);
-                        setHomeProducts(shuffled);
-                        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+                        setHomeProducts(initialHomePicks);
+                        try {
+                          sessionStorage.setItem("lastTag", "trending");
+                          sessionStorage.removeItem("homeProducts"); // ✅ don’t save huge arrays
+                        } catch {}
                       } else {
-                        setHomeProducts(JSON.parse(sessionStorage.getItem("homeProducts")!));
+                        const limit = Number(f.value);
+                        const filtered = allProducts.filter((p) => Number(p.price) <= limit);
+                        setHomeProducts(filtered);
+                        try {
+                          sessionStorage.setItem("lastTag", f.value);
+                          sessionStorage.removeItem("homeProducts"); // ✅ don’t save full products
+                        } catch {}
                       }
-                    } else {
-                      const limit = Number(f.value);
-                      const filtered = allProducts.filter((p) => Number(p.price) <= limit);
-                      setHomeProducts(filtered);
-                      sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
-                    }
+
                     setQuery("");
                     setSearchTriggered(false);
                     window.scrollTo({ top: 0, behavior: "smooth" });
