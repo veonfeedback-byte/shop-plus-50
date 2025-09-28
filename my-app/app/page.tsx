@@ -601,7 +601,7 @@ export default function HomePage() {
                   key={idx}
                   className="flex-shrink-0 w-full p-6 bg-gradient-to-r from-pink-50 via-rose-50 to-orange-50 flex items-center justify-between"
                 >
-                  <span className="text-xl sm:text-2xl font-bold text-white tracking-wide">
+                  <span className="text-xl sm:text-2xl font-bold text-gray-600 tracking-wide">
                     {item.text}
                   </span>
                   {item.icon === "truck" && <Truck className="w-12 h-12 text-rose-500" />}
