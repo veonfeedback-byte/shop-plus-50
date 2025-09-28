@@ -691,6 +691,7 @@ export default function HomePage() {
             )}
           </>
             ) : (
+              <>
                 {/* Top filter bar */}
                 <div className="flex gap-3 overflow-x-auto no-scrollbar py-2 px-2">
                   {[
@@ -715,7 +716,8 @@ export default function HomePage() {
                         }
                       }}
                       className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                        (debouncedQuery === f.value || (!searchTriggered && f.value === "trending"))
+                        (debouncedQuery === f.value ||
+                          (!searchTriggered && f.value === "trending"))
                           ? "bg-indigo-600 text-white"
                           : "bg-gray-100 text-gray-700"
                       }`}
@@ -724,6 +726,8 @@ export default function HomePage() {
                     </button>
                   ))}
                 </div>
+              </>
+            )
             <section>
             //<h1 className="text-2xl font-semibold">🔥 Trending</h1>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
