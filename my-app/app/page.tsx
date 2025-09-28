@@ -44,6 +44,7 @@ function ProductCard({
   eager?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
+  const [activeTag, setActiveTag] = useState("trending");
 
   const tags = ["20% OFF", "30% OFF", "Hot", "Sale", "Popular", null, null];
   const tag = useMemo(() => {
@@ -381,6 +382,8 @@ export default function HomePage() {
     const lastCat = sessionStorage.getItem("lastCategory");
     const lastSub = sessionStorage.getItem("lastSubcategory");
     const lastSort = sessionStorage.getItem("lastSort");
+    const lastTag = sessionStorage.getItem("lastTag");
+      if (lastTag) setActiveTag(lastTag);
 
     if (lastQ) {
       setQuery(lastQ);
@@ -512,6 +515,7 @@ export default function HomePage() {
                       setPriceSort(null);
                       setVisibleSearch(10);
 
+                      setActiveTag(null);
                       setSearchTriggered(true);
                       setShowBackButton(true);
 
@@ -694,25 +698,24 @@ export default function HomePage() {
                     <button
                       key={f.value}
                       onClick={() => {
+                        setActiveTag(f.value);
+                        sessionStorage.setItem("lastTag", f.value);
+                
                         if (f.value === "trending") {
-                          setActiveCategory(null);
-                          setActiveSubcategory(null);
-                          setSearchTriggered(false);
-                          setQuery("");
                           setHomeProducts(shuffle(initialHomePicks));
+                          setQuery("");
+                          setSearchTriggered(false);
                         } else {
                           const limit = Number(f.value);
                           const filtered = allProducts.filter((p) => Number(p.price) <= limit);
                           setHomeProducts(filtered);
-                          setActiveCategory(null);
-                          setActiveSubcategory(null);
+                          setQuery("");
                           setSearchTriggered(false);
                         }
-                        setDebouncedQuery(f.value);
                       }}
                       className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
-                        debouncedQuery === f.value
-                          ? "bg-indigo-600 text-white"
+                        activeTag === f.value
+                          ? "bg-orange-500 text-white"
                           : "bg-gray-100 text-gray-700"
                       }`}
                     >
