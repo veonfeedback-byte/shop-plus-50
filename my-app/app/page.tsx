@@ -448,16 +448,14 @@ export default function HomePage() {
     }, []);
     
     const handleTransitionEnd = () => {
-      // If we moved past the last real slide → reset to first
       if (currentSlide === extendedSlides.length - 1) {
         setIsTransitioning(false);
         setCurrentSlide(1); // jump back to first real
-      }
-    
-      // If we moved before the first real slide → reset to last
-      if (currentSlide === 0) {
+      } else if (currentSlide === 0) {
         setIsTransitioning(false);
-        setCurrentSlide(extendedSlides.length - 2);
+        setCurrentSlide(extendedSlides.length - 2); // jump to last real
+      } else {
+        setIsTransitioning(true);
       }
     };
 
@@ -622,54 +620,65 @@ export default function HomePage() {
                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                 onTransitionEnd={handleTransitionEnd}
               >
-              {extendedSlides.map((item, idx) => (
+                {extendedSlides.map((item, idx) => {
+                // map real index (so cloned slides reuse correct colors)
+                let realIndex: number;
+                if (idx === 0) {
+                  realIndex = sliderItems.length - 1; // last item clone
+                } else if (idx === extendedSlides.length - 1) {
+                  realIndex = 0; // first item clone
+                } else {
+                  realIndex = idx - 1;
+                }
+              
+                return (
                   <div
                     key={idx}
                     className={`
                       flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between
-                      ${idx === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
-                      ${idx === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
-                      ${idx === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
-                      ${idx === 3 ? "bg-gradient-to-r from-rose-200 via-red-200 to-pink-100" : ""}
-                      ${idx === 4 ? "bg-gradient-to-r from-emerald-200 via-green-200 to-teal-100" : ""}
+                      ${realIndex === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
+                      ${realIndex === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
+                      ${realIndex === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
+                      ${realIndex === 3 ? "bg-gradient-to-r from-rose-200 via-red-200 to-pink-100" : ""}
+                      ${realIndex === 4 ? "bg-gradient-to-r from-emerald-200 via-green-200 to-teal-100" : ""}
                     `}
                   >
-
-                  {/* Left side Icon */}
-                  <div className="flex items-center gap-4">
-                    {item.icon === "truck" && <Truck className="w-14 h-14 text-rose-600 drop-shadow-md" />}
-                    {item.icon === "tag" && <Tag className="w-14 h-14 text-amber-600 drop-shadow-md" />}
-                    {item.icon === "shopping-bag" && <ShoppingBag className="w-14 h-14 text-indigo-600 drop-shadow-md" />}
-                    {item.icon === "flame" && <Flame className="w-14 h-14 text-red-600 drop-shadow-md" />}
-                    {item.icon === "credit-card" && <CreditCard className="w-14 h-14 text-green-600 drop-shadow-md" />}
+                    {/* Icon + text remain same */}
+                    <div className="flex items-center gap-4">
+                      {item.icon === "truck" && <Truck className="w-14 h-14 text-rose-600 drop-shadow-md" />}
+                      {item.icon === "tag" && <Tag className="w-14 h-14 text-amber-600 drop-shadow-md" />}
+                      {item.icon === "shopping-bag" && <ShoppingBag className="w-14 h-14 text-indigo-600 drop-shadow-md" />}
+                      {item.icon === "flame" && <Flame className="w-14 h-14 text-red-600 drop-shadow-md" />}
+                      {item.icon === "credit-card" && <CreditCard className="w-14 h-14 text-green-600 drop-shadow-md" />}
               
-                    {/* Text */}
-                    <div className="flex flex-col">
-                      {/* Highlight in icon color */}
-                      <span
-                        className={`
-                          text-lg sm:text-xl font-extrabold 
-                          ${item.icon === "truck" ? "text-rose-600" : ""}
-                          ${item.icon === "tag" ? "text-amber-600" : ""}
-                          ${item.icon === "shopping-bag" ? "text-indigo-600" : ""}
-                          ${item.icon === "flame" ? "text-red-600" : ""}
-                          ${item.icon === "credit-card" ? "text-green-600" : ""}
-                        `}
-                      >
-                        {item.text}
-                      </span>
+                      <div className="flex flex-col">
+                        <span
+                          className={`text-lg sm:text-xl font-extrabold ${
+                            item.icon === "truck"
+                              ? "text-rose-600"
+                              : item.icon === "tag"
+                              ? "text-amber-600"
+                              : item.icon === "shopping-bag"
+                              ? "text-indigo-600"
+                              : item.icon === "flame"
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {item.text}
+                        </span>
               
-                      {/* Gradient patch for subtext */}
-                      <span className="mt-2 inline-block px-3 py-1 rounded-lg text-sm sm:text-base font-semibold text-gray-100 shadow-md
-                        bg-gradient-to-r from-gray-800 via-gray-900 to-black
-                        skew-x-[-8deg] transform"
-                      >
-                        <span className="inline-block skew-x-[8deg]">{item.highlight}</span>
-                      </span>
+                        <span className="mt-2 inline-block px-3 py-1 rounded-lg text-sm sm:text-base font-semibold text-gray-100 shadow-md
+                          bg-gradient-to-r from-gray-800 via-gray-900 to-black
+                          skew-x-[-8deg] transform"
+                        >
+                          <span className="inline-block skew-x-[8deg]">{item.highlight}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}                    
             </div>
           </div>
       
