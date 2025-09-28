@@ -44,7 +44,6 @@ function ProductCard({
   eager?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
-  const [activeTag, setActiveTag] = useState("trending");
 
   const tags = ["20% OFF", "30% OFF", "Hot", "Sale", "Popular", null, null];
   const tag = useMemo(() => {
@@ -171,6 +170,7 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [activeTag, setActiveTag] = useState<string | null>("trending");
 
   const [bestSuggestion, setBestSuggestion] = useState<string | null>(null);
 
