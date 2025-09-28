@@ -601,49 +601,49 @@ export default function HomePage() {
                 <div
                   key={idx}
                   className={`flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between transition-all duration-500
-                    bg-gradient-to-tr from-gray-900 via-gray-800 to-black relative overflow-hidden
+                    ${idx === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
+                    ${idx === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
+                    ${idx === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
+                    ${idx === 3 ? "bg-gradient-to-r from-rose-200 via-red-200 to-pink-100" : ""}
+                    ${idx === 4 ? "bg-gradient-to-r from-emerald-200 via-green-200 to-teal-100" : ""}
                   `}
                 >
-                  {/* Unique paint-like gradient overlay */}
-                  <div className="absolute inset-0 opacity-40 mix-blend-overlay bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-indigo-700 via-purple-800 to-pink-800"></div>
-              
-                  {/* Left side Icon + Text */}
-                  <div className="flex items-center gap-4 relative z-10">
-                    {item.icon === "truck" && <Truck className="w-14 h-14 text-rose-500 drop-shadow-md" />}
-                    {item.icon === "tag" && <Tag className="w-14 h-14 text-amber-500 drop-shadow-md" />}
-                    {item.icon === "shopping-bag" && <ShoppingBag className="w-14 h-14 text-indigo-500 drop-shadow-md" />}
-                    {item.icon === "flame" && <Flame className="w-14 h-14 text-red-500 drop-shadow-md" />}
-                    {item.icon === "credit-card" && <CreditCard className="w-14 h-14 text-green-500 drop-shadow-md" />}
+                  {/* Left side Icon */}
+                  <div className="flex items-center gap-4">
+                    {item.icon === "truck" && <Truck className="w-14 h-14 text-rose-600 drop-shadow-md" />}
+                    {item.icon === "tag" && <Tag className="w-14 h-14 text-amber-600 drop-shadow-md" />}
+                    {item.icon === "shopping-bag" && <ShoppingBag className="w-14 h-14 text-indigo-600 drop-shadow-md" />}
+                    {item.icon === "flame" && <Flame className="w-14 h-14 text-red-600 drop-shadow-md" />}
+                    {item.icon === "credit-card" && <CreditCard className="w-14 h-14 text-green-600 drop-shadow-md" />}
               
                     {/* Text */}
                     <div className="flex flex-col">
-                      <span className="text-lg sm:text-xl font-extrabold" 
-                        style={{ color: "currentColor" }}>
-                        {/* Highlight in same color as icon */}
-                        <span className="block"
-                          style={{
-                            color:
-                              item.icon === "truck"
-                                ? "#f43f5e"
-                                : item.icon === "tag"
-                                ? "#d97706"
-                                : item.icon === "shopping-bag"
-                                ? "#4f46e5"
-                                : item.icon === "flame"
-                                ? "#dc2626"
-                                : "#16a34a",
-                          }}
-                        >
-                          {item.text}
-                        </span>
+                      {/* Highlight in icon color */}
+                      <span
+                        className={`
+                          text-lg sm:text-xl font-extrabold 
+                          ${item.icon === "truck" ? "text-rose-600" : ""}
+                          ${item.icon === "tag" ? "text-amber-600" : ""}
+                          ${item.icon === "shopping-bag" ? "text-indigo-600" : ""}
+                          ${item.icon === "flame" ? "text-red-600" : ""}
+                          ${item.icon === "credit-card" ? "text-green-600" : ""}
+                        `}
+                      >
+                        {item.text}
                       </span>
-                      <span className="text-sm sm:text-base text-gray-200 font-medium">
-                        {item.highlight}
+              
+                      {/* Gradient patch for subtext */}
+                      <span className="mt-2 inline-block px-3 py-1 rounded-lg text-sm sm:text-base font-semibold text-gray-100 shadow-md
+                        bg-gradient-to-r from-gray-800 via-gray-900 to-black
+                        skew-x-[-8deg] transform"
+                      >
+                        <span className="inline-block skew-x-[8deg]">{item.highlight}</span>
                       </span>
                     </div>
                   </div>
                 </div>
               ))}
+
             </div>
           </div>
       
