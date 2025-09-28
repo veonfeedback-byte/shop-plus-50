@@ -624,15 +624,18 @@ export default function HomePage() {
                 onTransitionEnd={handleTransitionEnd}
               >
               {extendedSlides.map((item, idx) => (
-                <div key={idx} className="flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between">
-                  {/* ... card content ... */}
-                    ${idx === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
-                    ${idx === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
-                    ${idx === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
-                    ${idx === 3 ? "bg-gradient-to-r from-rose-200 via-red-200 to-pink-100" : ""}
-                    ${idx === 4 ? "bg-gradient-to-r from-emerald-200 via-green-200 to-teal-100" : ""}
-                  `}
-                >
+                  <div
+                    key={idx}
+                    className={`
+                      flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between
+                      ${idx === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
+                      ${idx === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
+                      ${idx === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
+                      ${idx === 3 ? "bg-gradient-to-r from-rose-200 via-red-200 to-pink-100" : ""}
+                      ${idx === 4 ? "bg-gradient-to-r from-emerald-200 via-green-200 to-teal-100" : ""}
+                    `}
+                  >
+
                   {/* Left side Icon */}
                   <div className="flex items-center gap-4">
                     {item.icon === "truck" && <Truck className="w-14 h-14 text-rose-600 drop-shadow-md" />}
