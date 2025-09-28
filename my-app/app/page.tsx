@@ -177,18 +177,21 @@ export default function HomePage() {
 
   useEffect(() => {
     const hydrate = () => {
-      const cached = sessionStorage.getItem("homeProducts");
-      if (cached) {
+      const cachedIds = sessionStorage.getItem("homeProductIds");
+        if (cachedIds) {
+          try {
+            const ids: string[] = JSON.parse(cachedIds);
+            setHomeProducts(allProducts.filter((p) => ids.includes(p.id)));
+            return;
+          } catch {}
+        }
+        
+        const shuffled = shuffle(initialHomePicks);
+        setHomeProducts(shuffled);
         try {
-          setHomeProducts(JSON.parse(cached));
-          return;
+          const ids = shuffled.map((p) => p.id);
+          sessionStorage.setItem("homeProductIds", JSON.stringify(ids));
         } catch {}
-      }
-      const shuffled = shuffle(initialHomePicks);
-      setHomeProducts(shuffled);
-      try {
-        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
-      } catch {}
     };
 
     if ("requestIdleCallback" in window) {
@@ -360,13 +363,19 @@ export default function HomePage() {
     setSearchTriggered(false);
     setActiveCategory(null);
     setActiveSubcategory(null);
+  
+    // ✅ Always restore stable default home picks
+    setHomeProducts(initialHomePicks);
+  
     try {
       sessionStorage.setItem("lastTag", "trending");
-      sessionStorage.clear();
+      const ids = initialHomePicks.map((p) => p.id);
+      sessionStorage.setItem("homeProductIds", JSON.stringify(ids));
     } catch {}
-    
+  
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  }, [initialHomePicks]);
+
 
   /* ---------- product url ---------- */
   const productUrl = useCallback(
@@ -387,15 +396,14 @@ export default function HomePage() {
   const lastSort = sessionStorage.getItem("lastSort");
   const lastTag = sessionStorage.getItem("lastTag");
 
-  const cachedProducts = sessionStorage.getItem("homeProducts");
-
+  const cachedIds = sessionStorage.getItem("homeProductIds");
   if (lastTag) {
     setActiveTag(lastTag);
 
-    if (cachedProducts) {
-      // ✅ Restore EXACT homeProducts from cache
-      try {
-        setHomeProducts(JSON.parse(cachedProducts));
+     if (cachedIds) {
+        try {
+          const ids: string[] = JSON.parse(cachedIds);
+          setHomeProducts(allProducts.filter((p) => ids.includes(p.id)));
       } catch {
         // fallback if cache is broken
         if (lastTag === "trending") {
@@ -410,12 +418,16 @@ export default function HomePage() {
         // shuffle only first time
         const shuffled = shuffle(initialHomePicks);
         setHomeProducts(shuffled);
-        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+        const ids = shuffled.map((p) => p.id);
+          sessionStorage.setItem("homeProductIds", JSON.stringify(ids));
       } else {
         const limit = Number(lastTag);
         const filtered = allProducts.filter((p) => Number(p.price) <= limit);
         setHomeProducts(filtered);
-        sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
+        try {
+          const ids = filtered.map((p) => p.id);
+          sessionStorage.setItem("homeProductIds", JSON.stringify(ids));
+        } catch {}
       }
     }
   } else {
