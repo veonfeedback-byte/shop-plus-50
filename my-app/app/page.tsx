@@ -477,7 +477,7 @@ export default function HomePage() {
             <div className="relative flex-1">
               <div
                 className={
-                  "flex items-center w-full rounded-[14px] px-4 py-2 transition-shadow transition-colors " +
+                  "flex items-center w-full rounded-[12px] px-4 py-2 transition-shadow transition-colors " +
                   (searchFocused
                     ? "shadow-lg border-2 border-blue-400 bg-white"
                     : "shadow-sm border border-gray-200 bg-white/95")
