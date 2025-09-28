@@ -386,16 +386,30 @@ export default function HomePage() {
     const lastSub = sessionStorage.getItem("lastSubcategory");
     const lastSort = sessionStorage.getItem("lastSort");
     const lastTag = sessionStorage.getItem("lastTag");
+    const cachedProducts = sessionStorage.getItem("homeProducts");
   
     if (lastTag) {
       setActiveTag(lastTag);
   
-      if (lastTag === "trending") {
-        setHomeProducts(shuffle(initialHomePicks));
+      if (cachedProducts) {
+        // ✅ Restore EXACT homeProducts from cache
+        try {
+          setHomeProducts(JSON.parse(cachedProducts));
+        } catch {
+          setHomeProducts(initialHomePicks);
+        }
       } else {
-        const limit = Number(lastTag);
-        const filtered = allProducts.filter((p) => Number(p.price) <= limit);
-        setHomeProducts(filtered);
+        if (lastTag === "trending") {
+          // shuffle only first time
+          const shuffled = shuffle(initialHomePicks);
+          setHomeProducts(shuffled);
+          sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+        } else {
+          const limit = Number(lastTag);
+          const filtered = allProducts.filter((p) => Number(p.price) <= limit);
+          setHomeProducts(filtered);
+          sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
+        }
       }
     }
   
@@ -410,7 +424,7 @@ export default function HomePage() {
     if (lastSub) setActiveSubcategory(lastSub);
     if (lastSort) setPriceSort(lastSort as "asc" | "desc");
   }, [allProducts, initialHomePicks]);
-
+    
 
   useLayoutEffect(() => {
     if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
@@ -712,26 +726,28 @@ export default function HomePage() {
                 ].map((f) => (
                   <button
                     key={f.value}
-                    onClick={() => {
-                      setActiveTag(f.value);
-                      sessionStorage.setItem("lastTag", f.value);
-                    
-                      if (f.value === "trending") {
-                        // 🔥 Reset to default trending products
-                        setHomeProducts(shuffle(initialHomePicks));
-                        setQuery("");
-                        setSearchTriggered(false);
+                   onClick={() => {
+                    setActiveTag(f.value);
+                    sessionStorage.setItem("lastTag", f.value);
+                  
+                    if (f.value === "trending") {
+                      if (!sessionStorage.getItem("homeProducts")) {
+                        const shuffled = shuffle(initialHomePicks);
+                        setHomeProducts(shuffled);
+                        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
                       } else {
-                        // 🎫 Price filters
-                        const limit = Number(f.value);
-                        const filtered = allProducts.filter((p) => Number(p.price) <= limit);
-                        setHomeProducts(filtered);
-                        setQuery("");
-                        setSearchTriggered(false);
+                        setHomeProducts(JSON.parse(sessionStorage.getItem("homeProducts")!));
                       }
-                      // scroll reset for smooth UX
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    } else {
+                      const limit = Number(f.value);
+                      const filtered = allProducts.filter((p) => Number(p.price) <= limit);
+                      setHomeProducts(filtered);
+                      sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
+                    }
+                    setQuery("");
+                    setSearchTriggered(false);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
                     className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap border transition ${
                       activeTag === f.value
                         ? "bg-white text-black border-gray-300 shadow-sm"
