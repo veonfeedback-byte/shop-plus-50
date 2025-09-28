@@ -14,7 +14,8 @@ import Head from "next/head";
 import Fuse from "fuse.js";
 import Catalog, { Product } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
-import { ArrowLeft, Search, Camera } from "lucide-react";
+import { ArrowLeft, Search, Truck, Tag, ShoppingBag, Flame, CreditCard } from "lucide-react";
+
 
 /* ----------------- types ----------------- */
 type IndexedProduct = Product & {
@@ -418,6 +419,15 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [visibleHome]);
 
+  const sliderItems = [
+  { text: "🚚 Free delivery on 100,000+ products", icon: "truck" },
+  { text: "📉 Find goods at your price range", icon: "tag" },
+  { text: "🛒 Just name it, you get it on Trolly.pk", icon: "shopping-bag" },
+  { text: "🔥 Daily hot deals & discounts", icon: "flame" },
+  { text: "💳 Cash on Delivery available", icon: "credit-card" },
+];
+
+
   /* ---------- Render ---------- */
   return (
     <HomeContext.Provider value={{ resetHome }}>
@@ -460,10 +470,10 @@ export default function HomePage() {
         />
       </Head>
 
-      <div className="space-y-6 px-1 sm:px-2 md:px-4 pb-28">
+      <div className="space-y-6 px-1 sm:px-2 md:px-4 pb-28 pt-24">
         {/* Search Row (modern style) */}
-        <div className="sticky top-15 z-40 bg-white py-3 px-3 shadow-sm">
-          <div className="flex items-center gap-3 w-full">
+        <div className="fixed top-[56px] left-0 right-0 z-30 bg-white py-3 px-3 shadow-sm border-b border-gray-200">
+          <div className="max-w-4xl mx-auto flex items-center gap-3">
             {showBackButton && (
               <button
                 onClick={resetHome}
@@ -570,6 +580,24 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Slider Section */}
+        <div className="w-full overflow-hidden rounded-xl mt-4">
+          <div className="flex animate-slide">
+            {sliderItems.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex-shrink-0 w-full sm:w-1/2 md:w-1/3 lg:w-1/4 p-6 bg-gradient-to-r from-pink-50 via-rose-50 to-orange-50 rounded-xl flex items-center justify-between shadow-md mx-2"
+              >
+                <span className="text-lg font-semibold text-gray-800">{item.text}</span>
+                {item.icon === "truck" && <Truck className="w-10 h-10 text-rose-500" />}
+                {item.icon === "tag" && <Tag className="w-10 h-10 text-amber-500" />}
+                {item.icon === "shopping-bag" && <ShoppingBag className="w-10 h-10 text-indigo-500" />}
+                {item.icon === "flame" && <Flame className="w-10 h-10 text-red-500" />}
+                {item.icon === "credit-card" && <CreditCard className="w-10 h-10 text-green-500" />}
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
