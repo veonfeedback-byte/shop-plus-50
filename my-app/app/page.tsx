@@ -707,17 +707,23 @@ export default function HomePage() {
                       key={f.value}
                       onClick={() => {
                         if (f.value === "trending") {
+                          setActiveCategory(null);
+                          setActiveSubcategory(null);
                           setSearchTriggered(false);
                           setQuery("");
+                          setHomeProducts(shuffle(initialHomePicks));
                         } else {
-                          setQuery(f.value); // reuse your search logic
-                          setDebouncedQuery(f.value);
-                          setSearchTriggered(true);
+                          const limit = Number(f.value);
+                          const filtered = allProducts.filter((p) => Number(p.price) <= limit);
+                          setHomeProducts(filtered);
+                          setActiveCategory(null);
+                          setActiveSubcategory(null);
+                          setSearchTriggered(false);
                         }
+                        setDebouncedQuery(f.value);
                       }}
-                      className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                        (debouncedQuery === f.value ||
-                          (!searchTriggered && f.value === "trending"))
+                      className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+                        debouncedQuery === f.value
                           ? "bg-indigo-600 text-white"
                           : "bg-gray-100 text-gray-700"
                       }`}
