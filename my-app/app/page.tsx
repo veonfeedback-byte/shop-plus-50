@@ -45,28 +45,13 @@ function ProductCard({
 }) {
   const [loaded, setLoaded] = useState(false);
 
-  // Pool of random tags
-  const tags = [
-    "20% OFF",
-    "30% OFF",
-    "Hot",
-    "Sale",
-    "Popular",
-    null, // null = no tag
-    null, // higher chance of no tag
-  ];
-
-  // Always stable per product (not re-randomized on every render)
+  const tags = ["20% OFF", "30% OFF", "Hot", "Sale", "Popular", null, null];
   const tag = useMemo(() => {
     const index = (p.id.charCodeAt(0) + p.id.length) % tags.length;
     return tags[index];
   }, [p.id]);
 
-   // parse discount percent from tag if present
-  const discountMatch = tag && tag.includes("%")
-    ? parseInt(tag)
-    : null;
-  
+  const discountMatch = tag && /\d+/.test(tag) ? parseInt(tag.match(/\d+/)![0]) : null;
   const inflated = discountMatch
     ? Math.round(Number(p.price) * (1 + discountMatch / 100))
     : null;
@@ -75,16 +60,16 @@ function ProductCard({
     <Link
       href={href}
       onClick={onClick}
-      className="group block rounded-xl overflow-hidden shadow-sm hover:shadow-md transition"
+      className="group block bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
     >
       {/* Image */}
-      <div className="relative w-full aspect-square overflow-hidden">
+      <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
         {p.mainImage ? (
           <img
             src={p.mainImage}
             alt={p.title}
-            className={`w-full h-full object-cover transition duration-500 group-hover:scale-105 ${
-              loaded ? "blur-0" : "blur-md"
+            className={`w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105 ${
+              loaded ? "opacity-100" : "opacity-0"
             }`}
             loading={eager ? "eager" : "lazy"}
             onLoad={() => setLoaded(true)}
@@ -93,36 +78,39 @@ function ProductCard({
           <div className="w-full h-full bg-gray-200 animate-pulse" />
         )}
 
-        {/* Show tag only if not null */}
         {tag && (
-          <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm">
+          <span className="absolute top-2 left-2 bg-red-600 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full shadow-sm">
             {tag}
           </span>
         )}
       </div>
 
       {/* Content */}
-      <div className="mt-2">
-        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 group-hover:text-indigo-600 transition">
+      <div className="px-3 py-2">
+        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 group-hover:text-indigo-600 transition-colors">
           {p.title}
         </h3>
 
-        <div className="mt-1">
+        <div className="mt-1 flex items-center gap-2">
           {discountMatch ? (
             <>
-              <p className="text-xs text-gray-400 line-through">Rs {inflated}</p>
-              <p className="text-lg font-bold text-gray-900">Rs {p.price}</p>
+              <span className="text-xs text-gray-400 line-through">
+                Rs {inflated}
+              </span>
+              <span className="text-base font-bold text-gray-900">
+                Rs {p.price}
+              </span>
             </>
           ) : (
-            <p className="text-lg font-bold text-gray-900">Rs {p.price}</p>
+            <span className="text-base font-bold text-gray-900">
+              Rs {p.price}
+            </span>
           )}
         </div>
-        
       </div>
     </Link>
   );
 }
-
 /* ---------- main component ---------- */
 export default function HomePage() {
   const [query, setQuery] = useState("");
