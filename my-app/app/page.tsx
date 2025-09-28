@@ -176,26 +176,20 @@ export default function HomePage() {
 
   
   useEffect(() => {
-    const hydrate = () => {
+    try {
+      if (!sessionStorage.getItem("initialHomePicks")) {
+        sessionStorage.setItem("initialHomePicks", JSON.stringify(initialHomePicks));
+      }
       const cached = sessionStorage.getItem("homeProducts");
       if (cached) {
-        try {
-          setHomeProducts(JSON.parse(cached));
-          return;
-        } catch {}
+        setHomeProducts(JSON.parse(cached));
+      } else {
+        // default = stable initial picks, not shuffled
+        setHomeProducts(initialHomePicks);
+        sessionStorage.setItem("homeProducts", JSON.stringify(initialHomePicks));
       }
-      const shuffled = shuffle(initialHomePicks);
-      setHomeProducts(shuffled);
-      try {
-        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
-      } catch {}
-    };
-
-    if ("requestIdleCallback" in window) {
-      (window as any).requestIdleCallback(hydrate, { timeout: 200 });
-    } else {
-      const t = setTimeout(hydrate, 100);
-      return () => clearTimeout(t);
+    } catch {
+      setHomeProducts(initialHomePicks);
     }
   }, [initialHomePicks]);
 
@@ -360,13 +354,24 @@ export default function HomePage() {
     setSearchTriggered(false);
     setActiveCategory(null);
     setActiveSubcategory(null);
+  
     try {
+      const cachedInit = sessionStorage.getItem("initialHomePicks");
+      if (cachedInit) {
+        setHomeProducts(JSON.parse(cachedInit));
+      } else {
+        setHomeProducts(initialHomePicks);
+        sessionStorage.setItem("initialHomePicks", JSON.stringify(initialHomePicks));
+      }
       sessionStorage.setItem("lastTag", "trending");
-      sessionStorage.clear();
+      sessionStorage.removeItem("lastQuery");
+      sessionStorage.removeItem("lastCategory");
+      sessionStorage.removeItem("lastSubcategory");
+      sessionStorage.removeItem("lastSort");
     } catch {}
-    
+  
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  }, [initialHomePicks]);
 
   /* ---------- product url ---------- */
   const productUrl = useCallback(
