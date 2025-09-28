@@ -45,7 +45,14 @@ function ProductCard({
 }) {
   const [loaded, setLoaded] = useState(false);
 
-  const inflated = Math.round(Number(p.price) * 1.2);
+  // parse discount percent from tag if present
+  const discountMatch = tag && tag.includes("%")
+    ? parseInt(tag)
+    : null;
+  
+  const inflated = discountMatch
+    ? Math.round(Number(p.price) * (1 + discountMatch / 100))
+    : null;
 
   // Pool of random tags
   const tags = [
@@ -68,7 +75,7 @@ function ProductCard({
     <Link
       href={href}
       onClick={onClick}
-      className="group block"
+      className="group block rounded-xl overflow-hidden shadow-sm hover:shadow-md transition"
     >
       {/* Image */}
       <div className="relative w-full aspect-square overflow-hidden">
@@ -101,9 +108,16 @@ function ProductCard({
         </h3>
 
         <div className="mt-1">
-          <p className="text-xs text-gray-400 line-through">Rs {inflated}</p>
-          <p className="text-lg font-bold text-gray-900">Rs {p.price}</p>
+          {discountMatch ? (
+            <>
+              <p className="text-xs text-gray-400 line-through">Rs {inflated}</p>
+              <p className="text-lg font-bold text-gray-900">Rs {p.price}</p>
+            </>
+          ) : (
+            <p className="text-lg font-bold text-gray-900">Rs {p.price}</p>
+          )}
         </div>
+        
       </div>
     </Link>
   );
@@ -677,8 +691,41 @@ export default function HomePage() {
             )}
           </>
             ) : (
+                {/* Top filter bar */}
+                <div className="flex gap-3 overflow-x-auto no-scrollbar py-2 px-2">
+                  {[
+                    { label: "🔥 Trending", value: "trending" },
+                    { label: "🎫 Under 200", value: "200" },
+                    { label: "🎫 Under 300", value: "300" },
+                    { label: "🎫 Under 500", value: "500" },
+                    { label: "🎫 Under 999", value: "999" },
+                    { label: "🎫 Under 1499", value: "1499" },
+                    { label: "🎫 Under 1999", value: "1999" },
+                  ].map((f) => (
+                    <button
+                      key={f.value}
+                      onClick={() => {
+                        if (f.value === "trending") {
+                          setSearchTriggered(false);
+                          setQuery("");
+                        } else {
+                          setQuery(f.value); // reuse your search logic
+                          setDebouncedQuery(f.value);
+                          setSearchTriggered(true);
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                        (debouncedQuery === f.value || (!searchTriggered && f.value === "trending"))
+                          ? "bg-indigo-600 text-white"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
             <section>
-            <h1 className="text-2xl font-semibold">🔥 Trending</h1>
+            //<h1 className="text-2xl font-semibold">🔥 Trending</h1>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
 
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
