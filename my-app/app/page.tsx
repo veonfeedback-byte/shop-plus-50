@@ -462,8 +462,8 @@ export default function HomePage() {
 
       <div className="space-y-6 px-1 sm:px-2 md:px-4 pb-28">
         {/* Search Row (modern style) */}
-        <div className="sticky top-0 z-30 backdrop-blur-md py-3 px-1 border-b border-transparent">
-          <div className="max-w-4xl mx-auto flex items-center gap-3">
+        <div className="sticky top-0 z-40 bg-white py-3 px-3 shadow-sm">
+          <div className="flex items-center gap-3 w-full">
             {showBackButton && (
               <button
                 onClick={resetHome}
