@@ -479,11 +479,11 @@ export default function HomePage() {
                 className={
                   "flex items-center w-full rounded-[14px] px-4 py-2 transition-shadow transition-colors " +
                   (searchFocused
-                    ? "shadow-lg border-2 border-neon-400 bg-white"
+                    ? "shadow-lg border-2 border-blue-400 bg-white"
                     : "shadow-sm border border-gray-200 bg-white/95")
                 }
               >
-                <Search className={`w-5 h-5 mr-3 ${searchFocused ? "text-green-500" : "text-gray-400"}`} />
+                <Search className={`w-5 h-5 mr-3 ${searchFocused ? "text-blue-500" : "text-gray-400"}`} />
 
                 <input
                   ref={inputRef}
