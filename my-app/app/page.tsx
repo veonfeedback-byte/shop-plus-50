@@ -479,7 +479,8 @@ export default function HomePage() {
         />
       </Head>
 
-      <div className="space-y-6 px-1 sm:px-2 md:px-4 pb-28 pt-24">
+      <div className="space-y-4 px-2 sm:px-3 md:px-4 pb-28 pt-20">
+
         {/* Search Row (modern style) */}
         <div className="fixed top-[56px] left-0 right-0 z-30 bg-white py-3 px-3 shadow-sm border-b border-gray-200">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
@@ -597,13 +598,20 @@ export default function HomePage() {
               style={{ transform: `translateX(-${currentSlide * 100}%)` }}
             >
               {sliderItems.map((item, idx) => (
-                <div
+               <div
                   key={idx}
-                  className="flex-shrink-0 w-full p-6 bg-gradient-to-r from-pink-50 via-rose-50 to-orange-50 flex items-center justify-between"
+                  className={`flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between transition-all duration-500
+                    ${idx === 0 ? "bg-gradient-to-r from-pink-50 via-rose-100 to-orange-50" : ""}
+                    ${idx === 1 ? "bg-gradient-to-r from-amber-50 via-yellow-100 to-orange-50" : ""}
+                    ${idx === 2 ? "bg-gradient-to-r from-indigo-50 via-purple-100 to-pink-50" : ""}
+                    ${idx === 3 ? "bg-gradient-to-r from-red-50 via-rose-100 to-pink-50" : ""}
+                    ${idx === 4 ? "bg-gradient-to-r from-green-50 via-emerald-100 to-teal-50" : ""}
+                  `}
                 >
-                  <span className="text-xl sm:text-2xl font-bold text-gray-600 tracking-wide">
+                  <span className="text-2xl sm:text-3xl font-extrabold tracking-wide text-gray-700 drop-shadow-sm">
                     {item.text}
                   </span>
+
                   {item.icon === "truck" && <Truck className="w-12 h-12 text-rose-500" />}
                   {item.icon === "tag" && <Tag className="w-12 h-12 text-amber-500" />}
                   {item.icon === "shopping-bag" && <ShoppingBag className="w-12 h-12 text-indigo-500" />}
@@ -615,13 +623,13 @@ export default function HomePage() {
           </div>
       
           {/* Small dots for navigation */}
-          <div className="flex justify-center mt-3 gap-2">
+          <div className="flex justify-center mt-4 gap-2">
             {sliderItems.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentSlide(i)}
-                className={`h-2 w-2 rounded-full transition ${
-                  currentSlide === i ? "bg-indigo-600 w-4" : "bg-gray-300"
+                className={`h-2.5 w-2.5 rounded-full transition ${
+                  currentSlide === i ? "bg-indigo-600 scale-125" : "bg-gray-300"
                 }`}
               />
             ))}
