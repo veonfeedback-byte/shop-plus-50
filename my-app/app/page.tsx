@@ -757,7 +757,6 @@ export default function HomePage() {
               ))}
             </div>
           </section>
-        )}
       </div>
     </HomeContext.Provider>
   );
