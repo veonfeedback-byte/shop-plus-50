@@ -489,7 +489,7 @@ export default function HomePage() {
                   type="search"
                   inputMode="search"
                   enterKeyHint="search"
-                  placeholder="Search by name or price (e.g. Rs 300, Shoes)"
+                  placeholder="Search by name or price (e.g. Shoes, Rs 250)"
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -681,7 +681,7 @@ export default function HomePage() {
             ) : (
               <>
                 {/* Top filter bar */}
-                <div className="flex gap-3 overflow-x-auto no-scrollbar py-2 px-2">
+                <div className="flex gap-3 overflow-x-auto scrollbar-hide py-2 px-2">
                   {[
                     { label: "🔥 Trending", value: "trending" },
                     { label: "🎫 Under 200", value: "200" },
