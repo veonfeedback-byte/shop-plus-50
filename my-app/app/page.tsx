@@ -386,8 +386,19 @@ export default function HomePage() {
     const lastSub = sessionStorage.getItem("lastSubcategory");
     const lastSort = sessionStorage.getItem("lastSort");
     const lastTag = sessionStorage.getItem("lastTag");
-      if (lastTag) setActiveTag(lastTag);
-
+  
+    if (lastTag) {
+      setActiveTag(lastTag);
+  
+      if (lastTag === "trending") {
+        setHomeProducts(shuffle(initialHomePicks));
+      } else {
+        const limit = Number(lastTag);
+        const filtered = allProducts.filter((p) => Number(p.price) <= limit);
+        setHomeProducts(filtered);
+      }
+    }
+  
     if (lastQ) {
       setQuery(lastQ);
       setShowBackButton(true);
@@ -398,7 +409,8 @@ export default function HomePage() {
     if (lastCat) setActiveCategory(lastCat);
     if (lastSub) setActiveSubcategory(lastSub);
     if (lastSort) setPriceSort(lastSort as "asc" | "desc");
-  }, []);
+  }, [allProducts, initialHomePicks]);
+
 
   useLayoutEffect(() => {
     if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
@@ -685,78 +697,78 @@ export default function HomePage() {
               </div>
             )}
           </>
-            ) : (
-              <>
-                {/* Top filter bar */}
-                <div className="flex gap-3 overflow-x-auto scrollbar-hide py-2 px-2">
-                  {[
-                    { label: "🔥 Trending", value: "trending" },
-                    { label: "🎫 Under 200", value: "200" },
-                    { label: "🎫 Under 300", value: "300" },
-                    { label: "🎫 Under 500", value: "500" },
-                    { label: "🎫 Under 999", value: "999" },
-                    { label: "🎫 Under 1499", value: "1499" },
-                    { label: "🎫 Under 1999", value: "1999" },
-                  ].map((f) => (
-                    <button
-                      key={f.value}
+            ) : !searchTriggered ? (
+            <>
+              {/* Top filter bar */}
+              <div className="flex gap-3 overflow-x-auto scrollbar-hide py-2 px-2">
+                {[
+                  { label: "🔥 Trending", value: "trending" },
+                  { label: "🎫 Under 200", value: "200" },
+                  { label: "🎫 Under 300", value: "300" },
+                  { label: "🎫 Under 500", value: "500" },
+                  { label: "🎫 Under 999", value: "999" },
+                  { label: "🎫 Under 1499", value: "1499" },
+                  { label: "🎫 Under 1999", value: "1999" },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => {
+                      setActiveTag(f.value);
+                      sessionStorage.setItem("lastTag", f.value);
+          
+                      if (f.value === "trending") {
+                        setHomeProducts(shuffle(initialHomePicks));
+                        setQuery("");
+                        setSearchTriggered(false);
+                      } else {
+                        const limit = Number(f.value);
+                        const filtered = allProducts.filter((p) => Number(p.price) <= limit);
+                        setHomeProducts(filtered);
+                        setQuery("");
+                        setSearchTriggered(false);
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap border transition ${
+                      activeTag === f.value
+                        ? "bg-white text-black border-gray-300 shadow-sm"
+                        : "bg-gray-50 text-gray-600 border-gray-200"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+          
+              <section>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
+                  {homeProducts.slice(0, visibleHome).map((p, idx) => (
+                    <ProductCard
+                      key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                      p={p}
+                      href={productUrl(p)}
                       onClick={() => {
-                        setActiveTag(f.value);
-                        sessionStorage.setItem("lastTag", f.value);
-                
-                        if (f.value === "trending") {
-                          setHomeProducts(shuffle(initialHomePicks));
-                          setQuery("");
-                          setSearchTriggered(false);
-                        } else {
-                          const limit = Number(f.value);
-                          const filtered = allProducts.filter((p) => Number(p.price) <= limit);
-                          setHomeProducts(filtered);
-                          setQuery("");
-                          setSearchTriggered(false);
-                        }
+                        try {
+                          sessionStorage.setItem("scrollY", String(window.scrollY));
+                          sessionStorage.setItem("lastTag", activeTag || "trending");
+                        } catch {}
                       }}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap border transition ${
-                        activeTag === f.value
-                          ? "bg-white text-black border-gray-300 shadow-sm"
-                          : "bg-gray-50 text-gray-600 border-gray-200"
-                      }`}
-                    >
-                      {f.label}
-                    </button>
+                      eager={idx < 4}
+                    />
                   ))}
                 </div>
-              </>
-            )}
-          <section>
-            {/* <h1 className="text-2xl font-semibold">🔥 Trending</h1> */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
-              {homeProducts.slice(0, visibleHome).map((p, idx) => (
-                <ProductCard
-                  key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
-                  p={p}
-                  href={productUrl(p)}
-                  onClick={() => {
-                    try {
-                      sessionStorage.setItem("scrollY", String(window.scrollY));
-                      sessionStorage.setItem("lastTag", activeTag || "trending");
-                    } catch {}
-                  }}
-                  eager={idx < 4}
-                />
-              ))}
-            </div>
-            {visibleHome >= 20 && visibleHome < homeProducts.length && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => setVisibleHome((v) => v + 20)}
-                  className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
-                >
-                  Load more
-                </button>
-              </div>
-            )}
-          </section>
+                {visibleHome >= 20 && visibleHome < homeProducts.length && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={() => setVisibleHome((v) => v + 20)}
+                      className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
+                    >
+                      Load more
+                    </button>
+                  </div>
+                )}
+              </section>
+            </>
+          ) : null}          
       </div>
     </HomeContext.Provider>
   );
