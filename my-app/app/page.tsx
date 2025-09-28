@@ -174,27 +174,23 @@ export default function HomePage() {
 
   const [bestSuggestion, setBestSuggestion] = useState<string | null>(null);
 
-
+  
   useEffect(() => {
     const hydrate = () => {
-      try {
-        // ✅ Save stable initial picks once
-        if (!sessionStorage.getItem("initialHomePicks")) {
-          sessionStorage.setItem("initialHomePicks", JSON.stringify(initialHomePicks));
-        }
-  
-        // ✅ Always restore from initialHomePicks (not shuffle)
-        const cachedInit = sessionStorage.getItem("initialHomePicks");
-        if (cachedInit) {
-          setHomeProducts(JSON.parse(cachedInit));
-        } else {
-          setHomeProducts(initialHomePicks);
-        }
-      } catch {
-        setHomeProducts(initialHomePicks);
+      const cached = sessionStorage.getItem("homeProducts");
+      if (cached) {
+        try {
+          setHomeProducts(JSON.parse(cached));
+          return;
+        } catch {}
       }
+      const shuffled = shuffle(initialHomePicks);
+      setHomeProducts(shuffled);
+      try {
+        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+      } catch {}
     };
-  
+
     if ("requestIdleCallback" in window) {
       (window as any).requestIdleCallback(hydrate, { timeout: 200 });
     } else {
@@ -202,7 +198,6 @@ export default function HomePage() {
       return () => clearTimeout(t);
     }
   }, [initialHomePicks]);
-
 
   /* ---------- Fuse search ---------- */
   const [fuse, setFuse] = useState<Fuse<IndexedProduct> | null>(null);
