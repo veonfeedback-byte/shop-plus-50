@@ -179,6 +179,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const hydrate = () => {
+      if (typeof window === "undefined") return;
       const cached = sessionStorage.getItem("homeProducts");
       if (cached) {
         try {
@@ -420,20 +421,20 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [visibleHome]);
 
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % sliderItems.length);
-      }, 2000); // slide every 2s
-      return () => clearInterval(interval);
-    }, [sliderItems.length]);
-
   const sliderItems = [
-  { text: "🚚 Free delivery on 100,000+ products", icon: "truck" },
-  { text: "📉 Find goods at your price range", icon: "tag" },
-  { text: "🛒 Just name it, you get it on Trolly.pk", icon: "shopping-bag" },
-  { text: "🔥 Daily hot deals & discounts", icon: "flame" },
-  { text: "💳 Cash on Delivery available", icon: "credit-card" },
-];
+    { text: "🚚 Free delivery on 100,000+ products", icon: "truck" },
+    { text: "📉 Find goods at your price range", icon: "tag" },
+    { text: "🛒 Just name it, you get it on Trolly.pk", icon: "shopping-bag" },
+    { text: "🔥 Daily hot deals & discounts", icon: "flame" },
+    { text: "💳 Cash on Delivery available", icon: "credit-card" },
+  ];
+
+    useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % sliderItems.length);
+      }, 2000); // slide every 2s
+    return () => clearInterval(interval);
+    }, [sliderItems.length]);
 
 
   /* ---------- Render ---------- */
