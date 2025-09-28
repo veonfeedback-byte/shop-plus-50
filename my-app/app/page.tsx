@@ -419,14 +419,14 @@ export default function HomePage() {
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [visibleHome]);
-
-  const sliderItems = [
-    { text: "🚚 Free delivery on 100,000+ products", icon: "truck" },
-    { text: "📉 Find goods at your price range", icon: "tag" },
-    { text: "🛒 Just name it, you get it on Trolly.pk", icon: "shopping-bag" },
-    { text: "🔥 Daily hot deals & discounts", icon: "flame" },
-    { text: "💳 Cash on Delivery available", icon: "credit-card" },
+  }, [visibleHome]);  
+  
+    const sliderItems = [
+    { text: "Free delivery", highlight: "100,000+ products", icon: "truck" },
+    { text: "Find goods at", highlight: "your price range", icon: "tag" },
+    { text: "Just name it,", highlight: "get it on Trolly.pk", icon: "shopping-bag" },
+    { text: "Daily hot deals", highlight: "& discounts", icon: "flame" },
+    { text: "Cash on Delivery", highlight: "available nationwide", icon: "credit-card" },
   ];
 
     useEffect(() => {
@@ -600,19 +600,32 @@ export default function HomePage() {
               {sliderItems.map((item, idx) => (
                 <div
                   key={idx}
-                  className={`flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-xl flex items-center justify-between transition-all duration-500
-                    bg-gradient-to-r from-[#e8dcc5] via-[#d8c8aa] to-[#cbb891]
+                  className={`flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between transition-all duration-500
+                    ${idx === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
+                    ${idx === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
+                    ${idx === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
+                    ${idx === 3 ? "bg-gradient-to-r from-rose-200 via-red-200 to-pink-100" : ""}
+                    ${idx === 4 ? "bg-gradient-to-r from-emerald-200 via-green-200 to-teal-100" : ""}
                   `}
                 >
-                  <span className="text-sm sm:text-base font-medium tracking-wide text-white max-w-[70%] leading-relaxed">
-                    {item.text}
-                  </span>
-            
-                  {item.icon === "truck" && <Truck className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
-                  {item.icon === "tag" && <Tag className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
-                  {item.icon === "shopping-bag" && <ShoppingBag className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
-                  {item.icon === "flame" && <Flame className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
-                  {item.icon === "credit-card" && <CreditCard className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
+                  {/* Left side Icon */}
+                  <div className="flex items-center gap-4">
+                    {item.icon === "truck" && <Truck className="w-14 h-14 text-rose-600 drop-shadow-md" />}
+                    {item.icon === "tag" && <Tag className="w-14 h-14 text-amber-600 drop-shadow-md" />}
+                    {item.icon === "shopping-bag" && <ShoppingBag className="w-14 h-14 text-indigo-600 drop-shadow-md" />}
+                    {item.icon === "flame" && <Flame className="w-14 h-14 text-red-600 drop-shadow-md" />}
+                    {item.icon === "credit-card" && <CreditCard className="w-14 h-14 text-green-600 drop-shadow-md" />}
+                    
+                    {/* Text */}
+                    <div className="flex flex-col">
+                      <span className="text-sm sm:text-base text-gray-700 font-medium">
+                        {item.text}
+                      </span>
+                      <span className="text-lg sm:text-xl font-extrabold text-indigo-700">
+                        {item.highlight}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
