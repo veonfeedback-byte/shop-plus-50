@@ -177,20 +177,24 @@ export default function HomePage() {
 
   useEffect(() => {
     const hydrate = () => {
-      const cached = sessionStorage.getItem("homeProducts");
-      if (cached) {
-        try {
-          setHomeProducts(JSON.parse(cached));
-          return;
-        } catch {}
-      }
-      const shuffled = shuffle(initialHomePicks);
-      setHomeProducts(shuffled);
       try {
-        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
-      } catch {}
+        // ✅ Save stable initial picks once
+        if (!sessionStorage.getItem("initialHomePicks")) {
+          sessionStorage.setItem("initialHomePicks", JSON.stringify(initialHomePicks));
+        }
+  
+        // ✅ Always restore from initialHomePicks (not shuffle)
+        const cachedInit = sessionStorage.getItem("initialHomePicks");
+        if (cachedInit) {
+          setHomeProducts(JSON.parse(cachedInit));
+        } else {
+          setHomeProducts(initialHomePicks);
+        }
+      } catch {
+        setHomeProducts(initialHomePicks);
+      }
     };
-
+  
     if ("requestIdleCallback" in window) {
       (window as any).requestIdleCallback(hydrate, { timeout: 200 });
     } else {
@@ -198,6 +202,7 @@ export default function HomePage() {
       return () => clearTimeout(t);
     }
   }, [initialHomePicks]);
+
 
   /* ---------- Fuse search ---------- */
   const [fuse, setFuse] = useState<Fuse<IndexedProduct> | null>(null);
@@ -726,28 +731,32 @@ export default function HomePage() {
                 ].map((f) => (
                   <button
                     key={f.value}
-                   onClick={() => {
-                    setActiveTag(f.value);
-                    sessionStorage.setItem("lastTag", f.value);
-                  
-                    if (f.value === "trending") {
-                      if (!sessionStorage.getItem("homeProducts")) {
-                        const shuffled = shuffle(initialHomePicks);
-                        setHomeProducts(shuffled);
-                        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+                    
+                     onClick={() => {
+                      setActiveTag(f.value);
+                      sessionStorage.setItem("lastTag", f.value);
+                    
+                      if (f.value === "trending") {
+                        // ✅ Always restore stable initial picks (not shuffle)
+                        const cachedInit = sessionStorage.getItem("initialHomePicks");
+                        if (cachedInit) {
+                          setHomeProducts(JSON.parse(cachedInit));
+                        } else {
+                          setHomeProducts(initialHomePicks);
+                          sessionStorage.setItem("initialHomePicks", JSON.stringify(initialHomePicks));
+                        }
                       } else {
-                        setHomeProducts(JSON.parse(sessionStorage.getItem("homeProducts")!));
+                        const limit = Number(f.value);
+                        const filtered = allProducts.filter((p) => Number(p.price) <= limit);
+                        setHomeProducts(filtered);
+                        sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
                       }
-                    } else {
-                      const limit = Number(f.value);
-                      const filtered = allProducts.filter((p) => Number(p.price) <= limit);
-                      setHomeProducts(filtered);
-                      sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
-                    }
-                    setQuery("");
-                    setSearchTriggered(false);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
+                    
+                      setQuery("");
+                      setSearchTriggered(false);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+
                     className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap border transition ${
                       activeTag === f.value
                         ? "bg-white text-black border-gray-300 shadow-sm"
