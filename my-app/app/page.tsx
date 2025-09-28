@@ -598,25 +598,21 @@ export default function HomePage() {
               style={{ transform: `translateX(-${currentSlide * 100}%)` }}
             >
               {sliderItems.map((item, idx) => (
-               <div
+                <div
                   key={idx}
-                  className={`flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between transition-all duration-500
-                    ${idx === 0 ? "bg-gradient-to-r from-pink-50 via-rose-100 to-orange-50" : ""}
-                    ${idx === 1 ? "bg-gradient-to-r from-amber-50 via-yellow-100 to-orange-50" : ""}
-                    ${idx === 2 ? "bg-gradient-to-r from-indigo-50 via-purple-100 to-pink-50" : ""}
-                    ${idx === 3 ? "bg-gradient-to-r from-red-50 via-rose-100 to-pink-50" : ""}
-                    ${idx === 4 ? "bg-gradient-to-r from-green-50 via-emerald-100 to-teal-50" : ""}
+                  className={`flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-xl flex items-center justify-between transition-all duration-500
+                    bg-gradient-to-r from-[#e8dcc5] via-[#d8c8aa] to-[#cbb891]
                   `}
                 >
-                  <span className="text-2xl sm:text-3xl font-extrabold tracking-wide text-gray-700 drop-shadow-sm">
+                  <span className="text-sm sm:text-base font-medium tracking-wide text-white max-w-[70%] leading-relaxed">
                     {item.text}
                   </span>
-
-                  {item.icon === "truck" && <Truck className="w-12 h-12 text-rose-500" />}
-                  {item.icon === "tag" && <Tag className="w-12 h-12 text-amber-500" />}
-                  {item.icon === "shopping-bag" && <ShoppingBag className="w-12 h-12 text-indigo-500" />}
-                  {item.icon === "flame" && <Flame className="w-12 h-12 text-red-500" />}
-                  {item.icon === "credit-card" && <CreditCard className="w-12 h-12 text-green-500" />}
+            
+                  {item.icon === "truck" && <Truck className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
+                  {item.icon === "tag" && <Tag className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
+                  {item.icon === "shopping-bag" && <ShoppingBag className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
+                  {item.icon === "flame" && <Flame className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
+                  {item.icon === "credit-card" && <CreditCard className="w-14 h-14 sm:w-16 sm:h-16 text-white opacity-90" />}
                 </div>
               ))}
             </div>
