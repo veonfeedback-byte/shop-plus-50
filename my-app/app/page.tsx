@@ -715,18 +715,22 @@ export default function HomePage() {
                     onClick={() => {
                       setActiveTag(f.value);
                       sessionStorage.setItem("lastTag", f.value);
-          
+                    
                       if (f.value === "trending") {
+                        // 🔥 Reset to default trending products
                         setHomeProducts(shuffle(initialHomePicks));
                         setQuery("");
                         setSearchTriggered(false);
                       } else {
+                        // 🎫 Price filters
                         const limit = Number(f.value);
                         const filtered = allProducts.filter((p) => Number(p.price) <= limit);
                         setHomeProducts(filtered);
                         setQuery("");
                         setSearchTriggered(false);
                       }
+                      // scroll reset for smooth UX
+                      window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap border transition ${
                       activeTag === f.value
