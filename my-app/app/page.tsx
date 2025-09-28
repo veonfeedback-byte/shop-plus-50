@@ -172,6 +172,7 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   const [bestSuggestion, setBestSuggestion] = useState<string | null>(null);
 
@@ -419,6 +420,13 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [visibleHome]);
 
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % sliderItems.length);
+      }, 2000); // slide every 2s
+      return () => clearInterval(interval);
+    }, [sliderItems.length]);
+
   const sliderItems = [
   { text: "🚚 Free delivery on 100,000+ products", icon: "truck" },
   { text: "📉 Find goods at your price range", icon: "tag" },
@@ -580,25 +588,45 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Slider Section */}
-        <div className="w-full overflow-hidden rounded-xl mt-4">
-          <div className="flex animate-slide">
-            {sliderItems.map((item, idx) => (
-              <div
-                key={idx}
-                className="flex-shrink-0 w-full sm:w-1/2 md:w-1/3 lg:w-1/4 p-6 bg-gradient-to-r from-pink-50 via-rose-50 to-orange-50 rounded-xl flex items-center justify-between shadow-md mx-2"
-              >
-                <span className="text-lg font-semibold text-gray-800">{item.text}</span>
-                {item.icon === "truck" && <Truck className="w-10 h-10 text-rose-500" />}
-                {item.icon === "tag" && <Tag className="w-10 h-10 text-amber-500" />}
-                {item.icon === "shopping-bag" && <ShoppingBag className="w-10 h-10 text-indigo-500" />}
-                {item.icon === "flame" && <Flame className="w-10 h-10 text-red-500" />}
-                {item.icon === "credit-card" && <CreditCard className="w-10 h-10 text-green-500" />}
-              </div>
+        {!searchTriggered && (
+        <div className="w-full mt-2 relative">
+          <div className="overflow-hidden rounded-2xl shadow-md">
+            <div
+              className="flex transition-transform duration-700 ease-in-out"
+              style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+            >
+              {sliderItems.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex-shrink-0 w-full p-6 bg-gradient-to-r from-pink-50 via-rose-50 to-orange-50 flex items-center justify-between"
+                >
+                  <span className="text-xl sm:text-2xl font-bold text-gray-800 tracking-wide">
+                    {item.text}
+                  </span>
+                  {item.icon === "truck" && <Truck className="w-12 h-12 text-rose-500" />}
+                  {item.icon === "tag" && <Tag className="w-12 h-12 text-amber-500" />}
+                  {item.icon === "shopping-bag" && <ShoppingBag className="w-12 h-12 text-indigo-500" />}
+                  {item.icon === "flame" && <Flame className="w-12 h-12 text-red-500" />}
+                  {item.icon === "credit-card" && <CreditCard className="w-12 h-12 text-green-500" />}
+                </div>
+              ))}
+            </div>
+          </div>
+      
+          {/* Small dots for navigation */}
+          <div className="flex justify-center mt-3 gap-2">
+            {sliderItems.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentSlide(i)}
+                className={`h-2 w-2 rounded-full transition ${
+                  currentSlide === i ? "bg-indigo-600 w-4" : "bg-gray-300"
+                }`}
+              />
             ))}
           </div>
         </div>
-
+      )}
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
           <>
