@@ -111,6 +111,7 @@ function ProductCard({
     </Link>
   );
 }
+
 /* ---------- main component ---------- */
 export default function HomePage() {
   const [query, setQuery] = useState("");
@@ -170,26 +171,31 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [activeTag, setActiveTag] = useState<string | null>("trending");
 
   const [bestSuggestion, setBestSuggestion] = useState<string | null>(null);
 
-  
+
   useEffect(() => {
-    try {
-      if (!sessionStorage.getItem("initialHomePicks")) {
-        sessionStorage.setItem("initialHomePicks", JSON.stringify(initialHomePicks));
-      }
+    const hydrate = () => {
       const cached = sessionStorage.getItem("homeProducts");
       if (cached) {
-        setHomeProducts(JSON.parse(cached));
-      } else {
-        // default = stable initial picks, not shuffled
-        setHomeProducts(initialHomePicks);
-        sessionStorage.setItem("homeProducts", JSON.stringify(initialHomePicks));
+        try {
+          setHomeProducts(JSON.parse(cached));
+          return;
+        } catch {}
       }
-    } catch {
-      setHomeProducts(initialHomePicks);
+      const shuffled = shuffle(initialHomePicks);
+      setHomeProducts(shuffled);
+      try {
+        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+      } catch {}
+    };
+
+    if ("requestIdleCallback" in window) {
+      (window as any).requestIdleCallback(hydrate, { timeout: 200 });
+    } else {
+      const t = setTimeout(hydrate, 100);
+      return () => clearTimeout(t);
     }
   }, [initialHomePicks]);
 
@@ -305,7 +311,7 @@ export default function HomePage() {
 
   // ✅ Fallback trending products
   if (fuzzy.length === 0) {
-    return [];
+    fuzzy = homeProducts.slice(0, 10);
   }
 
   // ✅ Dedup + sort
@@ -348,30 +354,16 @@ export default function HomePage() {
   const resetHome = useCallback(() => {
     setQuery("");
     setShowBackButton(false);
-    setActiveTag("trending");
     setPriceSort(null);
     setVisibleSearch(10);
     setSearchTriggered(false);
     setActiveCategory(null);
     setActiveSubcategory(null);
-  
     try {
-      const cachedInit = sessionStorage.getItem("initialHomePicks");
-      if (cachedInit) {
-        setHomeProducts(JSON.parse(cachedInit));
-      } else {
-        setHomeProducts(initialHomePicks);
-        sessionStorage.setItem("initialHomePicks", JSON.stringify(initialHomePicks));
-      }
-      sessionStorage.setItem("lastTag", "trending");
-      sessionStorage.removeItem("lastQuery");
-      sessionStorage.removeItem("lastCategory");
-      sessionStorage.removeItem("lastSubcategory");
-      sessionStorage.removeItem("lastSort");
+      sessionStorage.clear();
     } catch {}
-  
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [initialHomePicks]);
+  }, []);
 
   /* ---------- product url ---------- */
   const productUrl = useCallback(
@@ -390,34 +382,7 @@ export default function HomePage() {
     const lastCat = sessionStorage.getItem("lastCategory");
     const lastSub = sessionStorage.getItem("lastSubcategory");
     const lastSort = sessionStorage.getItem("lastSort");
-    const lastTag = sessionStorage.getItem("lastTag");
-    const cachedProducts = sessionStorage.getItem("homeProducts");
-  
-    if (lastTag) {
-      setActiveTag(lastTag);
-  
-      if (cachedProducts) {
-        // ✅ Restore EXACT homeProducts from cache
-        try {
-          setHomeProducts(JSON.parse(cachedProducts));
-        } catch {
-          setHomeProducts(initialHomePicks);
-        }
-      } else {
-        if (lastTag === "trending") {
-          // shuffle only first time
-          const shuffled = shuffle(initialHomePicks);
-          setHomeProducts(shuffled);
-          sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
-        } else {
-          const limit = Number(lastTag);
-          const filtered = allProducts.filter((p) => Number(p.price) <= limit);
-          setHomeProducts(filtered);
-          sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
-        }
-      }
-    }
-  
+
     if (lastQ) {
       setQuery(lastQ);
       setShowBackButton(true);
@@ -428,8 +393,7 @@ export default function HomePage() {
     if (lastCat) setActiveCategory(lastCat);
     if (lastSub) setActiveSubcategory(lastSub);
     if (lastSort) setPriceSort(lastSort as "asc" | "desc");
-  }, [allProducts, initialHomePicks]);
-    
+  }, []);
 
   useLayoutEffect(() => {
     if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
@@ -526,7 +490,7 @@ export default function HomePage() {
                   type="search"
                   inputMode="search"
                   enterKeyHint="search"
-                  placeholder="Search by name or price (e.g. Shoes, Rs 250)"
+                  placeholder="Search by name or price (e.g. Rs 300, Shoes)"
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -549,7 +513,6 @@ export default function HomePage() {
                       setPriceSort(null);
                       setVisibleSearch(10);
 
-                      setActiveTag(null);
                       setSearchTriggered(true);
                       setShowBackButton(true);
 
@@ -716,88 +679,38 @@ export default function HomePage() {
               </div>
             )}
           </>
-            ) : !searchTriggered ? (
-            <>
-              {/* Top filter bar */}
-              <div className="flex gap-3 overflow-x-auto scrollbar-hide py-2 px-2">
-                {[
-                  { label: "🔥 Trending", value: "trending" },
-                  { label: "🎫 Under 200", value: "200" },
-                  { label: "🎫 Under 300", value: "300" },
-                  { label: "🎫 Under 500", value: "500" },
-                  { label: "🎫 Under 999", value: "999" },
-                  { label: "🎫 Under 1499", value: "1499" },
-                  { label: "🎫 Under 1999", value: "1999" },
-                ].map((f) => (
-                  <button
-                    key={f.value}
-                    
-                     onClick={() => {
-                      setActiveTag(f.value);
-                      sessionStorage.setItem("lastTag", f.value);
-                    
-                      if (f.value === "trending") {
-                        // ✅ Always restore stable initial picks (not shuffle)
-                        const cachedInit = sessionStorage.getItem("initialHomePicks");
-                        if (cachedInit) {
-                          setHomeProducts(JSON.parse(cachedInit));
-                        } else {
-                          setHomeProducts(initialHomePicks);
-                          sessionStorage.setItem("initialHomePicks", JSON.stringify(initialHomePicks));
-                        }
-                      } else {
-                        const limit = Number(f.value);
-                        const filtered = allProducts.filter((p) => Number(p.price) <= limit);
-                        setHomeProducts(filtered);
-                        sessionStorage.setItem("homeProducts", JSON.stringify(filtered));
-                      }
-                    
-                      setQuery("");
-                      setSearchTriggered(false);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+            ) : (
+            <section>
+            <h1 className="text-2xl font-semibold">🔥 Trending</h1>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
 
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap border transition ${
-                      activeTag === f.value
-                        ? "bg-white text-black border-gray-300 shadow-sm"
-                        : "bg-gray-50 text-gray-600 border-gray-200"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+              {homeProducts.slice(0, visibleHome).map((p, idx) => (
+                <ProductCard
+                  key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                  p={p}
+                  href={productUrl(p)}
+                  onClick={() => {
+                    try {
+                      sessionStorage.setItem("scrollY", String(window.scrollY));
+                    } catch {}
+                  }}
+                  eager={idx < 4}
+                />
+              ))}
+            </div>
+
+            {visibleHome >= 20 && visibleHome < homeProducts.length && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => setVisibleHome((v) => v + 20)}
+                  className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
+                >
+                  Load more
+                </button>
               </div>
-          
-              <section>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
-                  {homeProducts.slice(0, visibleHome).map((p, idx) => (
-                    <ProductCard
-                      key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
-                      p={p}
-                      href={productUrl(p)}
-                      onClick={() => {
-                        try {
-                          sessionStorage.setItem("scrollY", String(window.scrollY));
-                          sessionStorage.setItem("lastTag", activeTag || "trending");
-                        } catch {}
-                      }}
-                      eager={idx < 4}
-                    />
-                  ))}
-                </div>
-                {visibleHome >= 20 && visibleHome < homeProducts.length && (
-                  <div className="flex justify-center mt-6">
-                    <button
-                      onClick={() => setVisibleHome((v) => v + 20)}
-                      className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
-                    >
-                      Load more
-                    </button>
-                  </div>
-                )}
-              </section>
-            </>
-          ) : null}          
+            )}
+          </section>
+        )}
       </div>
     </HomeContext.Provider>
   );
