@@ -479,7 +479,7 @@ export default function HomePage() {
                 className={
                   "flex items-center w-full rounded-[14px] px-4 py-2 transition-shadow transition-colors " +
                   (searchFocused
-                    ? "shadow-lg border-2 border-green-400 bg-white"
+                    ? "shadow-lg border-2 border-neon-400 bg-white"
                     : "shadow-sm border border-gray-200 bg-white/95")
                 }
               >
