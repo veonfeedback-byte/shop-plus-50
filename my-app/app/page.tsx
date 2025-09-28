@@ -590,7 +590,7 @@ export default function HomePage() {
         </div>
 
         {!searchTriggered && (
-        <div className="w-full mt-2 relative">
+        <div className="w-full relative">
           <div className="overflow-hidden rounded-2xl shadow-md">
             <div
               className="flex transition-transform duration-700 ease-in-out"
