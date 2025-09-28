@@ -172,7 +172,6 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   const [bestSuggestion, setBestSuggestion] = useState<string | null>(null);
 
