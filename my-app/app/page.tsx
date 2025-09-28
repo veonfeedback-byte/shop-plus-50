@@ -429,13 +429,16 @@ export default function HomePage() {
     { text: "Cash on Delivery", highlight: "available nationwide", icon: "credit-card" },
   ];
 
+    // inside HomePage
     useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % sliderItems.length);
-      }, 2000); // slide every 2s
-    return () => clearInterval(interval);
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) =>
+          (prev + 1) % sliderItems.length // ✅ loops back to first card
+        );
+      }, 4000); // ✅ slower: every 4s (adjust as needed)
+    
+      return () => clearInterval(interval);
     }, [sliderItems.length]);
-
 
   /* ---------- Render ---------- */
   return (
@@ -594,7 +597,7 @@ export default function HomePage() {
         <div className="w-full relative">
           <div className="overflow-hidden rounded-2xl shadow-md">
             <div
-              className="flex transition-transform duration-700 ease-in-out"
+              className="flex transition-transform duration-1000 ease-in-out" 
               style={{ transform: `translateX(-${currentSlide * 100}%)` }}
             >
               {sliderItems.map((item, idx) => (
