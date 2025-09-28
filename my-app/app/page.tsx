@@ -45,15 +45,6 @@ function ProductCard({
 }) {
   const [loaded, setLoaded] = useState(false);
 
-  // parse discount percent from tag if present
-  const discountMatch = tag && tag.includes("%")
-    ? parseInt(tag)
-    : null;
-  
-  const inflated = discountMatch
-    ? Math.round(Number(p.price) * (1 + discountMatch / 100))
-    : null;
-
   // Pool of random tags
   const tags = [
     "20% OFF",
@@ -70,6 +61,15 @@ function ProductCard({
     const index = (p.id.charCodeAt(0) + p.id.length) % tags.length;
     return tags[index];
   }, [p.id]);
+
+   // parse discount percent from tag if present
+  const discountMatch = tag && tag.includes("%")
+    ? parseInt(tag)
+    : null;
+  
+  const inflated = discountMatch
+    ? Math.round(Number(p.price) * (1 + discountMatch / 100))
+    : null;
 
   return (
     <Link
@@ -727,11 +727,21 @@ export default function HomePage() {
                   ))}
                 </div>
               </>
-            )
-            <section>
-            //<h1 className="text-2xl font-semibold">🔥 Trending</h1>
+            )}
+           {visibleHome >= 20 && visibleHome < homeProducts.length && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => setVisibleHome((v) => v + 20)}
+                className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
+              >
+                Load more
+              </button>
+            </div>
+          )}
+          
+          <section>
+            {/* <h1 className="text-2xl font-semibold">🔥 Trending</h1> */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
-
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
@@ -746,17 +756,6 @@ export default function HomePage() {
                 />
               ))}
             </div>
-
-            {visibleHome >= 20 && visibleHome < homeProducts.length && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => setVisibleHome((v) => v + 20)}
-                  className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
-                >
-                  Load more
-                </button>
-              </div>
-            )}
           </section>
         )}
       </div>
