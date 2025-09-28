@@ -311,7 +311,7 @@ export default function HomePage() {
 
   // ✅ Fallback trending products
   if (fuzzy.length === 0) {
-    fuzzy = homeProducts.slice(0, 10);
+    return [];
   }
 
   // ✅ Dedup + sort
@@ -354,14 +354,17 @@ export default function HomePage() {
   const resetHome = useCallback(() => {
     setQuery("");
     setShowBackButton(false);
+    setActiveTag("trending");
     setPriceSort(null);
     setVisibleSearch(10);
     setSearchTriggered(false);
     setActiveCategory(null);
     setActiveSubcategory(null);
     try {
+      sessionStorage.setItem("lastTag", "trending");
       sessionStorage.clear();
     } catch {}
+    
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -713,10 +716,10 @@ export default function HomePage() {
                           setSearchTriggered(false);
                         }
                       }}
-                      className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap border transition ${
                         activeTag === f.value
-                          ? "bg-orange-500 text-white"
-                          : "bg-gray-100 text-gray-700"
+                          ? "bg-white text-black border-gray-300 shadow-sm"
+                          : "bg-gray-50 text-gray-600 border-gray-200"
                       }`}
                     >
                       {f.label}
@@ -736,6 +739,7 @@ export default function HomePage() {
                   onClick={() => {
                     try {
                       sessionStorage.setItem("scrollY", String(window.scrollY));
+                      sessionStorage.setItem("lastTag", activeTag || "trending");
                     } catch {}
                   }}
                   eager={idx < 4}
