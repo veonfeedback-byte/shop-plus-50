@@ -677,22 +677,6 @@ export default function HomePage() {
           </div>
         )}
 
-        
-            {/* DOTS inside the slider */}
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
-              {sliderItems.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentSlide(i + 1)}
-                  className={`h-2.5 w-2.5 rounded-full transition ${
-                    currentSlide === i + 1 ? "bg-indigo-600 scale-125" : "bg-gray-300"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
           <>
