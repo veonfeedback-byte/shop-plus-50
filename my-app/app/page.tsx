@@ -449,9 +449,9 @@ export default function HomePage() {
     function onScroll() {
       if (
         window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 &&
-        visibleHome < 20
+        visibleHome < allProducts.length
       ) {
-        setVisibleHome((v) => Math.min(v + 6, 20));
+        setVisibleHome((v) => Math.min(v + 6, allProducts.length));
       }
     }
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -574,7 +574,6 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [activeTab, visibleHome]);
   
-  // 👇 Restore state when switching tabs
   // Restore scroll after navigation back (first load)
 useEffect(() => {
   const currentTab = sessionStorage.getItem("activeTab") || "forYou";
