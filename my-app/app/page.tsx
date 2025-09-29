@@ -503,6 +503,44 @@ export default function HomePage() {
     }
   };
 
+  const filterTabs = [
+    { key: "forYou", label: "For You" },
+    { key: "popular", label: "Popular" },
+    { key: "new", label: "New" },
+    { key: "flash", label: "Flash Sale" },
+    { key: "off20", label: "Flat 20% Off" },
+    { key: "off30", label: "Flat 30% Off" },
+  ];
+
+  const [activeTab, setActiveTab] = useState<string>("forYou");
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("activeTab");
+    if (saved) setActiveTab(saved);
+  }, []);
+  
+  useEffect(() => {
+    sessionStorage.setItem("activeTab", activeTab);
+  }, [activeTab]);
+
+  const filteredProducts = useMemo(() => {
+    switch (activeTab) {
+      case "popular":
+        return allProducts.filter((p) => p.title.toLowerCase().includes("popular"));
+      case "new":
+        return allProducts.filter((p) => !p.title.toLowerCase().includes("sale") && !p.title.toLowerCase().includes("popular"));
+      case "flash":
+        return allProducts.filter((p) => p.title.toLowerCase().includes("sale"));
+      case "off20":
+        return allProducts.filter((p) => p.title.includes("20% OFF"));
+      case "off30":
+        return allProducts.filter((p) => p.title.includes("30% OFF"));
+      case "forYou":
+      default:
+        return homeProducts;
+    }
+  }, [activeTab, allProducts, homeProducts]);
+
   /* ---------- Render ---------- */
   return (
     <HomeContext.Provider value={{ resetHome }}>
@@ -836,21 +874,42 @@ export default function HomePage() {
           </>
             ) : (
             <section>
-            <h1 className="text-xl font-semibold mt-6">🔥 Trending</h1>
+            <div className="sticky top-[110px] z-20 bg-white border-b border-gray-200">
+              <div className="flex gap-3 overflow-x-auto px-3 py-2 scrollbar-hide">
+                {filterTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition
+                      ${
+                        activeTab === tab.key
+                          ? "bg-indigo-600 text-white shadow"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+              
+            {/*<h1 className="text-xl font-semibold mt-6">🔥 Trending</h1>*/}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4">
-              {homeProducts.slice(0, visibleHome).map((p, idx) => (
-                <ProductCard
-                  key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
-                  p={p}
-                  href={productUrl(p)}
-                  onClick={() => {
-                    try {
-                      sessionStorage.setItem("scrollY", String(window.scrollY));
-                    } catch {}
-                  }}
-                  eager={idx < 4}
-                />
-              ))}
+              {(filteredProducts.length > 0 ? filteredProducts : homeProducts)
+                .slice(0, visibleHome)
+                .map((p, idx) => (
+                  <ProductCard
+                    key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                    p={p}
+                    href={productUrl(p)}
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem("scrollY", String(window.scrollY));
+                      } catch {}
+                    }}
+                    eager={idx < 4}
+                  />
+                ))}
             </div>
 
             {visibleHome >= 20 && visibleHome < homeProducts.length && (
