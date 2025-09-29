@@ -546,7 +546,7 @@ export default function HomePage() {
         />
       </Head>
 
-      <div className="pb-28 pt-[70px]">
+      <div className="pb-28 pt-[50px]">
         {/* Search Row (modern style) */}
         <div className="fixed top-[56px] left-0 right-0 z-30 bg-white py-3 px-3 shadow-sm border-b border-gray-200">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
@@ -731,7 +731,7 @@ export default function HomePage() {
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
           <>
             {/* sort buttons */}
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-4 mt-4">
               <button
                 onClick={() => {
                   setPriceSort("asc");
