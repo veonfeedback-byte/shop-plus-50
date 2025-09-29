@@ -586,34 +586,59 @@ export default function HomePage() {
   }, [activeTab]);
 
   const filteredProducts = useMemo(() => {
-  switch (activeTab) {
-    case "popular":
-      return shuffledProducts.filter((p) => getProductTag(p) === "Popular");
-    case "new":
-      return shuffledProducts.filter((p) => !getProductTag(p));
-    case "hot":
-      return shuffledProducts.filter((p) => getProductTag(p) === "Hot");
-    case "flash":
-      return shuffledProducts.filter((p) => getProductTag(p) === "Sale");
-    case "off20":
-      return shuffledProducts.filter((p) => getProductTag(p) === "20% OFF");
-    case "off30":
-      return shuffledProducts.filter((p) => getProductTag(p) === "30% OFF");
-    case "forYou":
-    default:
-      return homeProducts; // already shuffled once
-  }
-}, [activeTab, shuffledProducts, homeProducts]);
+  if (typeof window === "undefined") return [] as IndexedProduct[];
 
-    useLayoutEffect(() => {
-    if ((window as any).__restoreScrollY != null) {
-      const y = (window as any).__restoreScrollY;
-      delete (window as any).__restoreScrollY;
+  const tabKey = `${activeTab}_products`;
+  const cached = sessionStorage.getItem(tabKey);
+    if (cached) return JSON.parse(cached) as IndexedProduct[];
+  
+    let products: IndexedProduct[];
+  
+    switch (activeTab) {
+      case "popular":
+        products = shuffledProducts.filter((p) => getProductTag(p) === "Popular");
+        break;
+      case "new":
+        products = shuffledProducts.filter((p) => !getProductTag(p));
+        break;
+      case "hot":
+        products = shuffledProducts.filter((p) => getProductTag(p) === "Hot");
+        break;
+      case "flash":
+        products = shuffledProducts.filter((p) => getProductTag(p) === "Sale");
+        break;
+      case "off20":
+        products = shuffledProducts.filter((p) => getProductTag(p) === "20% OFF");
+        break;
+      case "off30":
+        products = shuffledProducts.filter((p) => getProductTag(p) === "30% OFF");
+        break;
+      case "forYou":
+      default:
+        products = homeProducts;
+        break;
+    }
+  
+    try {
+      sessionStorage.setItem(tabKey, JSON.stringify(products));
+    } catch {}
+  
+    return products;
+  }, [activeTab, shuffledProducts, homeProducts]);
+
+
+  useLayoutEffect(() => {
+    const savedVisible = sessionStorage.getItem(`${activeTab}_visible`);
+    const savedScroll = sessionStorage.getItem(`${activeTab}_scrollY`);
+  
+    if (savedVisible) setVisibleHome(Number(savedVisible));
+  
+    if (savedScroll) {
       setTimeout(() => {
-        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+        window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
       }, 0);
     }
-  }, [finalResults, filteredProducts, visibleSearch, visibleHome]);
+  }, [activeTab]);
 
   /* ---------- Render ---------- */
   return (
@@ -979,7 +1004,8 @@ export default function HomePage() {
                     href={productUrl(p)}
                     onClick={() => {
                       try {
-                        sessionStorage.setItem("scrollY", String(window.scrollY));
+                        sessionStorage.setItem(`${activeTab}_scrollY`, String(window.scrollY));
+                        sessionStorage.setItem(`${activeTab}_visible`, String(visibleHome));
                       } catch {}
                     }}
                     eager={idx < 4}
