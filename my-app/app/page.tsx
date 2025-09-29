@@ -64,7 +64,13 @@ function ProductCard({
   return (
     <Link
       href={href}
-      onClick={onClick}
+      onClick={() => {
+        try {
+          sessionStorage.setItem("scrollY", String(window.scrollY));
+          sessionStorage.setItem("visibleHome", String(window.__visibleHome || 20));
+        } catch {}
+        onClick?.();
+      }}
       className="group block bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
     >
       {/* Image */}
@@ -95,9 +101,8 @@ function ProductCard({
         <h3 className="text-sm font-medium text-gray-800 line-clamp-2 group-hover:text-indigo-600 transition-colors">
           {p.title}
         </h3>
-
         <div className="mt-1 flex items-center gap-2">
-          {discountMatch ? (
+          {inflated ? (
             <>
               <span className="text-xs text-gray-400 line-through">
                 Rs {inflated}
@@ -170,6 +175,7 @@ export default function HomePage() {
 
 
   const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>(initialHomePicks);
+  const [shuffledProducts, setShuffledProducts] = useState<IndexedProduct[]>([]);
 
   const [visibleHome, setVisibleHome] = useState<number>(20);
   const [visibleSearch, setVisibleSearch] = useState<number>(10);
@@ -210,6 +216,25 @@ export default function HomePage() {
       return () => clearTimeout(t);
     }
   }, [initialHomePicks]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+  
+    const cached = sessionStorage.getItem("allProductsShuffled");
+    if (cached) {
+      try {
+        setShuffledProducts(JSON.parse(cached));
+        return;
+      } catch {}
+    }
+  
+    const shuffled = shuffle(allProducts); // 👈 shuffle ONCE
+    setShuffledProducts(shuffled);
+    try {
+      sessionStorage.setItem("allProductsShuffled", JSON.stringify(shuffled));
+    } catch {}
+  }, [allProducts]);
+
 
   /* ---------- Fuse search ---------- */
   const [fuse, setFuse] = useState<Fuse<IndexedProduct> | null>(null);
@@ -407,6 +432,13 @@ export default function HomePage() {
     if (lastSort) setPriceSort(lastSort as "asc" | "desc");
   }, []);
 
+  useEffect(() => {
+    const lastScroll = sessionStorage.getItem("scrollY");
+    const lastVisibleHome = sessionStorage.getItem("visibleHome");
+    if (lastScroll) (window as any).__restoreScrollY = Number(lastScroll);
+    if (lastVisibleHome) setVisibleHome(Number(lastVisibleHome));
+  }, []);
+
   useLayoutEffect(() => {
     if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
       const y = (window as any).__restoreScrollY;
@@ -559,24 +591,24 @@ export default function HomePage() {
   }, [activeTab]);
 
   const filteredProducts = useMemo(() => {
-    switch (activeTab) {
-      case "popular":
-        return shuffle(allProducts.filter((p) => getProductTag(p) === "Popular"));
-      case "new":
-        return shuffle(allProducts.filter((p) => !getProductTag(p)));
-      case "hot":
-        return shuffle(allProducts.filter((p) => getProductTag(p) === "Hot"));
-      case "flash":
-        return shuffle(allProducts.filter((p) => getProductTag(p) === "Sale"));
-      case "off20":
-        return shuffle(allProducts.filter((p) => getProductTag(p) === "20% OFF"));
-      case "off30":
-        return shuffle(allProducts.filter((p) => getProductTag(p) === "30% OFF"));
-      case "forYou":
-      default:
-        return homeProducts; // already shuffled
-    }
-  }, [activeTab, allProducts, homeProducts]);
+  switch (activeTab) {
+    case "popular":
+      return shuffledProducts.filter((p) => getProductTag(p) === "Popular");
+    case "new":
+      return shuffledProducts.filter((p) => !getProductTag(p));
+    case "hot":
+      return shuffledProducts.filter((p) => getProductTag(p) === "Hot");
+    case "flash":
+      return shuffledProducts.filter((p) => getProductTag(p) === "Sale");
+    case "off20":
+      return shuffledProducts.filter((p) => getProductTag(p) === "20% OFF");
+    case "off30":
+      return shuffledProducts.filter((p) => getProductTag(p) === "30% OFF");
+    case "forYou":
+    default:
+      return homeProducts; // already shuffled once
+  }
+}, [activeTab, shuffledProducts, homeProducts]);
 
   /* ---------- Render ---------- */
   return (
