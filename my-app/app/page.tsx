@@ -658,16 +658,16 @@ export default function HomePage() {
 
         {/* SLIDER */}
         {!searchTriggered && (
-          <div className="w-full relative mt-0 mx-0 px-0">
-            <div className="overflow-hidden">
-             <div
+          <div className="w-full relative mt-0 px-0 mx-0">
+            <div className="overflow-hidden w-full">
+              <div
                 className={`flex ${isTransitioning ? "transition-transform duration-700 ease-in-out" : ""}`}
-                  style={{
-                    transform: `translateX(-${Math.min(
-                      Math.max(currentSlide, 0),
-                      extendedSlides.length - 1
-                    ) * 100}%)`,
-                  }}
+                style={{
+                  transform: `translateX(-${Math.min(
+                    Math.max(currentSlide, 0),
+                    extendedSlides.length - 1
+                  ) * 100}%)`,
+                }}
                 onTransitionEnd={handleTransitionEnd}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -682,10 +682,7 @@ export default function HomePage() {
                   return (
                     <div
                       key={idx}
-                      className={`
-                        flex-shrink-0 w-full 
-                        h-[120px] sm:h-[140px] md:h-[160px]   /* ✅ shorter height */
-                        flex items-center justify-center
+                      className={`flex-shrink-0 w-full h-[120px] sm:h-[140px] md:h-[160px] flex items-center justify-center
                         ${realIndex === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
                         ${realIndex === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
                         ${realIndex === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
@@ -715,7 +712,7 @@ export default function HomePage() {
               </div>
             </div>
         
-            {/* DOTS inside slider */}
+            {/* DOTS */}
             <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
               {sliderItems.map((_, i) => (
                 <button
@@ -840,7 +837,7 @@ export default function HomePage() {
           </>
             ) : (
             <section>
-            <h1 className="text-2xl font-semibold">🔥 Trending</h1>
+            <h1 className="text-xl font-semibold mt-6">🔥 Trending</h1>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4">
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
                 <ProductCard
