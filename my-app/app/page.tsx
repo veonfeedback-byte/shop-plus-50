@@ -439,13 +439,35 @@ export default function HomePage() {
     ];
     
     useEffect(() => {
-      const interval = setInterval(() => {
-        setCurrentSlide((prev) => prev + 1);
-        setIsTransitioning(true);
-      }, 4000);
+      let interval: NodeJS.Timeout | null = null;
     
-      return () => clearInterval(interval);
+      const start = () => {
+        interval = setInterval(() => {
+          setCurrentSlide((prev) => prev + 1);
+          setIsTransitioning(true);
+        }, 4000);
+      };
+    
+      const stop = () => {
+        if (interval) clearInterval(interval);
+      };
+    
+      // run autoplay
+      start();
+    
+      // stop autoplay when tab hidden
+      const handleVisibility = () => {
+        if (document.hidden) stop();
+        else start();
+      };
+      document.addEventListener("visibilitychange", handleVisibility);
+    
+      return () => {
+        stop();
+        document.removeEventListener("visibilitychange", handleVisibility);
+      };
     }, []);
+
     
     const handleTransitionEnd = () => {
       if (currentSlide === extendedSlides.length - 1) {
@@ -458,6 +480,29 @@ export default function HomePage() {
         setIsTransitioning(true);
       }
     };
+  // swipe support
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+  
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+  
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 50) { // swipe threshold
+      if (diff > 0) {
+        setCurrentSlide((prev) => prev + 1); // swipe left → next
+      } else {
+        setCurrentSlide((prev) => prev - 1); // swipe right → prev
+      }
+      setIsTransitioning(true);
+    }
+  };
 
   /* ---------- Render ---------- */
   return (
@@ -613,12 +658,15 @@ export default function HomePage() {
 
         {/* SLIDER */}
         {!searchTriggered && (
-          <div className="w-full relative">
+          <div  className="w-full relative mt-0 px-0">
             <div className="overflow-hidden">
-              <div
-                className={`flex ${isTransitioning ? "transition-transform duration-1000 ease-in-out" : ""}`}
+             <div
+                className={`flex ${isTransitioning ? "transition-transform duration-700 ease-in-out" : ""}`}
                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                 onTransitionEnd={handleTransitionEnd}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
                 {extendedSlides.map((item, idx) => {
                   let realIndex: number;
@@ -631,8 +679,9 @@ export default function HomePage() {
                       key={idx}
                       className={`
                         flex-shrink-0 w-full 
-                        h-[180px] sm:h-[220px] md:h-[280px]   /* ✅ Taller like Daraz */
+                        h-[120px] sm:h-[140px] md:h-[160px]   /* ✅ shorter height */
                         flex items-center justify-center
+                        px-0 
                         ${realIndex === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
                         ${realIndex === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
                         ${realIndex === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
