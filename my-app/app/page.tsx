@@ -66,8 +66,9 @@ function ProductCard({
       href={href}
       onClick={() => {
         try {
-          sessionStorage.setItem("scrollY", String(window.scrollY));
-          sessionStorage.setItem("visibleHome", String(window.__visibleHome || 20));
+          const currentTab = sessionStorage.getItem("activeTab") || "forYou";
+          sessionStorage.setItem(`${currentTab}_scrollY`, String(window.scrollY));
+          sessionStorage.setItem(`${currentTab}_visible`, String(window.__visibleHome || 20));
         } catch {}
         onClick?.();
       }}
@@ -574,16 +575,19 @@ export default function HomePage() {
   }, [activeTab, visibleHome]);
   
   // 👇 Restore state when switching tabs
-  useEffect(() => {
-    const savedVisible = sessionStorage.getItem(`${activeTab}_visible`);
-    const savedScroll = sessionStorage.getItem(`${activeTab}_scrollY`);
-    if (savedVisible) setVisibleHome(Number(savedVisible));
-    if (savedScroll) {
-      setTimeout(() => {
-        window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
-      }, 0);
-    }
-  }, [activeTab]);
+  // Restore scroll after navigation back (first load)
+useEffect(() => {
+  const currentTab = sessionStorage.getItem("activeTab") || "forYou";
+  const savedVisible = sessionStorage.getItem(`${currentTab}_visible`);
+  const savedScroll = sessionStorage.getItem(`${currentTab}_scrollY`);
+  if (savedVisible) setVisibleHome(Number(savedVisible));
+  if (savedScroll) {
+    setTimeout(() => {
+      window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
+    }, 0);
+  }
+}, []); // run only once on mount
+
 
   const filteredProducts = useMemo(() => {
   switch (activeTab) {
