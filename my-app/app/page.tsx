@@ -886,12 +886,12 @@ export default function HomePage() {
             <section>
               <div className="sticky top-[120px] z-20 w-screen -ml-[calc((100vw-100%)/2)] bg-white shadow-sm border-b border-gray-200">
                 <div className="max-w-7xl mx-auto">
-                  <div className="flex gap-3 overflow-x-auto px-3 py-2 mt-2 scrollbar-hide justify-start md:justify-center">
+                  <div className="flex gap-3 overflow-x-auto px-3 py-2 scrollbar-hide justify-start md:justify-center">
                   {filterTabs.map((tab) => (
                     <button
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
-                      className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition
+                      className={`flex-shrink-0 px-4 py-2 mt-2 rounded-full text-sm font-semibold transition
                         ${
                           activeTab === tab.key
                             ? "bg-indigo-600 text-white shadow"
