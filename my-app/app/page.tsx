@@ -68,7 +68,8 @@ function ProductCard({
         try {
           const currentTab = sessionStorage.getItem("activeTab") || "forYou";
           sessionStorage.setItem(`${currentTab}_scrollY`, String(window.scrollY));
-          sessionStorage.setItem(`${currentTab}_visible`, String(window.__visibleHome || 20));
+          // ✅ use actual visibleHome instead of hardcoded 20
+          sessionStorage.setItem(`${currentTab}_visible`, String(window.__visibleHome ?? 20));
         } catch {}
         onClick?.();
       }}
@@ -179,6 +180,10 @@ export default function HomePage() {
   const [shuffledProducts, setShuffledProducts] = useState<IndexedProduct[]>([]);
 
   const [visibleHome, setVisibleHome] = useState<number>(20);
+  useEffect(() => {
+    (window as any).__visibleHome = visibleHome;
+  }, [visibleHome]);
+
   const [visibleSearch, setVisibleSearch] = useState<number>(10);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
