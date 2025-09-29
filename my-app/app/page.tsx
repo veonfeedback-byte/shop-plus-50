@@ -52,14 +52,14 @@ function ProductCard({
   }, [p.id]);
 
   let inflated: number | null = null;
+  let discountMatch: number | null = null;  // 👈 declare here
+    
     if (tag === "Sale") {
-      // 👇 increase 40% then cut
       inflated = Math.round(Number(p.price) * 1.4);
     } else if (tag && /\d+/.test(tag)) {
-      const discountMatch = parseInt(tag.match(/\d+/)![0]);
+      discountMatch = parseInt(tag.match(/\d+/)![0]);
       inflated = Math.round(Number(p.price) * (1 + discountMatch / 100));
     }
-
 
   return (
     <Link
