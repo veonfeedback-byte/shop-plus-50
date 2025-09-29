@@ -894,7 +894,7 @@ export default function HomePage() {
             </div>
               
             {/*<h1 className="text-xl font-semibold mt-6">🔥 Trending</h1>*/}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-10 mb-4">
               {(filteredProducts.length > 0 ? filteredProducts : homeProducts)
                 .slice(0, visibleHome)
                 .map((p, idx) => (
