@@ -563,16 +563,46 @@ export default function HomePage() {
     if (saved) setActiveTab(saved);
   }, []);
   
-  // ✅ Restore products for each tab when navigating back
-  useEffect(() => {
-    const currentTab = sessionStorage.getItem("activeTab") || "forYou";
-    const cachedProducts = sessionStorage.getItem(`${currentTab}_products`);
-    if (cachedProducts) {
-      try {
-        setHomeProducts(JSON.parse(cachedProducts));
-      } catch {}
-    }
-  }, []);
+  // ✅ Restore products whenever activeTab changes
+useEffect(() => {
+  const cachedProducts = sessionStorage.getItem(`${activeTab}_products`);
+  if (cachedProducts) {
+    try {
+      setHomeProducts(JSON.parse(cachedProducts));
+      return; // ✅ stop here if found in cache
+    } catch {}
+  }
+
+  // if no cache yet, build fresh list
+  let base: IndexedProduct[] = [];
+  switch (activeTab) {
+    case "popular":
+      base = shuffledProducts.filter((p) => getProductTag(p) === "Popular");
+      break;
+    case "new":
+      base = shuffledProducts.filter((p) => !getProductTag(p));
+      break;
+    case "hot":
+      base = shuffledProducts.filter((p) => getProductTag(p) === "Hot");
+      break;
+    case "flash":
+      base = shuffledProducts.filter((p) => getProductTag(p) === "Sale");
+      break;
+    case "off20":
+      base = shuffledProducts.filter((p) => getProductTag(p) === "20% OFF");
+      break;
+    case "off30":
+      base = shuffledProducts.filter((p) => getProductTag(p) === "30% OFF");
+      break;
+    default:
+      base = homeProducts; // fallback to For You
+  }
+
+  setHomeProducts(base);
+  try {
+    sessionStorage.setItem(`${activeTab}_products`, JSON.stringify(base));
+  } catch {}
+}, [activeTab, shuffledProducts]);
     
   useEffect(() => {
     sessionStorage.setItem("activeTab", activeTab);
