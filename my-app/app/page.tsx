@@ -403,7 +403,6 @@ export default function HomePage() {
     setActiveCategory(null);
     setActiveSubcategory(null);
     try {
-      sessionStorage.removeItem("homeProducts"); 
       sessionStorage.removeItem("lastQuery");
       sessionStorage.removeItem("lastCategory");
       sessionStorage.removeItem("lastSubcategory");
@@ -562,6 +561,17 @@ export default function HomePage() {
   useEffect(() => {
     const saved = sessionStorage.getItem("activeTab");
     if (saved) setActiveTab(saved);
+  }, []);
+  
+  // ✅ Restore products for each tab when navigating back
+  useEffect(() => {
+    const currentTab = sessionStorage.getItem("activeTab") || "forYou";
+    const cachedProducts = sessionStorage.getItem(`${currentTab}_products`);
+    if (cachedProducts) {
+      try {
+        setHomeProducts(JSON.parse(cachedProducts));
+      } catch {}
+    }
   }, []);
     
   useEffect(() => {
