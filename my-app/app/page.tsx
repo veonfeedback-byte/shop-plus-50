@@ -657,7 +657,7 @@ export default function HomePage() {
 
           {/* SLIDER */}
           {!searchTriggered && (
-            <div className="relative -mx-4">
+            <div className="relative -mx-10">
               <div className="overflow-hidden w-full">
                 <div
                   className={`flex ${isTransitioning ? "transition-transform duration-700 ease-in-out" : ""}`}
