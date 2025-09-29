@@ -546,7 +546,7 @@ export default function HomePage() {
         />
       </Head>
 
-      <div className="pb-28 pt-[56px]">
+      <div className="pb-28 pt-[55px]">
         {/* Search Row (modern style) */}
         <div className="fixed top-[56px] left-0 right-0 z-30 bg-white py-3 px-3 shadow-sm border-b border-gray-200">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
@@ -658,7 +658,7 @@ export default function HomePage() {
 
         {/* SLIDER */}
         {!searchTriggered && (
-          <div  className="w-full relative mt-0">
+          <div className="w-full relative mt-0 mx-0 px-0">
             <div className="overflow-hidden">
              <div
                 className={`flex ${isTransitioning ? "transition-transform duration-700 ease-in-out" : ""}`}
@@ -686,7 +686,6 @@ export default function HomePage() {
                         flex-shrink-0 w-full 
                         h-[120px] sm:h-[140px] md:h-[160px]   /* ✅ shorter height */
                         flex items-center justify-center
-                        px-0 
                         ${realIndex === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
                         ${realIndex === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
                         ${realIndex === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
