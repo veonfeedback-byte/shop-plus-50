@@ -112,6 +112,12 @@ function ProductCard({
   );
 }
 
+function getProductTag(p: IndexedProduct): string | null {
+  const tags = ["20% OFF", "30% OFF", "Hot", "Sale", "Popular", null, null];
+  const index = (p.id.charCodeAt(0) + p.id.length) % tags.length;
+  return tags[index];
+}
+
 /* ---------- main component ---------- */
 export default function HomePage() {
   const [query, setQuery] = useState("");
@@ -503,10 +509,11 @@ export default function HomePage() {
     }
   };
 
-  const filterTabs = [
+   const filterTabs = [
     { key: "forYou", label: "For You" },
     { key: "popular", label: "Popular" },
     { key: "new", label: "New" },
+    { key: "hot", label: "Hot" },              
     { key: "flash", label: "Flash Sale" },
     { key: "off20", label: "Flat 20% Off" },
     { key: "off30", label: "Flat 30% Off" },
@@ -526,20 +533,23 @@ export default function HomePage() {
   const filteredProducts = useMemo(() => {
     switch (activeTab) {
       case "popular":
-        return allProducts.filter((p) => p.title.toLowerCase().includes("popular"));
+        return allProducts.filter((p) => getProductTag(p) === "Popular");
       case "new":
-        return allProducts.filter((p) => !p.title.toLowerCase().includes("sale") && !p.title.toLowerCase().includes("popular"));
+        return allProducts.filter((p) => !getProductTag(p));  // ✅ no tag
+      case "hot":
+        return allProducts.filter((p) => getProductTag(p) === "Hot");
       case "flash":
-        return allProducts.filter((p) => p.title.toLowerCase().includes("sale"));
+        return allProducts.filter((p) => getProductTag(p) === "Sale");
       case "off20":
-        return allProducts.filter((p) => p.title.includes("20% OFF"));
+        return allProducts.filter((p) => getProductTag(p) === "20% OFF");
       case "off30":
-        return allProducts.filter((p) => p.title.includes("30% OFF"));
+        return allProducts.filter((p) => getProductTag(p) === "30% OFF");
       case "forYou":
       default:
         return homeProducts;
     }
   }, [activeTab, allProducts, homeProducts]);
+
 
   /* ---------- Render ---------- */
   return (
@@ -754,8 +764,8 @@ export default function HomePage() {
                 <button
                   key={i}
                   onClick={() => setCurrentSlide(i + 1)}
-                  className={`h-2.5 w-2.5 rounded-full transition ${
-                    currentSlide === i + 1 ? "bg-indigo-600 scale-125" : "bg-gray-300"
+                  className={`h-1.5 w-1.5 rounded-full transition ${
+                    currentSlide === i + 1 ? "bg-black scale-125" : "bg-gray-300"
                   }`}
                 />
               ))}
