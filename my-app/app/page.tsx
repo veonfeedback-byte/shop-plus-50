@@ -586,6 +586,7 @@ export default function HomePage() {
   }, [activeTab]);
 
   const filteredProducts = useMemo(() => {
+    if (typeof window === "undefined") return [];
     const key = `${activeTab}_products`;
   
     const saved = sessionStorage.getItem(key);
