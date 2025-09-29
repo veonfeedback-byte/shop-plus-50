@@ -586,24 +586,42 @@ export default function HomePage() {
   }, [activeTab]);
 
   const filteredProducts = useMemo(() => {
-  switch (activeTab) {
-    case "popular":
-      return shuffledProducts.filter((p) => getProductTag(p) === "Popular");
-    case "new":
-      return shuffledProducts.filter((p) => !getProductTag(p));
-    case "hot":
-      return shuffledProducts.filter((p) => getProductTag(p) === "Hot");
-    case "flash":
-      return shuffledProducts.filter((p) => getProductTag(p) === "Sale");
-    case "off20":
-      return shuffledProducts.filter((p) => getProductTag(p) === "20% OFF");
-    case "off30":
-      return shuffledProducts.filter((p) => getProductTag(p) === "30% OFF");
-    case "forYou":
-    default:
-      return homeProducts; // already shuffled once
-  }
-}, [activeTab, shuffledProducts, homeProducts]);
+    const key = `${activeTab}_products`;
+  
+    const saved = sessionStorage.getItem(key);
+    if (saved) return JSON.parse(saved) as IndexedProduct[];
+  
+    let arr: IndexedProduct[] = [];
+    switch (activeTab) {
+      case "popular":
+        arr = shuffledProducts.filter((p) => getProductTag(p) === "Popular");
+        break;
+      case "new":
+        arr = shuffledProducts.filter((p) => !getProductTag(p));
+        break;
+      case "hot":
+        arr = shuffledProducts.filter((p) => getProductTag(p) === "Hot");
+        break;
+      case "flash":
+        arr = shuffledProducts.filter((p) => getProductTag(p) === "Sale");
+        break;
+      case "off20":
+        arr = shuffledProducts.filter((p) => getProductTag(p) === "20% OFF");
+        break;
+      case "off30":
+        arr = shuffledProducts.filter((p) => getProductTag(p) === "30% OFF");
+        break;
+      case "forYou":
+      default:
+        arr = homeProducts; // already shuffled once
+    }
+  
+    try {
+      sessionStorage.setItem(key, JSON.stringify(arr));
+    } catch {}
+    return arr;
+  }, [activeTab, shuffledProducts, homeProducts]);
+
 
     useLayoutEffect(() => {
     if ((window as any).__restoreScrollY != null) {
@@ -979,7 +997,9 @@ export default function HomePage() {
                     href={productUrl(p)}
                     onClick={() => {
                       try {
-                        sessionStorage.setItem("scrollY", String(window.scrollY));
+                        // save scroll + visible for this tab
+                        sessionStorage.setItem(`${activeTab}_scrollY`, String(window.scrollY));
+                        sessionStorage.setItem(`${activeTab}_visible`, String(visibleHome));
                       } catch {}
                     }}
                     eager={idx < 4}
@@ -990,7 +1010,13 @@ export default function HomePage() {
             {visibleHome >= 20 && visibleHome < homeProducts.length && (
               <div className="flex justify-center mt-6">
                 <button
-                  onClick={() => setVisibleHome((v) => v + 20)}
+                  onClick={() => {
+                    const next = visibleHome + 20;
+                    setVisibleHome(next);
+                    try {
+                      sessionStorage.setItem(`${activeTab}_visible`, String(next));
+                    } catch {}
+                  }}
                   className="px-6 py-3 rounded-xl bg-indigo-600 text-white shadow hover:bg-indigo-700 transition"
                 >
                   Load more
