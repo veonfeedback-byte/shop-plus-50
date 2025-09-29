@@ -612,90 +612,73 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* SLIDER */}
         {!searchTriggered && (
-        <div className="w-full relative">
-          <div className="overflow-hidden rounded-2xl shadow-md">
+          <div className="w-full relative px-[1px]">
+            <div className="overflow-hidden rounded-lg shadow-md">
               <div
                 className={`flex ${isTransitioning ? "transition-transform duration-1000 ease-in-out" : ""}`}
                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                 onTransitionEnd={handleTransitionEnd}
               >
                 {extendedSlides.map((item, idx) => {
-                // map real index (so cloned slides reuse correct colors)
-                let realIndex: number;
-                if (idx === 0) {
-                  realIndex = sliderItems.length - 1; // last item clone
-                } else if (idx === extendedSlides.length - 1) {
-                  realIndex = 0; // first item clone
-                } else {
-                  realIndex = idx - 1;
-                }
-              
-                return (
-                  <div
-                    key={idx}
-                    className={`
-                      flex-shrink-0 w-full h-52 sm:h-64 p-8 rounded-3xl shadow-lg flex items-center justify-between
-                      ${realIndex === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
-                      ${realIndex === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
-                      ${realIndex === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
-                      ${realIndex === 3 ? "bg-gradient-to-r from-rose-200 via-red-200 to-pink-100" : ""}
-                      ${realIndex === 4 ? "bg-gradient-to-r from-emerald-200 via-green-200 to-teal-100" : ""}
-                    `}
-                  >
-                    {/* Icon + text remain same */}
-                    <div className="flex items-center gap-4">
-                      {item.icon === "truck" && <Truck className="w-14 h-14 text-rose-600 drop-shadow-md" />}
-                      {item.icon === "tag" && <Tag className="w-14 h-14 text-amber-600 drop-shadow-md" />}
-                      {item.icon === "shopping-bag" && <ShoppingBag className="w-14 h-14 text-indigo-600 drop-shadow-md" />}
-                      {item.icon === "flame" && <Flame className="w-14 h-14 text-red-600 drop-shadow-md" />}
-                      {item.icon === "credit-card" && <CreditCard className="w-14 h-14 text-green-600 drop-shadow-md" />}
-              
-                      <div className="flex flex-col">
-                        <span
-                          className={`text-lg sm:text-xl font-extrabold ${
-                            item.icon === "truck"
-                              ? "text-rose-600"
-                              : item.icon === "tag"
-                              ? "text-amber-600"
-                              : item.icon === "shopping-bag"
-                              ? "text-indigo-600"
-                              : item.icon === "flame"
-                              ? "text-red-600"
-                              : "text-green-600"
-                          }`}
-                        >
-                          {item.text}
-                        </span>
-              
-                        <span className="mt-2 inline-block px-3 py-1 rounded-lg text-sm sm:text-base font-semibold text-gray-100 shadow-md
-                          bg-gradient-to-r from-gray-800 via-gray-900 to-black
-                          skew-x-[-8deg] transform"
-                        >
-                          <span className="inline-block skew-x-[8deg]">{item.highlight}</span>
-                        </span>
+                  let realIndex: number;
+                  if (idx === 0) realIndex = sliderItems.length - 1;
+                  else if (idx === extendedSlides.length - 1) realIndex = 0;
+                  else realIndex = idx - 1;
+        
+                  return (
+                    <div
+                      key={idx}
+                      className={`
+                        flex-shrink-0 w-full h-48 sm:h-60 p-6 flex items-center justify-between
+                        rounded-lg
+                        ${realIndex === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
+                        ${realIndex === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
+                        ${realIndex === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
+                        ${realIndex === 3 ? "bg-gradient-to-r from-rose-200 via-red-200 to-pink-100" : ""}
+                        ${realIndex === 4 ? "bg-gradient-to-r from-emerald-200 via-green-200 to-teal-100" : ""}
+                      `}
+                    >
+                      {/* ICON + TEXT */}
+                      <div className="flex items-center gap-4">
+                        {item.icon === "truck" && <Truck className="w-12 h-12 text-rose-600 drop-shadow-md" />}
+                        {item.icon === "tag" && <Tag className="w-12 h-12 text-amber-600 drop-shadow-md" />}
+                        {item.icon === "shopping-bag" && <ShoppingBag className="w-12 h-12 text-indigo-600 drop-shadow-md" />}
+                        {item.icon === "flame" && <Flame className="w-12 h-12 text-red-600 drop-shadow-md" />}
+                        {item.icon === "credit-card" && <CreditCard className="w-12 h-12 text-green-600 drop-shadow-md" />}
+        
+                        <div className="flex flex-col">
+                          <span className="text-lg sm:text-xl font-extrabold text-gray-800">
+                            {item.text}
+                          </span>
+                          <span className="mt-2 inline-block px-3 py-1 rounded-md text-sm font-semibold text-gray-100
+                            bg-gradient-to-r from-gray-800 via-gray-900 to-black shadow">
+                            {item.highlight}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}                    
+                  );
+                })}
+              </div>
+            </div>
+        
+            {/* DOTS inside the slider */}
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+              {sliderItems.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentSlide(i + 1)}
+                  className={`h-2.5 w-2.5 rounded-full transition ${
+                    currentSlide === i + 1 ? "bg-indigo-600 scale-125" : "bg-gray-300"
+                  }`}
+                />
+              ))}
             </div>
           </div>
-      
-          {/* Small dots for navigation */}
-          <div className="flex justify-center mt-4 gap-2">
-            {sliderItems.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentSlide(i)}
-                className={`h-2.5 w-2.5 rounded-full transition ${
-                  currentSlide === i ? "bg-indigo-600 scale-125" : "bg-gray-300"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+        )}
+
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
           <>
@@ -807,8 +790,7 @@ export default function HomePage() {
             ) : (
             <section>
             <h1 className="text-2xl font-semibold">🔥 Trending</h1>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-4">
-
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4 px-[1px]">
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
