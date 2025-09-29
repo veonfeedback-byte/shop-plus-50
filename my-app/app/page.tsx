@@ -592,26 +592,52 @@ useEffect(() => {
   }
 }, []); // run only once on mount
 
-
   const filteredProducts = useMemo(() => {
-  switch (activeTab) {
-    case "popular":
-      return shuffledProducts.filter((p) => getProductTag(p) === "Popular");
-    case "new":
-      return shuffledProducts.filter((p) => !getProductTag(p));
-    case "hot":
-      return shuffledProducts.filter((p) => getProductTag(p) === "Hot");
-    case "flash":
-      return shuffledProducts.filter((p) => getProductTag(p) === "Sale");
-    case "off20":
-      return shuffledProducts.filter((p) => getProductTag(p) === "20% OFF");
-    case "off30":
-      return shuffledProducts.filter((p) => getProductTag(p) === "30% OFF");
-    case "forYou":
-    default:
-      return homeProducts; // already shuffled once
-  }
-}, [activeTab, shuffledProducts, homeProducts]);
+    if (activeTab === "forYou") {
+      return homeProducts; // already cached + shuffled once
+    }
+  
+    // 👇 try sessionStorage first
+    if (typeof window !== "undefined") {
+      const cached = sessionStorage.getItem(`${activeTab}_products`);
+      if (cached) {
+        try {
+          return JSON.parse(cached) as IndexedProduct[];
+        } catch {}
+      }
+    }
+  
+    // 👇 otherwise build fresh, shuffle once, then cache
+    let base: IndexedProduct[] = [];
+    switch (activeTab) {
+      case "popular":
+        base = shuffledProducts.filter((p) => getProductTag(p) === "Popular");
+        break;
+      case "new":
+        base = shuffledProducts.filter((p) => !getProductTag(p));
+        break;
+      case "hot":
+        base = shuffledProducts.filter((p) => getProductTag(p) === "Hot");
+        break;
+      case "flash":
+        base = shuffledProducts.filter((p) => getProductTag(p) === "Sale");
+        break;
+      case "off20":
+        base = shuffledProducts.filter((p) => getProductTag(p) === "20% OFF");
+        break;
+      case "off30":
+        base = shuffledProducts.filter((p) => getProductTag(p) === "30% OFF");
+        break;
+      default:
+        base = [];
+    }
+  
+    const once = shuffle(base); // shuffle ONCE only
+    try {
+      sessionStorage.setItem(`${activeTab}_products`, JSON.stringify(once));
+    } catch {}
+    return once;
+  }, [activeTab, homeProducts, shuffledProducts]);
 
     useLayoutEffect(() => {
     if ((window as any).__restoreScrollY != null) {
