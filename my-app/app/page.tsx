@@ -549,7 +549,7 @@ export default function HomePage() {
       <div className="pb-28 pt-[50px]">
         {/* Search Row (modern style) */}
         <div className="fixed top-[56px] left-0 right-0 z-30 bg-white py-3 px-3 shadow-sm border-b border-gray-200">
-          <div className="w-full px-2 flex items-center gap-3 overflow-hidden">
+          <div className="w-full px-1 md:px-3 flex items-center gap-3 overflow-hidden">
             {showBackButton && (
               <button
                 onClick={resetHome}
