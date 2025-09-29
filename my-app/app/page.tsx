@@ -874,7 +874,7 @@ export default function HomePage() {
           </>
             ) : (
             <section>
-            <div className="sticky top-[110px] z-20 bg-white border-b border-gray-200">
+            <div className="sticky top-[150px] z-20 bg-white border-b border-gray-200">
               <div className="flex gap-3 overflow-x-auto px-3 py-2 scrollbar-hide">
                 {filterTabs.map((tab) => (
                   <button
