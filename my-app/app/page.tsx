@@ -501,8 +501,7 @@ export default function HomePage() {
         />
       </Head>
 
-      <div className="space-y-4 px-2 sm:px-3 md:px-4 pb-28 pt-20">
-
+      <div className="space-y-4 pb-28 pt-20">
         {/* Search Row (modern style) */}
         <div className="fixed top-[56px] left-0 right-0 z-30 bg-white py-3 px-3 shadow-sm border-b border-gray-200">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
@@ -614,8 +613,8 @@ export default function HomePage() {
 
         {/* SLIDER */}
         {!searchTriggered && (
-          <div className="w-full relative px-[1px]">
-            <div className="overflow-hidden rounded-lg shadow-md">
+          <div className="w-full relative">
+            <div className="overflow-hidden">
               <div
                 className={`flex ${isTransitioning ? "transition-transform duration-1000 ease-in-out" : ""}`}
                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
@@ -631,8 +630,9 @@ export default function HomePage() {
                     <div
                       key={idx}
                       className={`
-                        flex-shrink-0 w-full h-48 sm:h-60 p-6 flex items-center justify-between
-                        rounded-lg
+                        flex-shrink-0 w-full 
+                        h-[180px] sm:h-[220px] md:h-[280px]   /* ✅ Taller like Daraz */
+                        flex items-center justify-center
                         ${realIndex === 0 ? "bg-gradient-to-r from-amber-200 via-rose-200 to-orange-100" : ""}
                         ${realIndex === 1 ? "bg-gradient-to-r from-yellow-200 via-amber-200 to-orange-100" : ""}
                         ${realIndex === 2 ? "bg-gradient-to-r from-purple-200 via-indigo-200 to-pink-200" : ""}
@@ -649,9 +649,7 @@ export default function HomePage() {
                         {item.icon === "credit-card" && <CreditCard className="w-12 h-12 text-green-600 drop-shadow-md" />}
         
                         <div className="flex flex-col">
-                          <span className="text-lg sm:text-xl font-extrabold text-gray-800">
-                            {item.text}
-                          </span>
+                          <span className="text-lg sm:text-xl font-extrabold text-gray-800">{item.text}</span>
                           <span className="mt-2 inline-block px-3 py-1 rounded-md text-sm font-semibold text-gray-100
                             bg-gradient-to-r from-gray-800 via-gray-900 to-black shadow">
                             {item.highlight}
@@ -663,6 +661,22 @@ export default function HomePage() {
                 })}
               </div>
             </div>
+        
+            {/* DOTS inside slider */}
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+              {sliderItems.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentSlide(i + 1)}
+                  className={`h-2.5 w-2.5 rounded-full transition ${
+                    currentSlide === i + 1 ? "bg-indigo-600 scale-125" : "bg-gray-300"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         
             {/* DOTS inside the slider */}
             <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
@@ -790,7 +804,7 @@ export default function HomePage() {
             ) : (
             <section>
             <h1 className="text-2xl font-semibold">🔥 Trending</h1>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4 px-[1px]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4">
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
                 <ProductCard
                   key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
