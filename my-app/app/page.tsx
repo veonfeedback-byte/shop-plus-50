@@ -874,9 +874,9 @@ export default function HomePage() {
           </>
             ) : (
             <section>
-            <div className="sticky top-[120px] z-20 w-screen -ml-[calc((100vw-100%)/2)] bg-white shadow-sm border-b border-gray-200">
-              <div className="max-w-7xl mx-auto">
-                <div className="flex gap-3 overflow-x-auto px-3 py-2 scrollbar-hide">
+              <div className="sticky top-[120px] z-20 w-screen -ml-[calc((100vw-100%)/2)] bg-white shadow-sm border-b border-gray-200">
+                <div className="max-w-7xl mx-auto">
+                  <div className="flex gap-3 overflow-x-auto px-3 py-2 scrollbar-hide justify-start md:justify-center">
                   {filterTabs.map((tab) => (
                     <button
                       key={tab.key}
@@ -894,8 +894,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-              
-            {/*<h1 className="text-xl font-semibold mt-6">🔥 Trending</h1>*/}
+  
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4 mb-4">
               {(filteredProducts.length > 0 ? filteredProducts : homeProducts)
                 .slice(0, visibleHome)
