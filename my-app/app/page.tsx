@@ -444,16 +444,6 @@ export default function HomePage() {
     if (lastVisibleHome) setVisibleHome(Number(lastVisibleHome));
   }, []);
 
-  useLayoutEffect(() => {
-    if ((window as any).__restoreScrollY != null) {
-      const y = (window as any).__restoreScrollY;
-      delete (window as any).__restoreScrollY;
-      setTimeout(() => {
-        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
-      }, 0);
-    }
-  }, [finalResults, filteredProducts, visibleSearch, visibleHome]);
-
   useEffect(() => {
     function onScroll() {
       if (
@@ -614,6 +604,16 @@ export default function HomePage() {
       return homeProducts; // already shuffled once
   }
 }, [activeTab, shuffledProducts, homeProducts]);
+
+    useLayoutEffect(() => {
+    if ((window as any).__restoreScrollY != null) {
+      const y = (window as any).__restoreScrollY;
+      delete (window as any).__restoreScrollY;
+      setTimeout(() => {
+        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+      }, 0);
+    }
+  }, [finalResults, filteredProducts, visibleSearch, visibleHome]);
 
   /* ---------- Render ---------- */
   return (
