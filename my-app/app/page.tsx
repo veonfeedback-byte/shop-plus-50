@@ -603,12 +603,11 @@ useEffect(() => {
 }, []); // run only once on mount
 
   const filteredProducts = useMemo(() => {
-    // For "For You" → same logic as before
     if (activeTab === "forYou") {
-      return homeProducts;
+      return homeProducts; // already cached + shuffled once
     }
   
-    // ✅ Always check cache first for ANY tab
+    // 👇 try sessionStorage first
     if (typeof window !== "undefined") {
       const cached = sessionStorage.getItem(`${activeTab}_products`);
       if (cached) {
@@ -618,7 +617,7 @@ useEffect(() => {
       }
     }
   
-    // Build fresh list if cache not found
+    // 👇 otherwise build fresh, shuffle once, then cache
     let base: IndexedProduct[] = [];
     switch (activeTab) {
       case "popular":
@@ -643,14 +642,22 @@ useEffect(() => {
         base = [];
     }
   
-    // ✅ Don’t reshuffle again if already generated → stable results
-    const once = base;
+    const once = shuffle(base); // shuffle ONCE only
     try {
       sessionStorage.setItem(`${activeTab}_products`, JSON.stringify(once));
     } catch {}
     return once;
   }, [activeTab, homeProducts, shuffledProducts]);
-  
+
+    useLayoutEffect(() => {
+    if ((window as any).__restoreScrollY != null) {
+      const y = (window as any).__restoreScrollY;
+      delete (window as any).__restoreScrollY;
+      setTimeout(() => {
+        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+      }, 0);
+    }
+  }, [finalResults, filteredProducts, visibleSearch, visibleHome]);
 
   /* ---------- Render ---------- */
   return (
