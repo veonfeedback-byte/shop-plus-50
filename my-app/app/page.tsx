@@ -615,7 +615,47 @@ export default function HomePage() {
                 />
               </div>
           
-              {/* SLIDER */}
+              {/* suggestions dropdown (keeps your existing logic but styled) */}
+              {categorySuggestions.length > 0 && (
+                <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
+                  {categorySuggestions.map((s) => (
+                    <button
+                      key={`${s.type}-${s.parent || "root"}-${s.slug}`}
+                      onClick={() => {
+                        if (s.type === "category") {
+                          setActiveCategory(s.slug);
+                          setActiveSubcategory(null);
+                          try {
+                            sessionStorage.setItem("lastCategory", s.slug);
+                            sessionStorage.removeItem("lastSubcategory");
+                          } catch {}
+                        } else {
+                          setActiveCategory(s.parent || null);
+                          setActiveSubcategory(s.slug);
+                          try {
+                            sessionStorage.setItem("lastCategory", s.parent || "");
+                            sessionStorage.setItem("lastSubcategory", s.slug);
+                          } catch {}
+                        }
+                        setSearchTriggered(true);
+                        setShowBackButton(true);
+                        setQuery(s.title);
+                        try {
+                          sessionStorage.setItem("lastQuery", s.title);
+                        } catch {}
+                      }}
+                      className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                    >
+                      {s.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+         {/* SLIDER */}
               {!searchTriggered && (
                 <div className="w-full relative mt-0 px-0 mx-0">
                   <div className="overflow-hidden w-full">
@@ -685,46 +725,6 @@ export default function HomePage() {
                   </div>
                 </div>
               )}
-
-              {/* suggestions dropdown (keeps your existing logic but styled) */}
-              {categorySuggestions.length > 0 && (
-                <div className="absolute z-40 mt-2 w-full bg-white rounded-xl shadow-lg max-h-60 overflow-auto border border-gray-100">
-                  {categorySuggestions.map((s) => (
-                    <button
-                      key={`${s.type}-${s.parent || "root"}-${s.slug}`}
-                      onClick={() => {
-                        if (s.type === "category") {
-                          setActiveCategory(s.slug);
-                          setActiveSubcategory(null);
-                          try {
-                            sessionStorage.setItem("lastCategory", s.slug);
-                            sessionStorage.removeItem("lastSubcategory");
-                          } catch {}
-                        } else {
-                          setActiveCategory(s.parent || null);
-                          setActiveSubcategory(s.slug);
-                          try {
-                            sessionStorage.setItem("lastCategory", s.parent || "");
-                            sessionStorage.setItem("lastSubcategory", s.slug);
-                          } catch {}
-                        }
-                        setSearchTriggered(true);
-                        setShowBackButton(true);
-                        setQuery(s.title);
-                        try {
-                          sessionStorage.setItem("lastQuery", s.title);
-                        } catch {}
-                      }}
-                      className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
-                    >
-                      {s.title}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* Search results */}
         {searchTriggered && (debouncedQuery || activeCategory || activeSubcategory) ? (
