@@ -51,10 +51,15 @@ function ProductCard({
     return tags[index];
   }, [p.id]);
 
-  const discountMatch = tag && /\d+/.test(tag) ? parseInt(tag.match(/\d+/)![0]) : null;
-  const inflated = discountMatch
-    ? Math.round(Number(p.price) * (1 + discountMatch / 100))
-    : null;
+  let inflated: number | null = null;
+    if (tag === "Sale") {
+      // 👇 increase 40% then cut
+      inflated = Math.round(Number(p.price) * 1.4);
+    } else if (tag && /\d+/.test(tag)) {
+      const discountMatch = parseInt(tag.match(/\d+/)![0]);
+      inflated = Math.round(Number(p.price) * (1 + discountMatch / 100));
+    }
+
 
   return (
     <Link
@@ -525,31 +530,53 @@ export default function HomePage() {
     const saved = sessionStorage.getItem("activeTab");
     if (saved) setActiveTab(saved);
   }, []);
-  
+    
   useEffect(() => {
     sessionStorage.setItem("activeTab", activeTab);
+  }, [activeTab]);
+  
+  useEffect(() => {
+    const onScroll = () => {
+      try {
+        sessionStorage.setItem(`${activeTab}_scrollY`, String(window.scrollY));
+        sessionStorage.setItem(`${activeTab}_visible`, String(visibleHome));
+      } catch {}
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [activeTab, visibleHome]);
+  
+  // 👇 Restore state when switching tabs
+  useEffect(() => {
+    const savedVisible = sessionStorage.getItem(`${activeTab}_visible`);
+    const savedScroll = sessionStorage.getItem(`${activeTab}_scrollY`);
+    if (savedVisible) setVisibleHome(Number(savedVisible));
+    if (savedScroll) {
+      setTimeout(() => {
+        window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
+      }, 0);
+    }
   }, [activeTab]);
 
   const filteredProducts = useMemo(() => {
     switch (activeTab) {
       case "popular":
-        return allProducts.filter((p) => getProductTag(p) === "Popular");
+        return shuffle(allProducts.filter((p) => getProductTag(p) === "Popular"));
       case "new":
-        return allProducts.filter((p) => !getProductTag(p));  // ✅ no tag
+        return shuffle(allProducts.filter((p) => !getProductTag(p)));
       case "hot":
-        return allProducts.filter((p) => getProductTag(p) === "Hot");
+        return shuffle(allProducts.filter((p) => getProductTag(p) === "Hot"));
       case "flash":
-        return allProducts.filter((p) => getProductTag(p) === "Sale");
+        return shuffle(allProducts.filter((p) => getProductTag(p) === "Sale"));
       case "off20":
-        return allProducts.filter((p) => getProductTag(p) === "20% OFF");
+        return shuffle(allProducts.filter((p) => getProductTag(p) === "20% OFF"));
       case "off30":
-        return allProducts.filter((p) => getProductTag(p) === "30% OFF");
+        return shuffle(allProducts.filter((p) => getProductTag(p) === "30% OFF"));
       case "forYou":
       default:
-        return homeProducts;
+        return homeProducts; // already shuffled
     }
   }, [activeTab, allProducts, homeProducts]);
-
 
   /* ---------- Render ---------- */
   return (
