@@ -546,7 +546,7 @@ export default function HomePage() {
         />
       </Head>
 
-      <div className="pb-28 pt-[150px]">
+      <div className="pb-28 pt-[112px]">
         {/* Search Row (modern style) */}
         <div className="fixed top-[56px] left-0 right-0 z-30 bg-white py-3 px-3 shadow-sm border-b border-gray-200">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
@@ -658,7 +658,7 @@ export default function HomePage() {
 
         {/* SLIDER */}
         {!searchTriggered && (
-          <div  className="w-full relative mt-0 px-0">
+          <div  className="w-full relative mt-0">
             <div className="overflow-hidden">
              <div
                 className={`flex ${isTransitioning ? "transition-transform duration-700 ease-in-out" : ""}`}
