@@ -397,7 +397,12 @@ export default function HomePage() {
     setActiveCategory(null);
     setActiveSubcategory(null);
     try {
-      sessionStorage.clear();
+      sessionStorage.removeItem("homeProducts"); 
+      sessionStorage.removeItem("lastQuery");
+      sessionStorage.removeItem("lastCategory");
+      sessionStorage.removeItem("lastSubcategory");
+      sessionStorage.removeItem("lastSort");
+      sessionStorage.removeItem("visibleSearch");
     } catch {}
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -440,14 +445,14 @@ export default function HomePage() {
   }, []);
 
   useLayoutEffect(() => {
-    if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
+    if ((window as any).__restoreScrollY != null) {
       const y = (window as any).__restoreScrollY;
       delete (window as any).__restoreScrollY;
       setTimeout(() => {
         window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
       }, 0);
     }
-  }, [finalResults, visibleSearch]);
+  }, [finalResults, filteredProducts, visibleSearch, visibleHome]);
 
   useEffect(() => {
     function onScroll() {
