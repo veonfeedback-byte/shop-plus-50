@@ -657,10 +657,9 @@ export default function HomePage() {
 
          {/* SLIDER */}
               {!searchTriggered && (
-                <div className="w-full relative mt-0 px-0 mx-0">
-                  <div className="overflow-hidden w-full">
-                    <div
-                      className={`flex ${isTransitioning ? "transition-transform duration-700 ease-in-out" : ""}`}
+                <div className="w-full relative mt-3 px-3">
+                  <div className="overflow-hidden w-full rounded-2xl shadow-sm">
+                    <div className={`flex ${isTransitioning ? "transition-transform duration-700 ease-in-out" : ""}`}
                       style={{
                         transform: `translateX(-${Math.min(
                           Math.max(currentSlide, 0),
