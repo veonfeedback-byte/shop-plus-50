@@ -567,14 +567,10 @@ export default function Profile() {
                       
                     {/* Each item image links to its own product */}
                     <Link
-                    href={
-                      item.category && item.subcategory
-                        ? `/shop/${item.category}/${item.subcategory}/${item.id}`
-                        : `/shop/product/${item.id}` // fallback route
-                    }
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0"
-                  >
+                      href={`/shop/${encodeURIComponent(item.category)}/${encodeURIComponent(item.subcategory)}/${encodeURIComponent(item.id)}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0"
+                    >
                     {item.image ? (
                       <img
                         src={item.image}
