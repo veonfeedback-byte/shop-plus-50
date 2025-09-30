@@ -429,6 +429,19 @@ export default function HomePage() {
     }
   }, [homeProducts, visibleHome]);
 
+  // ✅ Restore scroll only when the right number of products are visible
+  useLayoutEffect(() => {
+    const savedY = (window as any).__restoreHomeScrollY;
+    const savedVisible = Number(sessionStorage.getItem("visibleHome") || 0);
+  
+    if (savedY != null && visibleHome >= savedVisible && homeProducts.length > 0) {
+      delete (window as any).__restoreHomeScrollY;
+      setTimeout(() => {
+        window.scrollTo({ top: savedY, behavior: "instant" as ScrollBehavior });
+      }, 0);
+    }
+  }, [homeProducts, visibleHome]);
+
   useEffect(() => {
     function onScroll() {
       if (
@@ -441,6 +454,13 @@ export default function HomePage() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [visibleHome, MAX_HOME]);
+
+  // ✅ Save visibleHome immediately when it changes
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("visibleHome", String(visibleHome));
+    } catch {}
+  }, [visibleHome]);
 
     // ✅ Save scroll & visibleHome for Home products
   useEffect(() => {
