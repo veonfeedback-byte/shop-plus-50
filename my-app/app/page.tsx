@@ -44,18 +44,23 @@ function ProductCard({
   eager?: boolean;
 }) {
   const [loaded, setLoaded] = useState(false);
-  const tag = getProductTag(p);
- 
+
+  const tags = ["20% OFF", "30% OFF", "Hot", "Sale", "Popular", null, null];
+  const tag = useMemo(() => {
+    const index = (p.id.charCodeAt(0) + p.id.length) % tags.length;
+    return tags[index];
+  }, [p.id]);
+
   let inflated: number | null = null;
-  if (tag === "Sale") {
-    inflated = Math.round(Number(p.price) * 1.4);
-  } else if (tag && /\d+/.test(tag)) {
-    const match = tag.match(/\d+/);
-    if (match) {
-      const discount = parseInt(match[0], 10);
-      inflated = Math.round(Number(p.price) * (1 + discount / 100));
+  let discountMatch: number | null = null;  // 👈 declare here
+    
+    if (tag === "Sale") {
+      inflated = Math.round(Number(p.price) * 1.4);
+    } else if (tag && /\d+/.test(tag)) {
+      discountMatch = parseInt(tag.match(/\d+/)![0]);
+      inflated = Math.round(Number(p.price) * (1 + discountMatch / 100));
     }
-  }
+
   return (
     <Link
       href={href}
@@ -64,7 +69,7 @@ function ProductCard({
           if (sessionStorage.getItem("lastQuery")) {
             // ✅ User is in search mode
             sessionStorage.setItem("search_scrollY", String(window.scrollY));
-            sessionStorage.setItem("visibleSearch", String((window as any).__visibleSearch ?? 10));
+            sessionStorage.setItem("search_visible", String(window.__visibleSearch ?? 10));
           } else {
             // ✅ Normal tabs mode
             const currentTab = sessionStorage.getItem("activeTab") || "forYou";
@@ -186,9 +191,6 @@ export default function HomePage() {
   }, [visibleHome]);
 
   const [visibleSearch, setVisibleSearch] = useState<number>(10);
-  useEffect(() => {
-    (window as any).__visibleSearch = visibleSearch;
-  }, [visibleSearch]);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -200,6 +202,51 @@ export default function HomePage() {
   const [searchFocused, setSearchFocused] = useState(false);
 
   const [bestSuggestion, setBestSuggestion] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    const hydrate = () => {
+      if (typeof window === "undefined") return;
+      const cached = sessionStorage.getItem("homeProducts");
+      if (cached) {
+        try {
+          setHomeProducts(JSON.parse(cached));
+          return;
+        } catch {}
+      }
+      const shuffled = shuffle(initialHomePicks);
+      setHomeProducts(shuffled);
+      try {
+        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+      } catch {}
+    };
+
+    if ("requestIdleCallback" in window) {
+      (window as any).requestIdleCallback(hydrate, { timeout: 200 });
+    } else {
+      const t = setTimeout(hydrate, 100);
+      return () => clearTimeout(t);
+    }
+  }, [initialHomePicks]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+  
+    const cached = sessionStorage.getItem("allProductsShuffled");
+    if (cached) {
+      try {
+        setShuffledProducts(JSON.parse(cached));
+        return;
+      } catch {}
+    }
+  
+    const shuffled = shuffle(allProducts); // 👈 shuffle ONCE
+    setShuffledProducts(shuffled);
+    try {
+      sessionStorage.setItem("allProductsShuffled", JSON.stringify(shuffled));
+    } catch {}
+  }, [allProducts]);
+
 
   /* ---------- Fuse search ---------- */
   const [fuse, setFuse] = useState<Fuse<IndexedProduct> | null>(null);
@@ -379,6 +426,47 @@ export default function HomePage() {
       )}/${encodeURIComponent(p.id)}`,
     []
   );
+
+  /* ---------- Restore state ---------- */
+  useEffect(() => {
+    const lastQ = sessionStorage.getItem("lastQuery");
+    const lastScroll = sessionStorage.getItem("scrollY");
+    const lastVisible = sessionStorage.getItem("visibleSearch");
+    const lastCat = sessionStorage.getItem("lastCategory");
+    const lastSub = sessionStorage.getItem("lastSubcategory");
+    const lastSort = sessionStorage.getItem("lastSort");
+
+    if (lastQ) {
+      setQuery(lastQ);
+      setShowBackButton(true);
+      setSearchTriggered(true);
+    }
+    if (lastVisible) setVisibleSearch(Number(lastVisible));
+    if (lastScroll) (window as any).__restoreScrollY = Number(lastScroll);
+    if (lastCat) setActiveCategory(lastCat);
+    if (lastSub) setActiveSubcategory(lastSub);
+    if (lastSort) setPriceSort(lastSort as "asc" | "desc");
+  }, []);
+
+  useEffect(() => {
+    const lastScroll = sessionStorage.getItem("scrollY");
+    const lastVisibleHome = sessionStorage.getItem("visibleHome");
+    if (lastScroll) (window as any).__restoreScrollY = Number(lastScroll);
+    if (lastVisibleHome) setVisibleHome(Number(lastVisibleHome));
+  }, []);
+
+  useEffect(() => {
+    function onScroll() {
+      if (
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 &&
+        visibleHome < allProducts.length
+      ) {
+        setVisibleHome((v) => Math.min(v + 6, allProducts.length));
+      }
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+    }, [visibleHome]);  
   
     const [currentSlide, setCurrentSlide] = useState(1); // start at first "real" slide
     const [isTransitioning, setIsTransitioning] = useState(true);
@@ -475,110 +563,76 @@ export default function HomePage() {
   ];
 
   const [activeTab, setActiveTab] = useState<string>("forYou");
-  useEffect(() => {
-    try {
-      sessionStorage.setItem("activeTab", activeTab);
-    } catch {}
-  }, [activeTab]);
 
-  // ✅ One big merged effect for sessionStorage restore + save
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    const saved = sessionStorage.getItem("activeTab");
+    if (saved) setActiveTab(saved);
+  }, []);
   
-    // --- Restore cached home products ---
-    const cachedHome = sessionStorage.getItem("homeProducts");
-    if (cachedHome) {
+  // ✅ Restore products for each tab when navigating back
+  useEffect(() => {
+    const currentTab = sessionStorage.getItem("activeTab") || "forYou";
+    const cachedProducts = sessionStorage.getItem(`${currentTab}_products`);
+    if (cachedProducts) {
       try {
-        setHomeProducts(JSON.parse(cachedHome));
-      } catch {}
-    } else {
-      const shuffled = shuffle(initialHomePicks);
-      setHomeProducts(shuffled);
-      try {
-        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
+        setHomeProducts(JSON.parse(cachedProducts));
       } catch {}
     }
+  }, []);
+    
+  useEffect(() => {
+    sessionStorage.setItem("activeTab", activeTab);
+  }, [activeTab]);
   
-    // --- Restore shuffled allProducts ---
-    const cachedShuffled = sessionStorage.getItem("allProductsShuffled");
-    if (cachedShuffled) {
-      try {
-        setShuffledProducts(JSON.parse(cachedShuffled));
-      } catch {}
-    } else {
-      const shuffled = shuffle(allProducts);
-      setShuffledProducts(shuffled);
-      try {
-        sessionStorage.setItem("allProductsShuffled", JSON.stringify(shuffled));
-      } catch {}
-    }
-  
-    // --- Restore search / tab state ---
-    const lastQ = sessionStorage.getItem("lastQuery");
-    const lastVisibleSearch = sessionStorage.getItem("visibleSearch");
-    const lastCat = sessionStorage.getItem("lastCategory");
-    const lastSub = sessionStorage.getItem("lastSubcategory");
-    const lastSort = sessionStorage.getItem("lastSort");
-    const lastTab = sessionStorage.getItem("activeTab") || "forYou";
-  
-    if (lastQ) {
-      setQuery(lastQ);
-      setShowBackButton(true);
-      setSearchTriggered(true);
-    }
-    if (lastVisibleSearch) setVisibleSearch(Number(lastVisibleSearch));
-    if (lastCat) setActiveCategory(lastCat);
-    if (lastSub) setActiveSubcategory(lastSub);
-    if (lastSort) setPriceSort(lastSort as "asc" | "desc");
-    setActiveTab(lastTab);
-  
-    // --- Restore cached products for tab ---
-    const cachedTabProducts = sessionStorage.getItem(`${lastTab}_products`);
-    if (cachedTabProducts) {
-      try {
-        setHomeProducts(JSON.parse(cachedTabProducts));
-      } catch {}
-    }
-  
-    // --- Restore scroll position ---
-    const savedScrollSearch = sessionStorage.getItem("search_scrollY");
-    const savedScrollTab = sessionStorage.getItem(`${lastTab}_scrollY`);
-    const savedVisibleTab = sessionStorage.getItem(`${lastTab}_visible`);
-    if (savedScrollSearch) {
-      setTimeout(() => {
-        window.scrollTo({ top: Number(savedScrollSearch), behavior: "auto" });
-      }, 0);
-    } else if (savedScrollTab) {
-      setTimeout(() => {
-        window.scrollTo({ top: Number(savedScrollTab), behavior: "instant" as ScrollBehavior });
-      }, 0);
-    }
-    if (savedVisibleTab) setVisibleHome(Number(savedVisibleTab));
-  
-   // --- Save updates on scroll + infinite load ---
+  useEffect(() => {
     const onScroll = () => {
       try {
-        if (sessionStorage.getItem("lastQuery")) {
-          sessionStorage.setItem("search_scrollY", String(window.scrollY));
-          sessionStorage.setItem("visibleSearch", String(visibleSearch)); 
-        } else {
-          sessionStorage.setItem(`${activeTab}_scrollY`, String(window.scrollY));
-          sessionStorage.setItem(`${activeTab}_visible`, String(visibleHome));
-        }
+        sessionStorage.setItem(`${activeTab}_scrollY`, String(window.scrollY));
+        sessionStorage.setItem(`${activeTab}_visible`, String(visibleHome));
       } catch {}
-    
-      // 👇 add infinite scroll logic here
-      if (
-        window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 &&
-        visibleHome < allProducts.length
-      ) {
-        setVisibleHome((v) => Math.min(v + 6, allProducts.length));
-      }
     };
-  
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [initialHomePicks, allProducts, activeTab, visibleHome, visibleSearch]);
+  }, [activeTab, visibleHome]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (sessionStorage.getItem("lastQuery")) {
+        try {
+          sessionStorage.setItem("search_scrollY", String(window.scrollY));
+          sessionStorage.setItem("search_visible", String(visibleSearch));
+        } catch {}
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [visibleSearch]);
+  
+  // Restore scroll after navigation back (first load)
+  useEffect(() => {
+    if (sessionStorage.getItem("lastQuery")) {
+      // ✅ Restore search mode
+      const savedVisible = sessionStorage.getItem("search_visible");
+      const savedScroll = sessionStorage.getItem("search_scrollY");
+      if (savedVisible) setVisibleSearch(Number(savedVisible));
+      if (savedScroll) {
+        setTimeout(() => {
+          window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
+        }, 0);
+      }
+    } else {
+      // ✅ Restore tab mode
+      const currentTab = sessionStorage.getItem("activeTab") || "forYou";
+      const savedVisible = sessionStorage.getItem(`${currentTab}_visible`);
+      const savedScroll = sessionStorage.getItem(`${currentTab}_scrollY`);
+      if (savedVisible) setVisibleHome(Number(savedVisible));
+      if (savedScroll) {
+        setTimeout(() => {
+          window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
+        }, 0);
+      }
+    }
+  }, []);
 
 
   const filteredProducts = useMemo(() => {
@@ -627,6 +681,16 @@ export default function HomePage() {
     } catch {}
     return once;
   }, [activeTab, homeProducts, shuffledProducts]);
+
+    useLayoutEffect(() => {
+    if ((window as any).__restoreScrollY != null) {
+      const y = (window as any).__restoreScrollY;
+      delete (window as any).__restoreScrollY;
+      setTimeout(() => {
+        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+      }, 0);
+    }
+  }, [finalResults, filteredProducts, visibleSearch, visibleHome]);
 
   /* ---------- Render ---------- */
   return (
@@ -927,7 +991,7 @@ export default function HomePage() {
                       href={productUrl(p)}
                       onClick={() => {
                         try {
-                          sessionStorage.setItem("search_scrollY", String(window.scrollY));
+                          sessionStorage.setItem("scrollY", String(window.scrollY));
                           sessionStorage.setItem("lastQuery", query);
                           sessionStorage.setItem("visibleSearch", String(visibleSearch));
                           if (activeCategory) sessionStorage.setItem("lastCategory", activeCategory);
