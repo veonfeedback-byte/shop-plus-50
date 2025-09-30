@@ -503,14 +503,10 @@ export default function Profile() {
             const grandTotal = o.total + (o.delivery_charges || 0);
 
             return (
-              <Link
-                  key={o.id}
-                  href={`/shop/${o.items[0]?.category}/${o.items[0]?.subcategory}/${o.items[0]?.id}`}
-                >
                 <div
-                  
-                  className="relative rounded-xl bg-white shadow-md border border-gray-100 p-4 cursor-pointer hover:shadow-lg transition"
-                >
+                  key={o.id}
+                    className="relative rounded-xl bg-white shadow-md border border-gray-100 p-4 hover:shadow-lg transition"
+                  >
                   {/* Order header with ID + date */}
                   <div className="grid justify-between items-center mb-3 gap-3">
                     
@@ -567,24 +563,30 @@ export default function Profile() {
                           </>
                         )}
                       </div>
-                      
-                      </div>
-                      <div className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="text-xs text-gray-400 flex items-center justify-center h-full">
-                            No Image
-                          </div>
-                        )}
-                      </div>
                     </div>
-                  ))}
-                </div>
+                      
+                    {/* ✅ Image wrapped with Link only */}
+                    <Link
+                      href={`/shop/${item.category}/${item.subcategory}/${item.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0"
+                    >
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-xs text-gray-400 flex items-center justify-center h-full">
+                          No Image
+                        </div>
+                      )}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+                  
                 {/* Order total */}
                 <div className="border-t pt-2 mt-2 text-sm font-bold text-gray-900">
                   Order total: Rs {grandTotal}
@@ -682,7 +684,6 @@ export default function Profile() {
                   )}
                 </div>
               </div>
-            </Link>
             );
           })}
         </div>
