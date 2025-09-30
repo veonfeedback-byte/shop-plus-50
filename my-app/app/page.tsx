@@ -51,28 +51,15 @@ function ProductCard({
     return tags[index];
   }, [p.id]);
 
-  let inflated: number | null = null;
-  let discountMatch: number | null = null;  // 👈 declare here
-    
-    if (tag === "Sale") {
-      inflated = Math.round(Number(p.price) * 1.4);
-    } else if (tag && /\d+/.test(tag)) {
-      discountMatch = parseInt(tag.match(/\d+/)![0]);
-      inflated = Math.round(Number(p.price) * (1 + discountMatch / 100));
-    }
+  const discountMatch = tag && /\d+/.test(tag) ? parseInt(tag.match(/\d+/)![0]) : null;
+  const inflated = discountMatch
+    ? Math.round(Number(p.price) * (1 + discountMatch / 100))
+    : null;
 
   return (
     <Link
       href={href}
-      onClick={() => {
-        try {
-          const currentTab = sessionStorage.getItem("activeTab") || "forYou";
-          sessionStorage.setItem(`${currentTab}_scrollY`, String(window.scrollY));
-          // ✅ use actual visibleHome instead of hardcoded 20
-          sessionStorage.setItem(`${currentTab}_visible`, String(window.__visibleHome ?? 20));
-        } catch {}
-        onClick?.();
-      }}
+      onClick={onClick}
       className="group block bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
     >
       {/* Image */}
@@ -103,8 +90,9 @@ function ProductCard({
         <h3 className="text-sm font-medium text-gray-800 line-clamp-2 group-hover:text-indigo-600 transition-colors">
           {p.title}
         </h3>
+
         <div className="mt-1 flex items-center gap-2">
-          {inflated ? (
+          {discountMatch ? (
             <>
               <span className="text-xs text-gray-400 line-through">
                 Rs {inflated}
@@ -122,12 +110,6 @@ function ProductCard({
       </div>
     </Link>
   );
-}
-
-function getProductTag(p: IndexedProduct): string | null {
-  const tags = ["20% OFF", "30% OFF", "Hot", "Sale", "Popular", null, null];
-  const index = (p.id.charCodeAt(0) + p.id.length) % tags.length;
-  return tags[index];
 }
 
 /* ---------- main component ---------- */
@@ -177,13 +159,8 @@ export default function HomePage() {
 
 
   const [homeProducts, setHomeProducts] = useState<IndexedProduct[]>(initialHomePicks);
-  const [shuffledProducts, setShuffledProducts] = useState<IndexedProduct[]>([]);
 
   const [visibleHome, setVisibleHome] = useState<number>(20);
-  useEffect(() => {
-    (window as any).__visibleHome = visibleHome;
-  }, [visibleHome]);
-
   const [visibleSearch, setVisibleSearch] = useState<number>(10);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -222,25 +199,6 @@ export default function HomePage() {
       return () => clearTimeout(t);
     }
   }, [initialHomePicks]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-  
-    const cached = sessionStorage.getItem("allProductsShuffled");
-    if (cached) {
-      try {
-        setShuffledProducts(JSON.parse(cached));
-        return;
-      } catch {}
-    }
-  
-    const shuffled = shuffle(allProducts); // 👈 shuffle ONCE
-    setShuffledProducts(shuffled);
-    try {
-      sessionStorage.setItem("allProductsShuffled", JSON.stringify(shuffled));
-    } catch {}
-  }, [allProducts]);
-
 
   /* ---------- Fuse search ---------- */
   const [fuse, setFuse] = useState<Fuse<IndexedProduct> | null>(null);
@@ -403,11 +361,7 @@ export default function HomePage() {
     setActiveCategory(null);
     setActiveSubcategory(null);
     try {
-      sessionStorage.removeItem("lastQuery");
-      sessionStorage.removeItem("lastCategory");
-      sessionStorage.removeItem("lastSubcategory");
-      sessionStorage.removeItem("lastSort");
-      sessionStorage.removeItem("visibleSearch");
+      sessionStorage.clear();
     } catch {}
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -442,20 +396,23 @@ export default function HomePage() {
     if (lastSort) setPriceSort(lastSort as "asc" | "desc");
   }, []);
 
-  useEffect(() => {
-    const lastScroll = sessionStorage.getItem("scrollY");
-    const lastVisibleHome = sessionStorage.getItem("visibleHome");
-    if (lastScroll) (window as any).__restoreScrollY = Number(lastScroll);
-    if (lastVisibleHome) setVisibleHome(Number(lastVisibleHome));
-  }, []);
+  useLayoutEffect(() => {
+    if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
+      const y = (window as any).__restoreScrollY;
+      delete (window as any).__restoreScrollY;
+      setTimeout(() => {
+        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+      }, 0);
+    }
+  }, [finalResults, visibleSearch]);
 
   useEffect(() => {
     function onScroll() {
       if (
         window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 &&
-        visibleHome < allProducts.length
+        visibleHome < 20
       ) {
-        setVisibleHome((v) => Math.min(v + 6, allProducts.length));
+        setVisibleHome((v) => Math.min(v + 6, 20));
       }
     }
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -545,119 +502,6 @@ export default function HomePage() {
       setIsTransitioning(true);
     }
   };
-
-   const filterTabs = [
-    { key: "forYou", label: "For You" },
-    { key: "popular", label: "Popular" },
-    { key: "new", label: "New" },
-    { key: "hot", label: "Hot" },              
-    { key: "flash", label: "Flash Sale" },
-    { key: "off20", label: "Flat 20% Off" },
-    { key: "off30", label: "Flat 30% Off" },
-  ];
-
-  const [activeTab, setActiveTab] = useState<string>("forYou");
-
-  useEffect(() => {
-    const saved = sessionStorage.getItem("activeTab");
-    if (saved) setActiveTab(saved);
-  }, []);
-  
-  // ✅ Restore products for each tab when navigating back
-  useEffect(() => {
-    const currentTab = sessionStorage.getItem("activeTab") || "forYou";
-    const cachedProducts = sessionStorage.getItem(`${currentTab}_products`);
-    if (cachedProducts) {
-      try {
-        setHomeProducts(JSON.parse(cachedProducts));
-      } catch {}
-    }
-  }, []);
-    
-  useEffect(() => {
-    sessionStorage.setItem("activeTab", activeTab);
-  }, [activeTab]);
-  
-  useEffect(() => {
-    const onScroll = () => {
-      try {
-        sessionStorage.setItem(`${activeTab}_scrollY`, String(window.scrollY));
-        sessionStorage.setItem(`${activeTab}_visible`, String(visibleHome));
-      } catch {}
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [activeTab, visibleHome]);
-  
-  // Restore scroll after navigation back (first load)
-useEffect(() => {
-  const currentTab = sessionStorage.getItem("activeTab") || "forYou";
-  const savedVisible = sessionStorage.getItem(`${currentTab}_visible`);
-  const savedScroll = sessionStorage.getItem(`${currentTab}_scrollY`);
-  if (savedVisible) setVisibleHome(Number(savedVisible));
-  if (savedScroll) {
-    setTimeout(() => {
-      window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
-    }, 0);
-  }
-}, []); // run only once on mount
-
-  const filteredProducts = useMemo(() => {
-    if (activeTab === "forYou") {
-      return homeProducts; // already cached + shuffled once
-    }
-  
-    // 👇 try sessionStorage first
-    if (typeof window !== "undefined") {
-      const cached = sessionStorage.getItem(`${activeTab}_products`);
-      if (cached) {
-        try {
-          return JSON.parse(cached) as IndexedProduct[];
-        } catch {}
-      }
-    }
-  
-    // 👇 otherwise build fresh, shuffle once, then cache
-    let base: IndexedProduct[] = [];
-    switch (activeTab) {
-      case "popular":
-        base = shuffledProducts.filter((p) => getProductTag(p) === "Popular");
-        break;
-      case "new":
-        base = shuffledProducts.filter((p) => !getProductTag(p));
-        break;
-      case "hot":
-        base = shuffledProducts.filter((p) => getProductTag(p) === "Hot");
-        break;
-      case "flash":
-        base = shuffledProducts.filter((p) => getProductTag(p) === "Sale");
-        break;
-      case "off20":
-        base = shuffledProducts.filter((p) => getProductTag(p) === "20% OFF");
-        break;
-      case "off30":
-        base = shuffledProducts.filter((p) => getProductTag(p) === "30% OFF");
-        break;
-      default:
-        base = [];
-    }
-  
-    const once = shuffle(base); // shuffle ONCE only
-    try {
-      sessionStorage.setItem(`${activeTab}_products`, JSON.stringify(once));
-    } catch {}
-    return once;
-  }, [activeTab, homeProducts, shuffledProducts]);
-
-    useLayoutEffect(() => {
-    if ((window as any).__restoreScrollY != null) {
-      const y = (window as any).__restoreScrollY;
-      delete (window as any).__restoreScrollY;
-      setTimeout(() => {
-        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
-      }, 0);
-    }
-  }, [finalResults, filteredProducts, visibleSearch, visibleHome]);
 
   /* ---------- Render ---------- */
   return (
@@ -872,8 +716,8 @@ useEffect(() => {
                 <button
                   key={i}
                   onClick={() => setCurrentSlide(i + 1)}
-                  className={`h-1.5 w-1.5 rounded-full transition ${
-                    currentSlide === i + 1 ? "bg-black scale-125" : "bg-gray-300"
+                  className={`h-2.5 w-2.5 rounded-full transition ${
+                    currentSlide === i + 1 ? "bg-indigo-600 scale-125" : "bg-gray-300"
                   }`}
                 />
               ))}
@@ -992,43 +836,21 @@ useEffect(() => {
           </>
             ) : (
             <section>
-              <div className="sticky top-[120px] z-20 w-screen -ml-[calc((100vw-100%)/2)] bg-white shadow-sm border-b border-gray-200">
-                <div className="max-w-7xl mx-auto">
-                  <div className="flex gap-3 overflow-x-auto px-3 py-2 scrollbar-hide justify-start md:justify-center">
-                  {filterTabs.map((tab) => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`flex-shrink-0 px-4 py-2 mt-2 rounded-full text-sm font-semibold transition
-                        ${
-                          activeTab === tab.key
-                            ? "bg-indigo-600 text-white shadow"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-  
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4 mb-4">
-              {(filteredProducts.length > 0 ? filteredProducts : homeProducts)
-                .slice(0, visibleHome)
-                .map((p, idx) => (
-                  <ProductCard
-                    key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
-                    p={p}
-                    href={productUrl(p)}
-                    onClick={() => {
-                      try {
-                        sessionStorage.setItem("scrollY", String(window.scrollY));
-                      } catch {}
-                    }}
-                    eager={idx < 4}
-                  />
-                ))}
+            <h1 className="text-xl font-semibold mt-6">🔥 Trending</h1>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4">
+              {homeProducts.slice(0, visibleHome).map((p, idx) => (
+                <ProductCard
+                  key={`${p.categorySlug}-${p.subcategorySlug}-${p.id}`}
+                  p={p}
+                  href={productUrl(p)}
+                  onClick={() => {
+                    try {
+                      sessionStorage.setItem("scrollY", String(window.scrollY));
+                    } catch {}
+                  }}
+                  eager={idx < 4}
+                />
+              ))}
             </div>
 
             {visibleHome >= 20 && visibleHome < homeProducts.length && (
