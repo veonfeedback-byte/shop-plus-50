@@ -898,15 +898,14 @@ export default function HomePage() {
             <section>
            
             {/* Trending Header */}
-            <div className="flex items-center gap-2 mt-6 w-fit px-5 py-2 rounded-2xl shadow-md
-                            bg-gradient-to-r from-gray-50 via-gray-100 to-gray-200
-                            border border-gray-300">
-              <Flame className="w-6 h-6 text-red-500 drop-shadow-sm" />
-              <span className="text-lg sm:text-xl font-extrabold tracking-wide text-gray-800 
-                               [text-shadow:_1px_1px_2px_rgb(0_0_0_/_15%)]">
-                Trending
-              </span>
-            </div>
+          <div className="flex items-center gap-2 mt-8 pl-0 pr-6 py-2 rounded-r-2xl shadow-sm
+                          bg-gradient-to-r from-gray-100 via-gray-50 to-transparent
+                          border-l-4 border-red-400">
+            <Flame className="w-5 h-5 text-red-500" />
+            <span className="text-base sm:text-lg font-medium text-gray-700 tracking-wide">
+              Trending
+            </span>
+          </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4">
               {homeProducts.slice(0, visibleHome).map((p, idx) => (
