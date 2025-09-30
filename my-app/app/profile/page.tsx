@@ -565,7 +565,7 @@ export default function Profile() {
                       </div>
                     </div>
                       
-                    {/* ✅ Image wrapped with Link only */}
+                    {/* Each item image links to its own product */}
                     <Link
                       href={`/shop/${item.category}/${item.subcategory}/${item.id}`}
                       onClick={(e) => e.stopPropagation()}
@@ -583,10 +583,10 @@ export default function Profile() {
                         </div>
                       )}
                     </Link>
-                  </div>
-                ))}
-              </div>
-                  
+
+                    </div>
+                  ))}
+                </div>  
                 {/* Order total */}
                 <div className="border-t pt-2 mt-2 text-sm font-bold text-gray-900">
                   Order total: Rs {grandTotal}
