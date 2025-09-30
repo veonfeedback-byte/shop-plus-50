@@ -59,7 +59,13 @@ function ProductCard({
   return (
     <Link
       href={href}
-      onClick={onClick}
+      onClick={() => {
+        try {
+          sessionStorage.setItem("homeScrollY", String(window.scrollY));
+          sessionStorage.setItem("visibleHome", String(visibleHome));
+        } catch {}
+        if (onClick) onClick();
+      }}
       className="group block bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
     >
       {/* Image */}
@@ -383,6 +389,9 @@ export default function HomePage() {
     const lastCat = sessionStorage.getItem("lastCategory");
     const lastSub = sessionStorage.getItem("lastSubcategory");
     const lastSort = sessionStorage.getItem("lastSort");
+    // ✅ Restore home-specific state
+    const lastHomeScroll = sessionStorage.getItem("homeScrollY");
+    const lastHomeVisible = sessionStorage.getItem("visibleHome");
 
     if (lastQ) {
       setQuery(lastQ);
@@ -394,6 +403,9 @@ export default function HomePage() {
     if (lastCat) setActiveCategory(lastCat);
     if (lastSub) setActiveSubcategory(lastSub);
     if (lastSort) setPriceSort(lastSort as "asc" | "desc");
+    if (!lastQ && lastHomeVisible) setVisibleHome(Number(lastHomeVisible));
+    if (!lastQ && lastHomeScroll) (window as any).__restoreHomeScrollY = Number(lastHomeScroll);
+
   }, []);
 
   useLayoutEffect(() => {
@@ -405,6 +417,18 @@ export default function HomePage() {
       }, 0);
     }
   }, [finalResults, visibleSearch]);
+
+   // ✅ Restore scroll for Home products
+  useLayoutEffect(() => {
+    if ((window as any).__restoreHomeScrollY != null && homeProducts.length > 0) {
+      const y = (window as any).__restoreHomeScrollY;
+      delete (window as any).__restoreHomeScrollY;
+      setTimeout(() => {
+        window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+      }, 0);
+    }
+  }, [homeProducts, visibleHome]);
+
 
   useEffect(() => {
     function onScroll() {
@@ -418,6 +442,23 @@ export default function HomePage() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
     }, [visibleHome]);  
+
+    // ✅ Save scroll & visibleHome for Home products
+  useEffect(() => {
+    const saveState = () => {
+      try {
+        sessionStorage.setItem("homeScrollY", String(window.scrollY));
+        sessionStorage.setItem("visibleHome", String(visibleHome));
+      } catch {}
+    };
+    window.addEventListener("beforeunload", saveState);
+    window.addEventListener("pagehide", saveState);
+    return () => {
+      window.removeEventListener("beforeunload", saveState);
+      window.removeEventListener("pagehide", saveState);
+    };
+  }, [visibleHome]);
+
   
     const [currentSlide, setCurrentSlide] = useState(1); // start at first "real" slide
     const [isTransitioning, setIsTransitioning] = useState(true);
