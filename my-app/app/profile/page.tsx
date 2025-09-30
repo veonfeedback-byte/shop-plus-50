@@ -567,22 +567,26 @@ export default function Profile() {
                       
                     {/* Each item image links to its own product */}
                     <Link
-                      href={`/shop/${item.category}/${item.subcategory}/${item.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0"
-                    >
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="text-xs text-gray-400 flex items-center justify-center h-full">
-                          No Image
-                        </div>
-                      )}
-                    </Link>
+                    href={
+                      item.category && item.subcategory
+                        ? `/shop/${item.category}/${item.subcategory}/${item.id}`
+                        : `/shop/product/${item.id}` // fallback route
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-20 h-20 rounded-lg border bg-gray-50 overflow-hidden flex-shrink-0"
+                  >
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-xs text-gray-400 flex items-center justify-center h-full">
+                        No Image
+                      </div>
+                    )}
+                  </Link>
 
                     </div>
                   ))}
