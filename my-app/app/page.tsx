@@ -14,7 +14,7 @@ import Head from "next/head";
 import Fuse from "fuse.js";
 import Catalog, { Product } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
-import { ArrowLeft, Search, Truck, Tag, ShoppingBag, Flame, CreditCard } from "lucide-react";
+import { ArrowLeft, ArrowDown, Search, Truck, Tag, ShoppingBag, Flame, CreditCard } from "lucide-react";
 
 /* ----------------- types ----------------- */
 type IndexedProduct = Product & {
@@ -97,22 +97,46 @@ function ProductCard({
           {p.title}
         </h3>
 
-        <div className="mt-1 flex items-center gap-2">
-          {discountMatch ? (
-            <>
-              <span className="text-xs text-gray-400 line-through">
-                Rs {inflated}
-              </span>
-              <span className="text-base font-bold text-gray-900">
-                Rs {p.price}
-              </span>
-            </>
-          ) : (
+        <div className="mt-1 flex flex-col gap-1">
+        {tag?.toLowerCase() === "sale" ? (
+          <>
+            {/* Inflated old price */}
+            <span className="text-sm text-gray-400 line-through">
+              Rs {Math.round(Number(p.price) * 1.4)}
+            </span>
+      
+            {/* Actual price */}
             <span className="text-base font-bold text-gray-900">
               Rs {p.price}
             </span>
-          )}
-        </div>
+      
+            {/* Price drop row */}
+            <div className="flex items-center gap-2">
+              <span className="flex items-center text-sm font-medium text-blue-600">
+                <ArrowDown className="w-4 h-4 mr-1" />
+                Price drop
+              </span>
+              <span className="text-sm font-semibold text-red-600">
+                Save Rs {Math.round(Number(p.price) * 1.4) - Number(p.price)}
+              </span>
+            </div>
+          </>
+        ) : discountMatch ? (
+          <>
+            <span className="text-xs text-gray-400 line-through">
+              Rs {inflated}
+            </span>
+            <span className="text-base font-bold text-gray-900">
+              Rs {p.price}
+            </span>
+          </>
+        ) : (
+          <span className="text-base font-bold text-gray-900">
+            Rs {p.price}
+          </span>
+        )}
+      </div>
+        
       </div>
     </Link>
   );
