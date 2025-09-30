@@ -757,8 +757,8 @@ export default function HomePage() {
                 <button
                   key={i}
                   onClick={() => setCurrentSlide(i + 1)}
-                  className={`h-2.5 w-2.5 rounded-full transition ${
-                    currentSlide === i + 1 ? "bg-indigo-600 scale-125" : "bg-gray-300"
+                  className={`h-1.5 w-1.5 rounded-full transition ${
+                    currentSlide === i + 1 ? "bg-black scale-125" : "bg-gray-300"
                   }`}
                 />
               ))}
