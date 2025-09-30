@@ -97,40 +97,45 @@ function ProductCard({
           {p.title}
         </h3>
 
+      
         <div className="mt-1 flex flex-col gap-1">
-        {tag?.toLowerCase() === "sale" ? (
-          <>
-            {/* Inflated old price */}
-            <span className="text-sm text-gray-400 line-through">
-              Rs {Math.round(Number(p.price) * 1.4)}
-            </span>
-      
-            {/* Actual price */}
+          {tag?.toLowerCase() === "sale" ? (
+            <>
+              {/* Inflated old price */}
+              <span className="text-sm text-gray-400 line-through">
+                Rs {Math.round(Number(p.price) * 1.4)}
+              </span>
+        
+              {/* Actual price */}
+              <span className="text-base font-bold text-gray-900">
+                Rs {p.price}
+              </span>
+        
+              {/* Price drop tag (styled like screenshot) */}
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-600 rounded-md w-fit">
+                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-600 text-white">
+                  <ArrowDown className="w-3 h-3" />
+                </span>
+                <span className="text-xs font-medium text-blue-600">
+                  Price Drop
+                </span>
+              </div>
+            </>
+          ) : discountMatch ? (
+            <>
+              <span className="text-xs text-gray-400 line-through">
+                Rs {inflated}
+              </span>
+              <span className="text-base font-bold text-gray-900">
+                Rs {p.price}
+              </span>
+            </>
+          ) : (
             <span className="text-base font-bold text-gray-900">
               Rs {p.price}
             </span>
-      
-            {/* Price drop tag */}
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-600 text-white">
-              <ArrowDown className="w-3 h-3" />
-              Price drop
-            </span>
-          </>
-        ) : discountMatch ? (
-          <>
-            <span className="text-xs text-gray-400 line-through">
-              Rs {inflated}
-            </span>
-            <span className="text-base font-bold text-gray-900">
-              Rs {p.price}
-            </span>
-          </>
-        ) : (
-          <span className="text-base font-bold text-gray-900">
-            Rs {p.price}
-          </span>
-        )}
-      </div>
+          )}
+        </div>
 
         
       </div>
