@@ -179,7 +179,7 @@ export default function HomePage() {
   const [searchFocused, setSearchFocused] = useState(false);
 
   const [bestSuggestion, setBestSuggestion] = useState<string | null>(null);
-
+  const MAX_HOME = allProducts.length; // allow loading all
 
   useEffect(() => {
     const hydrate = () => {
@@ -429,19 +429,18 @@ export default function HomePage() {
     }
   }, [homeProducts, visibleHome]);
 
-
   useEffect(() => {
     function onScroll() {
       if (
         window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 &&
-        visibleHome < 20
+        visibleHome < MAX_HOME
       ) {
-        setVisibleHome((v) => Math.min(v + 6, 20));
+        setVisibleHome((v) => Math.min(v + 20, MAX_HOME));
       }
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-    }, [visibleHome]);  
+  }, [visibleHome, MAX_HOME]);
 
     // ✅ Save scroll & visibleHome for Home products
   useEffect(() => {
