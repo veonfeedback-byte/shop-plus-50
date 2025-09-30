@@ -66,16 +66,10 @@ function ProductCard({
       href={href}
       onClick={() => {
         try {
-          if (sessionStorage.getItem("lastQuery")) {
-            // ✅ User is in search mode
-            sessionStorage.setItem("search_scrollY", String(window.scrollY));
-            sessionStorage.setItem("search_visible", String(window.__visibleSearch ?? 10));
-          } else {
-            // ✅ Normal tabs mode
-            const currentTab = sessionStorage.getItem("activeTab") || "forYou";
-            sessionStorage.setItem(`${currentTab}_scrollY`, String(window.scrollY));
-            sessionStorage.setItem(`${currentTab}_visible`, String(window.__visibleHome ?? 20));
-          }
+          const currentTab = sessionStorage.getItem("activeTab") || "forYou";
+          sessionStorage.setItem(`${currentTab}_scrollY`, String(window.scrollY));
+          // ✅ use actual visibleHome instead of hardcoded 20
+          sessionStorage.setItem(`${currentTab}_visible`, String(window.__visibleHome ?? 20));
         } catch {}
         onClick?.();
       }}
@@ -594,46 +588,19 @@ export default function HomePage() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [activeTab, visibleHome]);
-
-  useEffect(() => {
-    const onScroll = () => {
-      if (sessionStorage.getItem("lastQuery")) {
-        try {
-          sessionStorage.setItem("search_scrollY", String(window.scrollY));
-          sessionStorage.setItem("search_visible", String(visibleSearch));
-        } catch {}
-      }
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [visibleSearch]);
   
   // Restore scroll after navigation back (first load)
-  useEffect(() => {
-    if (sessionStorage.getItem("lastQuery")) {
-      // ✅ Restore search mode
-      const savedVisible = sessionStorage.getItem("search_visible");
-      const savedScroll = sessionStorage.getItem("search_scrollY");
-      if (savedVisible) setVisibleSearch(Number(savedVisible));
-      if (savedScroll) {
-        setTimeout(() => {
-          window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
-        }, 0);
-      }
-    } else {
-      // ✅ Restore tab mode
-      const currentTab = sessionStorage.getItem("activeTab") || "forYou";
-      const savedVisible = sessionStorage.getItem(`${currentTab}_visible`);
-      const savedScroll = sessionStorage.getItem(`${currentTab}_scrollY`);
-      if (savedVisible) setVisibleHome(Number(savedVisible));
-      if (savedScroll) {
-        setTimeout(() => {
-          window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
-        }, 0);
-      }
-    }
-  }, []);
-
+useEffect(() => {
+  const currentTab = sessionStorage.getItem("activeTab") || "forYou";
+  const savedVisible = sessionStorage.getItem(`${currentTab}_visible`);
+  const savedScroll = sessionStorage.getItem(`${currentTab}_scrollY`);
+  if (savedVisible) setVisibleHome(Number(savedVisible));
+  if (savedScroll) {
+    setTimeout(() => {
+      window.scrollTo({ top: Number(savedScroll), behavior: "instant" as ScrollBehavior });
+    }, 0);
+  }
+}, []); // run only once on mount
 
   const filteredProducts = useMemo(() => {
     if (activeTab === "forYou") {
