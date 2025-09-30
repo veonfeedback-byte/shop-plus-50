@@ -110,16 +110,11 @@ function ProductCard({
               Rs {p.price}
             </span>
       
-            {/* Price drop row */}
-            <div className="flex items-center gap-2">
-              <span className="flex items-center text-sm font-medium text-blue-600">
-                <ArrowDown className="w-4 h-4 mr-1" />
-                Price drop
-              </span>
-              <span className="text-sm font-semibold text-red-600">
-                Save Rs {Math.round(Number(p.price) * 1.4) - Number(p.price)}
-              </span>
-            </div>
+            {/* Price drop tag */}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-600 text-white">
+              <ArrowDown className="w-3 h-3" />
+              Price drop
+            </span>
           </>
         ) : discountMatch ? (
           <>
@@ -136,6 +131,7 @@ function ProductCard({
           </span>
         )}
       </div>
+
         
       </div>
     </Link>
