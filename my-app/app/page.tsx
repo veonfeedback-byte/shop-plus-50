@@ -923,64 +923,63 @@ export default function HomePage() {
             ) : (
             <section>
 
-              {/* Explore More Header */}
-              <div className="flex items-center gap-2 mt-8 w-1/2 pl-3 pr-6 py-2 rounded-r-2xl shadow-sm
-                              bg-gradient-to-r from-gray-200 via-gray-100 to-gray-50
-                              border-l-4 border-yellow-400">
-                <Tag className="w-5 h-5 text-yellow-500" />
-                <span className="text-base sm:text-lg font-medium text-gray-700 tracking-wide">
-                  Explore More
-                </span>
+            {/* Explore More Header */}
+            <div className="flex items-center gap-2 mt-8 w-max pl-4 pr-6 py-2 rounded-r-2xl shadow-sm
+                            bg-gradient-to-r from-yellow-100 via-yellow-50 to-white
+                            border-l-4 border-yellow-400">
+              <Tag className="w-5 h-5 text-yellow-500" />
+              <span className="text-base sm:text-lg font-medium text-gray-700 tracking-wide">
+                Explore More
+              </span>
+            </div>
+            
+            {/* Explore More Slider Section */}
+            <div className="mt-4 rounded-2xl bg-gradient-to-r from-gray-50 via-white to-gray-50 py-4 px-2 shadow-inner">
+              <div className="flex gap-3 overflow-x-auto no-scrollbar px-2">
+                {cachedCategories.map((cat, idx) => {
+                  const catConfig = categoryIcons[cat.name];
+                  const Icon = catConfig?.icon ?? Tag;
+            
+                  // pastel card backgrounds
+                  const pastelColors = [
+                    "bg-[#FFF8E7]", // light cream
+                    "bg-[#FFF3E0]", // soft peach
+                    "bg-[#FDF6EC]", // warm ivory
+                    "bg-[#FAF3E3]", // almond beige
+                    "bg-[#FFF5E1]", // vanilla
+                    "bg-[#FBF7F0]", // off white
+                  ];
+                  const bg = pastelColors[idx % pastelColors.length];
+            
+                  return (
+                    <button
+                      key={cat.slug}
+                      onClick={() => {
+                        setQuery(cat.name);
+                        setDebouncedQuery(cat.name.toLowerCase());
+                        setActiveCategory(cat.slug);
+                        setActiveSubcategory(null);
+                        setSearchTriggered(true);
+                        setShowBackButton(true);
+                        try {
+                          sessionStorage.setItem("lastCategory", cat.slug);
+                          sessionStorage.setItem("lastQuery", cat.name);
+                        } catch {}
+                      }}
+                      className={`flex flex-col items-center justify-center w-24 h-24 rounded-xl ${bg}
+                                 hover:shadow-md transition-all duration-200 flex-shrink-0`}
+                    >
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/70 shadow-sm mb-2">
+                        <Icon className="w-5 h-5 text-gray-700" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-700 text-center leading-tight">
+                        {cat.name}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              
-              {/* Explore More Slider */}
-              <div className="mt-4 overflow-x-auto no-scrollbar">
-                <div className="flex flex-wrap gap-3 w-max">
-                  {cachedCategories.map((cat, idx) => {
-                    const catConfig = categoryIcons[cat.name];
-                    const Icon = catConfig?.icon ?? Tag;
-                    const gradient = catConfig?.gradient ?? "from-gray-400 to-gray-600";
-                  
-                    // creamy pastel background palette
-                    const bgColors = [
-                      "bg-[#FFF8E7]", // light cream
-                      "bg-[#FFF3E0]", // soft peach
-                      "bg-[#FDF6EC]", // warm ivory
-                      "bg-[#FAF3E3]", // almond beige
-                      "bg-[#FFF5E1]", // vanilla
-                      "bg-[#FBF7F0]", // off white
-                    ];
-                    const bg = bgColors[idx % bgColors.length];
-                  
-                    return (
-                      <button
-                        key={cat.slug}
-                        onClick={() => {
-                          setQuery(cat.name);
-                          setDebouncedQuery(cat.name.toLowerCase());
-                          setActiveCategory(cat.slug);
-                          setActiveSubcategory(null);
-                          setSearchTriggered(true);
-                          setShowBackButton(true);
-                          try {
-                            sessionStorage.setItem("lastCategory", cat.slug);
-                            sessionStorage.setItem("lastQuery", cat.name);
-                          } catch {}
-                        }}
-                        className={`flex flex-col items-center justify-center w-28 h-24 rounded-2xl shadow-sm ${bg}
-                                   hover:shadow-md transition`}
-                      >
-                        <div className="mb-2">
-                          <Icon className={`w-6 h-6 text-gray-700`} />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700 text-center">
-                          {cat.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            </div>
            
             {/* Trending Header */}
             <div className="flex items-center gap-2 mt-8 w-1/2 pl-3 pr-6 py-2 rounded-r-2xl shadow-sm
