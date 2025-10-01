@@ -940,17 +940,38 @@ export default function HomePage() {
                   const catConfig = categoryIcons[cat.name];
                   const Icon = catConfig?.icon ?? Tag;
             
-                  // darker premium background palette
+                  // 28 premium solid colors (similar to screenshot)
                   const premiumColors = [
-                    "bg-pink-300",   // Women Corner
-                    "bg-red-400",    // Men’s Fashion
-                    "bg-blue-400",   // Kids & Mother
-                    "bg-purple-400", // DripWear
-                    "bg-orange-400", // Beauty & Care
-                    "bg-yellow-400", // Home & Living
-                    "bg-green-400",  // Tech & Tools
-                    "bg-rose-400",   // China
+                    "bg-pink-300",     // 1
+                    "bg-red-300",      // 2
+                    "bg-orange-300",   // 3
+                    "bg-amber-300",    // 4
+                    "bg-yellow-300",   // 5
+                    "bg-lime-300",     // 6
+                    "bg-green-300",    // 7
+                    "bg-emerald-300",  // 8
+                    "bg-teal-300",     // 9
+                    "bg-cyan-300",     // 10
+                    "bg-sky-300",      // 11
+                    "bg-blue-300",     // 12
+                    "bg-indigo-300",   // 13
+                    "bg-violet-300",   // 14
+                    "bg-purple-300",   // 15
+                    "bg-fuchsia-300",  // 16
+                    "bg-rose-300",     // 17
+                    "bg-pink-400",     // 18
+                    "bg-red-400",      // 19
+                    "bg-orange-400",   // 20
+                    "bg-amber-400",    // 21
+                    "bg-yellow-400",   // 22
+                    "bg-lime-400",     // 23
+                    "bg-green-400",    // 24
+                    "bg-emerald-400",  // 25
+                    "bg-cyan-400",     // 26
+                    "bg-sky-400",      // 27
+                    "bg-violet-400",   // 28
                   ];
+            
                   const bg = premiumColors[idx % premiumColors.length];
             
                   return (
@@ -971,9 +992,9 @@ export default function HomePage() {
                       className={`flex flex-col items-center justify-center w-24 h-24 rounded-2xl shadow-md hover:shadow-lg transition ${bg}`}
                     >
                       <div className="mb-2">
-                        <Icon className="w-7 h-7 text-white" />
+                        <Icon className="w-7 h-7 text-gray-800" />
                       </div>
-                      <span className="text-xs font-semibold text-white text-center">
+                      <span className="text-xs font-semibold text-gray-800 text-center">
                         {cat.name}
                       </span>
                     </button>
@@ -981,6 +1002,7 @@ export default function HomePage() {
                 })}
               </div>
             </div>
+
             
            
             {/* Trending Header */}
