@@ -937,10 +937,11 @@ export default function HomePage() {
               <div className="mt-4 overflow-x-auto no-scrollbar">
                 <div className="flex flex-wrap gap-3 w-max">
                   {cachedCategories.map((cat, idx) => {
-                    // 🔹 get icon from your imported mapping
-                    const Icon = categoryIcons[cat.name] ?? Tag;
-              
-                    // 🔹 creamy pastel background palette
+                    const catConfig = categoryIcons[cat.name];
+                    const Icon = catConfig?.icon ?? Tag;
+                    const gradient = catConfig?.gradient ?? "from-gray-400 to-gray-600";
+                  
+                    // creamy pastel background palette
                     const bgColors = [
                       "bg-[#FFF8E7]", // light cream
                       "bg-[#FFF3E0]", // soft peach
@@ -950,7 +951,7 @@ export default function HomePage() {
                       "bg-[#FBF7F0]", // off white
                     ];
                     const bg = bgColors[idx % bgColors.length];
-              
+                  
                     return (
                       <button
                         key={cat.slug}
@@ -970,7 +971,7 @@ export default function HomePage() {
                                    hover:shadow-md transition`}
                       >
                         <div className="mb-2">
-                          <Icon className="w-6 h-6 text-gray-700" />
+                          <Icon className={`w-6 h-6 text-gray-700`} />
                         </div>
                         <span className="text-sm font-medium text-gray-700 text-center">
                           {cat.name}
