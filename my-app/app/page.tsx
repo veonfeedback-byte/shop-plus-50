@@ -933,21 +933,23 @@ export default function HomePage() {
               </span>
             </div>
             
-            {/* Explore More Slider Section */}
-            <div className="mt-4 rounded-2xl bg-gradient-to-r from-gray-50 via-white to-gray-50 py-4 px-2 shadow-inner">
-              <div className="flex gap-3 overflow-x-auto no-scrollbar px-2">
+            {/* Explore More Slider */}
+            <div className="mt-4 overflow-x-auto no-scrollbar">
+              <div className="flex space-x-4 px-2 w-max">
                 {cachedCategories.map((cat, idx) => {
                   const catConfig = categoryIcons[cat.name];
                   const Icon = catConfig?.icon ?? Tag;
             
-                  // pastel card backgrounds
+                  // pastel background colors like in screenshot
                   const pastelColors = [
-                    "bg-[#FFF8E7]", // light cream
-                    "bg-[#FFF3E0]", // soft peach
-                    "bg-[#FDF6EC]", // warm ivory
-                    "bg-[#FAF3E3]", // almond beige
-                    "bg-[#FFF5E1]", // vanilla
-                    "bg-[#FBF7F0]", // off white
+                    "bg-pink-100",   // Women Corner
+                    "bg-red-100",    // Men’s Fashion
+                    "bg-blue-100",   // Kids & Mother
+                    "bg-purple-100", // DripWear
+                    "bg-orange-100", // Beauty & Care
+                    "bg-yellow-100", // Home & Living
+                    "bg-green-100",  // Tech & Tools
+                    "bg-rose-100",   // China
                   ];
                   const bg = pastelColors[idx % pastelColors.length];
             
@@ -966,13 +968,12 @@ export default function HomePage() {
                           sessionStorage.setItem("lastQuery", cat.name);
                         } catch {}
                       }}
-                      className={`flex flex-col items-center justify-center w-24 h-24 rounded-xl ${bg}
-                                 hover:shadow-md transition-all duration-200 flex-shrink-0`}
+                      className={`flex flex-col items-center justify-center w-24 h-24 rounded-xl ${bg}`}
                     >
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/70 shadow-sm mb-2">
-                        <Icon className="w-5 h-5 text-gray-700" />
+                      <div className="mb-2">
+                        <Icon className="w-7 h-7 text-gray-700" />
                       </div>
-                      <span className="text-xs font-medium text-gray-700 text-center leading-tight">
+                      <span className="text-xs font-medium text-gray-700 text-center">
                         {cat.name}
                       </span>
                     </button>
