@@ -934,77 +934,79 @@ export default function HomePage() {
             </div>
 
            {/* Explore More Slider */}
-          <div className="mt-4 overflow-x-auto scrollbar-hide">
-            <div className="flex space-x-4 px-2 w-max">
-              {cachedCategories.map((cat, idx) => {
-                const catConfig = categoryIcons[cat.name];
-                const Icon = catConfig?.icon ?? Tag;
-          
-                // background + matching darker icon color palette
-                const premiumColors = [
-                  { bg: "bg-pink-300", icon: "text-pink-700" },
-                  { bg: "bg-red-300", icon: "text-red-700" },
-                  { bg: "bg-orange-300", icon: "text-orange-700" },
-                  { bg: "bg-amber-300", icon: "text-amber-700" },
-                  { bg: "bg-yellow-300", icon: "text-yellow-700" },
-                  { bg: "bg-lime-300", icon: "text-lime-700" },
-                  { bg: "bg-green-300", icon: "text-green-700" },
-                  { bg: "bg-emerald-300", icon: "text-emerald-700" },
-                  { bg: "bg-teal-300", icon: "text-teal-700" },
-                  { bg: "bg-cyan-300", icon: "text-cyan-700" },
-                  { bg: "bg-sky-300", icon: "text-sky-700" },
-                  { bg: "bg-blue-300", icon: "text-blue-700" },
-                  { bg: "bg-indigo-300", icon: "text-indigo-700" },
-                  { bg: "bg-violet-300", icon: "text-violet-700" },
-                  { bg: "bg-purple-300", icon: "text-purple-700" },
-                  { bg: "bg-fuchsia-300", icon: "text-fuchsia-700" },
-                  { bg: "bg-rose-300", icon: "text-rose-700" },
-                  { bg: "bg-pink-400", icon: "text-pink-800" },
-                  { bg: "bg-red-400", icon: "text-red-800" },
-                  { bg: "bg-orange-400", icon: "text-orange-800" },
-                  { bg: "bg-amber-400", icon: "text-amber-800" },
-                  { bg: "bg-yellow-400", icon: "text-yellow-800" },
-                  { bg: "bg-lime-400", icon: "text-lime-800" },
-                  { bg: "bg-green-400", icon: "text-green-800" },
-                  { bg: "bg-emerald-400", icon: "text-emerald-800" },
-                  { bg: "bg-cyan-400", icon: "text-cyan-800" },
-                  { bg: "bg-sky-400", icon: "text-sky-800" },
-                  { bg: "bg-violet-400", icon: "text-violet-800" },
-                ];
-          
-                const { bg, icon } = premiumColors[idx % premiumColors.length];
-          
-                return (
-                  <div key={cat.slug} className="flex flex-col items-center">
-                    {/* card with icon */}
-                    <button
-                      onClick={() => {
-                        setQuery(cat.name);
-                        setDebouncedQuery(cat.name.toLowerCase());
-                        setActiveCategory(cat.slug);
-                        setActiveSubcategory(null);
-                        setSearchTriggered(true);
-                        setShowBackButton(true);
-                        try {
-                          sessionStorage.setItem("lastCategory", cat.slug);
-                          sessionStorage.setItem("lastQuery", cat.name);
-                        } catch {}
-                      }}
-                      className={`flex items-center justify-center w-20 h-20 rounded-2xl shadow-sm hover:shadow-md transition ${bg}`}
-                    >
-                      <Icon className={`w-8 h-8 ${icon}`} />
-                    </button>
-          
-                    {/* text below card */}
-                    <span className="mt-2 text-sm font-medium text-black text-center">
-                      {cat.name}
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="mt-4 overflow-x-auto scrollbar-hide">
+              <div className="flex space-x-4 px-2 w-max">
+                {cachedCategories.map((cat, idx) => {
+                  const catConfig = categoryIcons[cat.name];
+                  const Icon = catConfig?.icon ?? Tag;
+            
+                  // background + matching darker icon color palette
+                  const premiumColors = [
+                    { bg: "bg-pink-300", icon: "text-pink-700" },
+                    { bg: "bg-red-300", icon: "text-red-700" },
+                    { bg: "bg-orange-300", icon: "text-orange-700" },
+                    { bg: "bg-amber-300", icon: "text-amber-700" },
+                    { bg: "bg-yellow-300", icon: "text-yellow-700" },
+                    { bg: "bg-lime-300", icon: "text-lime-700" },
+                    { bg: "bg-green-300", icon: "text-green-700" },
+                    { bg: "bg-emerald-300", icon: "text-emerald-700" },
+                    { bg: "bg-teal-300", icon: "text-teal-700" },
+                    { bg: "bg-cyan-300", icon: "text-cyan-700" },
+                    { bg: "bg-sky-300", icon: "text-sky-700" },
+                    { bg: "bg-blue-300", icon: "text-blue-700" },
+                    { bg: "bg-indigo-300", icon: "text-indigo-700" },
+                    { bg: "bg-violet-300", icon: "text-violet-700" },
+                    { bg: "bg-purple-300", icon: "text-purple-700" },
+                    { bg: "bg-fuchsia-300", icon: "text-fuchsia-700" },
+                    { bg: "bg-rose-300", icon: "text-rose-700" },
+                    { bg: "bg-pink-400", icon: "text-pink-800" },
+                    { bg: "bg-red-400", icon: "text-red-800" },
+                    { bg: "bg-orange-400", icon: "text-orange-800" },
+                    { bg: "bg-amber-400", icon: "text-amber-800" },
+                    { bg: "bg-yellow-400", icon: "text-yellow-800" },
+                    { bg: "bg-lime-400", icon: "text-lime-800" },
+                    { bg: "bg-green-400", icon: "text-green-800" },
+                    { bg: "bg-emerald-400", icon: "text-emerald-800" },
+                    { bg: "bg-cyan-400", icon: "text-cyan-800" },
+                    { bg: "bg-sky-400", icon: "text-sky-800" },
+                    { bg: "bg-violet-400", icon: "text-violet-800" },
+                  ];
+            
+                  const { bg, icon } = premiumColors[idx % premiumColors.length];
+            
+                  return (
+                    <div key={cat.slug} className="flex flex-col items-center w-20">
+                      {/* card with icon */}
+                      <button
+                        onClick={() => {
+                          setQuery(cat.name);
+                          setDebouncedQuery(cat.name.toLowerCase());
+                          setActiveCategory(cat.slug);
+                          setActiveSubcategory(null);
+                          setSearchTriggered(true);
+                          setShowBackButton(true);
+                          try {
+                            sessionStorage.setItem("lastCategory", cat.slug);
+                            sessionStorage.setItem("lastQuery", cat.name);
+                          } catch {}
+                        }}
+                        className={`flex items-center justify-center w-20 h-20 rounded-2xl shadow-sm hover:shadow-md transition ${bg}`}
+                      >
+                        <Icon className={`w-8 h-8 ${icon}`} />
+                      </button>
+            
+                      {/* text below card */}
+                      <span
+                        className="mt-2 text-xs font-medium text-black text-center leading-tight w-full truncate"
+                        title={cat.name} // tooltip shows full name
+                      >
+                        {cat.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-
            
             {/* Trending Header */}
             <div className="flex items-center gap-2 mt-8 w-1/2 pl-3 pr-6 py-2 rounded-r-2xl shadow-sm
