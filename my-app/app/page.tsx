@@ -921,6 +921,58 @@ export default function HomePage() {
           </>
             ) : (
             <section>
+
+              {/* Explore More Header */}
+              <div className="flex items-center gap-2 mt-8 w-1/2 pl-3 pr-6 py-2 rounded-r-2xl shadow-sm
+                              bg-gradient-to-r from-gray-200 via-gray-100 to-gray-50
+                              border-l-4 border-yellow-400">
+                <Tag className="w-5 h-5 text-yellow-500" />
+                <span className="text-base sm:text-lg font-medium text-gray-700 tracking-wide">
+                  Explore More
+                </span>
+              </div>
+              
+              {/* Explore More Slider */}
+              <div className="mt-4 overflow-x-auto no-scrollbar">
+                <div className="flex flex-wrap gap-3 w-max">
+                  {cachedCategories.map((cat) => {
+                    // 🔹 Map category name to Lucide icon (you can expand mapping)
+                    const iconMap: Record<string, JSX.Element> = {
+                      "Women": <ShoppingBag className="w-6 h-6 text-pink-500" />,
+                      "Men": <Tag className="w-6 h-6 text-blue-500" />,
+                      "Kids": <Truck className="w-6 h-6 text-yellow-500" />,
+                      "Beauty": <Flame className="w-6 h-6 text-purple-500" />,
+                      "Home": <CreditCard className="w-6 h-6 text-green-500" />,
+                    };
+                    const icon = iconMap[cat.name] ?? <Tag className="w-6 h-6 text-gray-500" />;
+              
+                    return (
+                      <button
+                        key={cat.slug}
+                        onClick={() => {
+                          setQuery(cat.name);
+                          setDebouncedQuery(cat.name.toLowerCase());
+                          setActiveCategory(cat.slug);
+                          setActiveSubcategory(null);
+                          setSearchTriggered(true);
+                          setShowBackButton(true);
+                          try {
+                            sessionStorage.setItem("lastCategory", cat.slug);
+                            sessionStorage.setItem("lastQuery", cat.name);
+                          } catch {}
+                        }}
+                        className="flex flex-col items-center justify-center w-28 h-24 rounded-2xl shadow-sm
+                                   bg-gradient-to-br from-gray-50 to-gray-100 hover:shadow-md transition"
+                      >
+                        <div className="mb-2">{icon}</div>
+                        <span className="text-sm font-medium text-gray-700 text-center">
+                          {cat.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
            
             {/* Trending Header */}
             <div className="flex items-center gap-2 mt-8 w-1/2 pl-3 pr-6 py-2 rounded-r-2xl shadow-sm
