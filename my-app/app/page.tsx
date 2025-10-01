@@ -934,24 +934,24 @@ export default function HomePage() {
             </div>
             
             {/* Explore More Slider */}
-            <div className="mt-4 overflow-x-auto scrollbar-hidden">
+            <div className="mt-4 overflow-x-auto scrollbar-hide">
               <div className="flex space-x-4 px-2 w-max">
                 {cachedCategories.map((cat, idx) => {
                   const catConfig = categoryIcons[cat.name];
                   const Icon = catConfig?.icon ?? Tag;
             
-                  // pastel background colors like in screenshot
-                  const pastelColors = [
-                    "bg-pink-100",   // Women Corner
-                    "bg-red-100",    // Men’s Fashion
-                    "bg-blue-100",   // Kids & Mother
-                    "bg-purple-100", // DripWear
-                    "bg-orange-100", // Beauty & Care
-                    "bg-yellow-100", // Home & Living
-                    "bg-green-100",  // Tech & Tools
-                    "bg-rose-100",   // China
+                  // darker premium background palette
+                  const premiumColors = [
+                    "bg-pink-300",   // Women Corner
+                    "bg-red-400",    // Men’s Fashion
+                    "bg-blue-400",   // Kids & Mother
+                    "bg-purple-400", // DripWear
+                    "bg-orange-400", // Beauty & Care
+                    "bg-yellow-400", // Home & Living
+                    "bg-green-400",  // Tech & Tools
+                    "bg-rose-400",   // China
                   ];
-                  const bg = pastelColors[idx % pastelColors.length];
+                  const bg = premiumColors[idx % premiumColors.length];
             
                   return (
                     <button
@@ -968,12 +968,12 @@ export default function HomePage() {
                           sessionStorage.setItem("lastQuery", cat.name);
                         } catch {}
                       }}
-                      className={`flex flex-col items-center justify-center w-24 h-24 rounded-xl ${bg}`}
+                      className={`flex flex-col items-center justify-center w-24 h-24 rounded-2xl shadow-md hover:shadow-lg transition ${bg}`}
                     >
                       <div className="mb-2">
-                        <Icon className="w-7 h-7 text-gray-700" />
+                        <Icon className="w-7 h-7 text-white" />
                       </div>
-                      <span className="text-xs font-medium text-gray-700 text-center">
+                      <span className="text-xs font-semibold text-white text-center">
                         {cat.name}
                       </span>
                     </button>
@@ -981,6 +981,7 @@ export default function HomePage() {
                 })}
               </div>
             </div>
+            
            
             {/* Trending Header */}
             <div className="flex items-center gap-2 mt-8 w-1/2 pl-3 pr-6 py-2 rounded-r-2xl shadow-sm
