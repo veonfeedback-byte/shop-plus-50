@@ -14,6 +14,7 @@ import Head from "next/head";
 import Fuse from "fuse.js";
 import Catalog, { Product } from "./lib/catalog";
 import { HomeContext } from "./lib/HomeContext";
+import { categoryIcons } from "@/app/lib/categoryIcons";
 import { ArrowLeft, ArrowDown, Search, Truck, Tag, ShoppingBag, Flame, CreditCard } from "lucide-react";
 
 /* ----------------- types ----------------- */
@@ -935,16 +936,20 @@ export default function HomePage() {
               {/* Explore More Slider */}
               <div className="mt-4 overflow-x-auto no-scrollbar">
                 <div className="flex flex-wrap gap-3 w-max">
-                  {cachedCategories.map((cat) => {
-                    // 🔹 Map category name to Lucide icon (you can expand mapping)
-                    const iconMap: Record<string, JSX.Element> = {
-                      "Women": <ShoppingBag className="w-6 h-6 text-pink-500" />,
-                      "Men": <Tag className="w-6 h-6 text-blue-500" />,
-                      "Kids": <Truck className="w-6 h-6 text-yellow-500" />,
-                      "Beauty": <Flame className="w-6 h-6 text-purple-500" />,
-                      "Home": <CreditCard className="w-6 h-6 text-green-500" />,
-                    };
-                    const icon = iconMap[cat.name] ?? <Tag className="w-6 h-6 text-gray-500" />;
+                  {cachedCategories.map((cat, idx) => {
+                    // 🔹 get icon from your imported mapping
+                    const Icon = categoryIcons[cat.name] ?? Tag;
+              
+                    // 🔹 creamy pastel background palette
+                    const bgColors = [
+                      "bg-[#FFF8E7]", // light cream
+                      "bg-[#FFF3E0]", // soft peach
+                      "bg-[#FDF6EC]", // warm ivory
+                      "bg-[#FAF3E3]", // almond beige
+                      "bg-[#FFF5E1]", // vanilla
+                      "bg-[#FBF7F0]", // off white
+                    ];
+                    const bg = bgColors[idx % bgColors.length];
               
                     return (
                       <button
@@ -961,10 +966,12 @@ export default function HomePage() {
                             sessionStorage.setItem("lastQuery", cat.name);
                           } catch {}
                         }}
-                        className="flex flex-col items-center justify-center w-28 h-24 rounded-2xl shadow-sm
-                                   bg-gradient-to-br from-gray-50 to-gray-100 hover:shadow-md transition"
+                        className={`flex flex-col items-center justify-center w-28 h-24 rounded-2xl shadow-sm ${bg}
+                                   hover:shadow-md transition`}
                       >
-                        <div className="mb-2">{icon}</div>
+                        <div className="mb-2">
+                          <Icon className="w-6 h-6 text-gray-700" />
+                        </div>
                         <span className="text-sm font-medium text-gray-700 text-center">
                           {cat.name}
                         </span>
