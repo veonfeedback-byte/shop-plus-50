@@ -58,6 +58,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
+
+    // Register Service Worker (PWA)
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js")
+        .then(() => {
+          console.log("✅ Service worker registered");
+        })
+        .catch(err => {
+          console.error("❌ Service worker registration failed:", err);
+        });
+    }
+  }, []);
+
   // Trigger download
   const handleDownload = () => {
     const link = document.createElement("a");
