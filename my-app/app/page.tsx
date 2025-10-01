@@ -923,16 +923,6 @@ export default function HomePage() {
             ) : (
             <section>
 
-            {/* Explore More Header */}
-            <div className="flex items-center gap-2 mt-8 w-max pl-4 pr-6 py-2 rounded-r-2xl shadow-sm
-                            bg-gradient-to-r from-yellow-100 via-yellow-50 to-white
-                            border-l-4 border-yellow-400">
-              <Tag className="w-5 h-5 text-yellow-500" />
-              <span className="text-base sm:text-lg font-medium text-gray-700 tracking-wide">
-                Explore More
-              </span>
-            </div>
-            
             {/* Explore More Slider */}
             <div className="mt-4 overflow-x-auto scrollbar-hide">
               <div className="flex space-x-4 px-2 w-max">
@@ -942,68 +932,68 @@ export default function HomePage() {
             
                   // 28 premium solid colors (similar to screenshot)
                   const premiumColors = [
-                    "bg-pink-300",     // 1
-                    "bg-red-300",      // 2
-                    "bg-orange-300",   // 3
-                    "bg-amber-300",    // 4
-                    "bg-yellow-300",   // 5
-                    "bg-lime-300",     // 6
-                    "bg-green-300",    // 7
-                    "bg-emerald-300",  // 8
-                    "bg-teal-300",     // 9
-                    "bg-cyan-300",     // 10
-                    "bg-sky-300",      // 11
-                    "bg-blue-300",     // 12
-                    "bg-indigo-300",   // 13
-                    "bg-violet-300",   // 14
-                    "bg-purple-300",   // 15
-                    "bg-fuchsia-300",  // 16
-                    "bg-rose-300",     // 17
-                    "bg-pink-400",     // 18
-                    "bg-red-400",      // 19
-                    "bg-orange-400",   // 20
-                    "bg-amber-400",    // 21
-                    "bg-yellow-400",   // 22
-                    "bg-lime-400",     // 23
-                    "bg-green-400",    // 24
-                    "bg-emerald-400",  // 25
-                    "bg-cyan-400",     // 26
-                    "bg-sky-400",      // 27
-                    "bg-violet-400",   // 28
+                    "bg-pink-300",
+                    "bg-red-300",
+                    "bg-orange-300",
+                    "bg-amber-300",
+                    "bg-yellow-300",
+                    "bg-lime-300",
+                    "bg-green-300",
+                    "bg-emerald-300",
+                    "bg-teal-300",
+                    "bg-cyan-300",
+                    "bg-sky-300",
+                    "bg-blue-300",
+                    "bg-indigo-300",
+                    "bg-violet-300",
+                    "bg-purple-300",
+                    "bg-fuchsia-300",
+                    "bg-rose-300",
+                    "bg-pink-400",
+                    "bg-red-400",
+                    "bg-orange-400",
+                    "bg-amber-400",
+                    "bg-yellow-400",
+                    "bg-lime-400",
+                    "bg-green-400",
+                    "bg-emerald-400",
+                    "bg-cyan-400",
+                    "bg-sky-400",
+                    "bg-violet-400",
                   ];
             
                   const bg = premiumColors[idx % premiumColors.length];
             
                   return (
-                    <button
-                      key={cat.slug}
-                      onClick={() => {
-                        setQuery(cat.name);
-                        setDebouncedQuery(cat.name.toLowerCase());
-                        setActiveCategory(cat.slug);
-                        setActiveSubcategory(null);
-                        setSearchTriggered(true);
-                        setShowBackButton(true);
-                        try {
-                          sessionStorage.setItem("lastCategory", cat.slug);
-                          sessionStorage.setItem("lastQuery", cat.name);
-                        } catch {}
-                      }}
-                      className={`flex flex-col items-center justify-center w-24 h-24 rounded-2xl shadow-md hover:shadow-lg transition ${bg}`}
-                    >
-                      <div className="mb-2">
-                        <Icon className="w-7 h-7 text-gray-800" />
-                      </div>
-                      <span className="text-xs font-semibold text-gray-800 text-center">
+                    <div key={cat.slug} className="flex flex-col items-center">
+                      {/* card with icon */}
+                      <button
+                        onClick={() => {
+                          setQuery(cat.name);
+                          setDebouncedQuery(cat.name.toLowerCase());
+                          setActiveCategory(cat.slug);
+                          setActiveSubcategory(null);
+                          setSearchTriggered(true);
+                          setShowBackButton(true);
+                          try {
+                            sessionStorage.setItem("lastCategory", cat.slug);
+                            sessionStorage.setItem("lastQuery", cat.name);
+                          } catch {}
+                        }}
+                        className={`flex items-center justify-center w-20 h-20 rounded-2xl shadow-sm hover:shadow-md transition ${bg}`}
+                      >
+                        <Icon className="w-8 h-8 text-gray-800" />
+                      </button>
+            
+                      {/* text below card */}
+                      <span className="mt-2 text-sm font-medium text-black text-center">
                         {cat.name}
                       </span>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
             </div>
-
-            
            
             {/* Trending Header */}
             <div className="flex items-center gap-2 mt-8 w-1/2 pl-3 pr-6 py-2 rounded-r-2xl shadow-sm
