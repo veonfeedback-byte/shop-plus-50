@@ -934,7 +934,7 @@ export default function HomePage() {
             </div>
             
             {/* Explore More Slider */}
-            <div className="mt-4 overflow-x-auto no-scrollbar">
+            <div className="mt-4 overflow-x-auto scrollbar-hidden">
               <div className="flex space-x-4 px-2 w-max">
                 {cachedCategories.map((cat, idx) => {
                   const catConfig = categoryIcons[cat.name];
