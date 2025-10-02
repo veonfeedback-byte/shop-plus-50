@@ -67,7 +67,7 @@ function ProductCard({
           sessionStorage.setItem("homeScrollY", String(window.scrollY));
           sessionStorage.setItem("visibleHome", String(visibleHome));
         } catch {}
-        {/*if (setLoading) setLoading(true);*/}
+        if (setLoading) setLoading(true);
         if (onClick) onClick();
       }}
       className="group block bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
@@ -471,15 +471,10 @@ export default function HomePage() {
     if (!lastQ && lastHomeScroll) (window as any).__restoreHomeScrollY = Number(lastHomeScroll);
 
   }, []);
-
-  useLayoutEffect(() => {
-    if ((window as any).__restoreScrollY != null) {
-      setLoading(true); // spinner when restoring search scroll
-    }
-  }, []);
   
   useLayoutEffect(() => {
     if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
+      setLoading(true);
       const y = (window as any).__restoreScrollY;
       delete (window as any).__restoreScrollY;
       setTimeout(() => {
@@ -489,21 +484,10 @@ export default function HomePage() {
     }
   }, [finalResults, visibleSearch]);
 
-  useLayoutEffect(() => {
-    if (finalResults.length > 0) {
-      setLoading(false); // always stop loader when results show
-    }
-  }, [finalResults]);
-
   // ✅ Restore scroll for Home products with spinner
   useLayoutEffect(() => {
-    if ((window as any).__restoreHomeScrollY != null) {
-      setLoading(true); // show spinner immediately
-    }
-  }, []);
-  
-  useLayoutEffect(() => {
     if ((window as any).__restoreHomeScrollY != null && homeProducts.length > 0) {
+      setLoading(true);
       const y = (window as any).__restoreHomeScrollY;
       delete (window as any).__restoreHomeScrollY;
       setTimeout(() => {
@@ -513,11 +497,6 @@ export default function HomePage() {
     }
   }, [homeProducts, visibleHome]);
 
-  useLayoutEffect(() => {
-    if (homeProducts.length > 0) {
-      setLoading(false); // always stop loader when home products restored
-    }
-  }, [homeProducts]);
 
   // ✅ Restore scroll only when the right number of products are visible
   useLayoutEffect(() => {
