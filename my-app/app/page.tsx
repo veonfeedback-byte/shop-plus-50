@@ -390,15 +390,15 @@ export default function HomePage() {
 
   useEffect(() => {
     if (loading && (searchTriggered || activeCategory || activeSubcategory)) {
+      // stop the main page loader
       setLoading(false);
     }
-  }, [finalResults, searchTriggered, activeCategory, activeSubcategory]);
-
-  useEffect(() => {
-    if (!loading) {
-      setLoadingCategory(null); // ✅ reset category spinner
+  
+    if (!loading && finalResults.length > 0) {
+      // stop the category spinner only after results show
+      setLoadingCategory(null);
     }
-  }, [loading]);
+  }, [loading, finalResults, searchTriggered, activeCategory, activeSubcategory]);
 
   /* ---------- Reset Home ---------- */
   const resetHome = useCallback(() => {
@@ -473,24 +473,36 @@ export default function HomePage() {
   }, []);
 
   useLayoutEffect(() => {
+    if ((window as any).__restoreScrollY != null) {
+      setLoading(true); // spinner when restoring search scroll
+    }
+  }, []);
+  
+  useLayoutEffect(() => {
     if ((window as any).__restoreScrollY != null && finalResults.length > 0) {
       const y = (window as any).__restoreScrollY;
       delete (window as any).__restoreScrollY;
       setTimeout(() => {
         window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+        setLoading(false); // hide after restored
       }, 0);
     }
   }, [finalResults, visibleSearch]);
 
-   // ✅ Restore scroll for Home products
+  // ✅ Restore scroll for Home products with spinner
+  useLayoutEffect(() => {
+    if ((window as any).__restoreHomeScrollY != null) {
+      setLoading(true); // show spinner immediately
+    }
+  }, []);
+  
   useLayoutEffect(() => {
     if ((window as any).__restoreHomeScrollY != null && homeProducts.length > 0) {
-      setLoading(true);
       const y = (window as any).__restoreHomeScrollY;
       delete (window as any).__restoreHomeScrollY;
       setTimeout(() => {
         window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
-        setLoading(false);
+        setLoading(false); // hide spinner only after scroll + products restored
       }, 0);
     }
   }, [homeProducts, visibleHome]);
