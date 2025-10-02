@@ -65,6 +65,7 @@ function ProductCard({
           sessionStorage.setItem("homeScrollY", String(window.scrollY));
           sessionStorage.setItem("visibleHome", String(visibleHome));
         } catch {}
+        setLoading(true);
         if (onClick) onClick();
       }}
       className="group block bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
@@ -454,10 +455,12 @@ export default function HomePage() {
    // ✅ Restore scroll for Home products
   useLayoutEffect(() => {
     if ((window as any).__restoreHomeScrollY != null && homeProducts.length > 0) {
+      setLoading(true);
       const y = (window as any).__restoreHomeScrollY;
       delete (window as any).__restoreHomeScrollY;
       setTimeout(() => {
         window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+        setLoading(false);
       }, 0);
     }
   }, [homeProducts, visibleHome]);
