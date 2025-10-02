@@ -415,6 +415,27 @@ export default function HomePage() {
     []
   );
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+  
+    // When search starts → push a new state in browser history
+    if (searchTriggered) {
+      window.history.pushState({ search: true }, "");
+    }
+  
+    const handlePopState = (event: PopStateEvent) => {
+      // If we are in search → pressing back should reset to home instead of exiting
+      if (searchTriggered) {
+        resetHome();
+      }
+    };
+  
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [searchTriggered, resetHome]);
+  
   /* ---------- Restore state ---------- */
   useEffect(() => {
     const lastQ = sessionStorage.getItem("lastQuery");
@@ -742,7 +763,6 @@ export default function HomePage() {
                         }
 
                         setLoading(true);
-                        
                         setSearchTriggered(true);
                         setShowBackButton(true);
                         setQuery(s.title);
