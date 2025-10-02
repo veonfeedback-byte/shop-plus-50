@@ -38,11 +38,13 @@ function ProductCard({
   href,
   onClick,
   eager,
+  setLoading,
 }: {
   p: IndexedProduct;
   href: string;
   onClick?: () => void;
   eager?: boolean;
+  setLoading?: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const [loaded, setLoaded] = useState(false);
 
@@ -65,7 +67,7 @@ function ProductCard({
           sessionStorage.setItem("homeScrollY", String(window.scrollY));
           sessionStorage.setItem("visibleHome", String(visibleHome));
         } catch {}
-        setLoading(true);
+        if (setLoading) setLoading(true);
         if (onClick) onClick();
       }}
       className="group block bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
@@ -943,11 +945,9 @@ export default function HomePage() {
                           if (activeSubcategory) sessionStorage.setItem("lastSubcategory", activeSubcategory);
                           if (priceSort) sessionStorage.setItem("lastSort", priceSort);
                         } catch {}
-
-                        setLoading(true);
-                        
                       }}
                       eager={idx < 4}
+                      setLoading={setLoading} 
                     />
                   ))}
                 </>
@@ -1107,6 +1107,7 @@ export default function HomePage() {
                     } catch {}
                   }}
                   eager={idx < 4}
+                  setLoading={setLoading} 
                 />
               ))}
             </div>
