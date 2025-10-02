@@ -1,8 +1,16 @@
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open("trolly-cache").then(cache => {
-      return cache.addAll(["/", "/index.html"]);
-    })
+    (async () => {
+      const cache = await caches.open("trolly-cache");
+      const urlsToCache = ["/"]; // keep only what you are sure exists
+      for (const url of urlsToCache) {
+        try {
+          await cache.add(url);
+        } catch (err) {
+          console.warn("⚠️ Failed to cache:", url, err);
+        }
+      }
+    })()
   );
 });
 
