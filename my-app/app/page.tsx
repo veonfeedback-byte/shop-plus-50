@@ -67,7 +67,7 @@ function ProductCard({
           sessionStorage.setItem("homeScrollY", String(window.scrollY));
           sessionStorage.setItem("visibleHome", String(visibleHome));
         } catch {}
-        if (setLoading) setLoading(true);
+        {/*if (setLoading) setLoading(true);*/}
         if (onClick) onClick();
       }}
       className="group block bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
@@ -489,6 +489,12 @@ export default function HomePage() {
     }
   }, [finalResults, visibleSearch]);
 
+  useLayoutEffect(() => {
+    if (finalResults.length > 0) {
+      setLoading(false); // always stop loader when results show
+    }
+  }, [finalResults]);
+
   // ✅ Restore scroll for Home products with spinner
   useLayoutEffect(() => {
     if ((window as any).__restoreHomeScrollY != null) {
@@ -507,6 +513,12 @@ export default function HomePage() {
     }
   }, [homeProducts, visibleHome]);
 
+  useLayoutEffect(() => {
+    if (homeProducts.length > 0) {
+      setLoading(false); // always stop loader when home products restored
+    }
+  }, [homeProducts]);
+
   // ✅ Restore scroll only when the right number of products are visible
   useLayoutEffect(() => {
     const savedY = (window as any).__restoreHomeScrollY;
@@ -519,6 +531,8 @@ export default function HomePage() {
       }, 0);
     }
   }, [homeProducts, visibleHome]);
+
+  
 
   useEffect(() => {
     function onScroll() {
@@ -1042,12 +1056,12 @@ export default function HomePage() {
                       {/* card with icon */}
                       <button
                         onClick={() => {
-                          setLoadingCategory(cat.slug);
-                          setLoading(true);
                           setQuery(cat.name);
                           setDebouncedQuery(cat.name.toLowerCase());
                           setActiveCategory(cat.slug);
                           setActiveSubcategory(null);
+                          setLoadingCategory(cat.slug);
+                          setLoading(true);
                           setSearchTriggered(true);
                           setShowBackButton(true);
                           try {
