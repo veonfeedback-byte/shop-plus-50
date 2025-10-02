@@ -150,6 +150,7 @@ export default function HomePage() {
   const [query, setQuery] = useState("");
   const [showBackButton, setShowBackButton] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingCategory, setLoadingCategory] = useState<string | null>(null);
 
   /* ---------- Build product index once ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
@@ -390,6 +391,12 @@ export default function HomePage() {
       setLoading(false);
     }
   }, [finalResults, searchTriggered, activeCategory, activeSubcategory]);
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingCategory(null); // ✅ reset category spinner
+    }
+  }, [loading]);
 
   /* ---------- Reset Home ---------- */
   const resetHome = useCallback(() => {
@@ -1023,6 +1030,7 @@ export default function HomePage() {
                       {/* card with icon */}
                       <button
                         onClick={() => {
+                          setLoadingCategory(cat.slug);
                           setLoading(true);
                           setQuery(cat.name);
                           setDebouncedQuery(cat.name.toLowerCase());
@@ -1037,7 +1045,30 @@ export default function HomePage() {
                         }}
                         className={`flex items-center justify-center w-20 h-20 rounded-2xl shadow-sm hover:shadow-md transition ${bg}`}
                       >
-                        <Icon className={`w-8 h-8 ${icon}`} />
+                        {loadingCategory === cat.slug ? (
+                          <svg
+                            className="w-8 h-8 animate-spin text-black"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            ></path>
+                          </svg>
+                        ) : (
+                          <Icon className={`w-8 h-8 ${icon}`} />
+                        )}
                       </button>
             
                       {/* text below card */}
