@@ -148,7 +148,7 @@ function ProductCard({
 export default function HomePage() {
   const [query, setQuery] = useState("");
   const [showBackButton, setShowBackButton] = useState(false);
-
+  const [loading, setLoading] = useState(false);
 
   /* ---------- Build product index once ---------- */
   const allProducts = useMemo<IndexedProduct[]>(() => {
@@ -205,6 +205,7 @@ export default function HomePage() {
   const [searchFocused, setSearchFocused] = useState(false);
 
   const [bestSuggestion, setBestSuggestion] = useState<string | null>(null);
+
   const MAX_HOME = allProducts.length; // allow loading all
 
   useEffect(() => {
@@ -382,6 +383,12 @@ export default function HomePage() {
     }
     return searchResults;
   }, [activeCategory, activeSubcategory, allProducts, searchResults, priceSort]);
+
+  useEffect(() => {
+    if (loading && (searchTriggered || activeCategory || activeSubcategory)) {
+      setLoading(false);
+    }
+  }, [finalResults, searchTriggered, activeCategory, activeSubcategory]);
 
   /* ---------- Reset Home ---------- */
   const resetHome = useCallback(() => {
@@ -631,6 +638,12 @@ export default function HomePage() {
         />
       </Head>
 
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
       <div className="pb-28 pt-[50px]">
         {/* Search Row (modern style) */}
         <div className="fixed top-[56px] left-0 right-0 z-30 bg-white py-3 px-3 shadow-sm border-b border-gray-200">
@@ -684,6 +697,8 @@ export default function HomePage() {
                       setPriceSort(null);
                       setVisibleSearch(10);
 
+                      setLoading(true);
+
                       setSearchTriggered(true);
                       setShowBackButton(true);
 
@@ -722,6 +737,9 @@ export default function HomePage() {
                             sessionStorage.setItem("lastSubcategory", s.slug);
                           } catch {}
                         }
+
+                        setLoading(true);
+                        
                         setSearchTriggered(true);
                         setShowBackButton(true);
                         setQuery(s.title);
@@ -895,6 +913,9 @@ export default function HomePage() {
                           if (activeSubcategory) sessionStorage.setItem("lastSubcategory", activeSubcategory);
                           if (priceSort) sessionStorage.setItem("lastSort", priceSort);
                         } catch {}
+
+                        setLoading(true);
+                        
                       }}
                       eager={idx < 4}
                     />
