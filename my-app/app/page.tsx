@@ -1003,6 +1003,7 @@ export default function HomePage() {
                       {/* card with icon */}
                       <button
                         onClick={() => {
+                          setLoading(true);
                           setQuery(cat.name);
                           setDebouncedQuery(cat.name.toLowerCase());
                           setActiveCategory(cat.slug);
