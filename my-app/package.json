@@ -15,7 +15,7 @@
     "framer-motion": "^12.23.12",
     "fuse.js": "^7.1.0",
     "lucide-react": "^0.543.0",
-    "next": "15.5.2",
+    "next": "15.5.9",
     "node-fetch": "^3.3.2",
     "puppeteer": "^24.18.0",
     "react": "19.1.0",
