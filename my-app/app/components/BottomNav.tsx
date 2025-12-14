@@ -74,6 +74,7 @@ export default function BottomNav() {
             <div className="text-sm text-gray-700 mb-3">
               <p>💬 Contact us on WhatsApp!</p>
               <p>we are available 24/7 for your support Just click the button below and get in touch with us.</p>
+
             </div>
             <a
               href="https://wa.me/923036789310"
@@ -83,6 +84,16 @@ export default function BottomNav() {
             >
               Get in touch
             </a>
+
+            <br/>
+
+            <a
+                href="/privacy-policy"
+                className="block w-full text-center text-xs text-gray-500 underline hover:text-gray-700"
+              >
+                Privacy Policy
+            </a>
+
           </motion.div>
         )}
 

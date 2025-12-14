@@ -39,12 +39,14 @@ function ProductCard({
   onClick,
   eager,
   setLoading,
+  visibleHome,
 }: {
   p: IndexedProduct;
   href: string;
   onClick?: () => void;
   eager?: boolean;
   setLoading?: React.Dispatch<React.SetStateAction<boolean>>;
+  visibleHome?: number;
 }) {
   const [loaded, setLoaded] = useState(false);
 
