@@ -7,10 +7,6 @@ const nextConfig = {
       { protocol: "https", hostname: "cdn.markaz.app" },
     ],
   },
-  eslint: {
-    // 🚫 Don’t crash build because of ESLint errors
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     // 🚫 Don’t crash build because of TS errors
     ignoreBuildErrors: true,
