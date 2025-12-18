@@ -215,28 +215,21 @@ export default function HomePage() {
   const MAX_HOME = allProducts.length; // allow loading all
 
   useEffect(() => {
-    const hydrate = () => {
-      if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
+
+    try {
       const cached = sessionStorage.getItem("homeProducts");
       if (cached) {
-        try {
-          setHomeProducts(JSON.parse(cached));
-          return;
-        } catch {}
+        setHomeProducts(JSON.parse(cached));
+        return;
       }
-      const shuffled = shuffle(initialHomePicks);
-      setHomeProducts(shuffled);
-      try {
-        sessionStorage.setItem("homeProducts", JSON.stringify(shuffled));
-      } catch {}
-    };
+    } catch {}
 
-    if ("requestIdleCallback" in window) {
-      (window as any).requestIdleCallback(hydrate, { timeout: 200 });
-    } else {
-      const t = setTimeout(hydrate, 100);
-      return () => clearTimeout(t);
-    }
+    // fallback (ONLY if nothing cached)
+    setHomeProducts(initialHomePicks);
+    try {
+      sessionStorage.setItem("homeProducts", JSON.stringify(initialHomePicks));
+    } catch {}
   }, [initialHomePicks]);
 
   /* ---------- Fuse search ---------- */
@@ -412,8 +405,14 @@ export default function HomePage() {
     setActiveCategory(null);
     setActiveSubcategory(null);
     try {
-      sessionStorage.clear();
+      sessionStorage.removeItem("lastQuery");
+      sessionStorage.removeItem("lastCategory");
+      sessionStorage.removeItem("lastSubcategory");
+      sessionStorage.removeItem("lastSort");
+      sessionStorage.removeItem("visibleSearch");
+      // ❗ DO NOT delete homeProducts or visibleHome
     } catch {}
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -469,7 +468,11 @@ export default function HomePage() {
     if (lastCat) setActiveCategory(lastCat);
     if (lastSub) setActiveSubcategory(lastSub);
     if (lastSort) setPriceSort(lastSort as "asc" | "desc");
-    if (!lastQ && lastHomeVisible) setVisibleHome(Number(lastHomeVisible));
+    if (!lastQ) {
+      const vh = Number(lastHomeVisible || 20);
+      setVisibleHome(vh > 0 ? vh : 20);
+    }
+
     if (!lastQ && lastHomeScroll) (window as any).__restoreHomeScrollY = Number(lastHomeScroll);
 
   }, []);
@@ -954,7 +957,8 @@ export default function HomePage() {
                         } catch {}
                       }}
                       eager={idx < 4}
-                      setLoading={setLoading} 
+                      setLoading={setLoading}
+                      visibleHome={visibleHome} 
                     />
                   ))}
                 </>
@@ -1115,6 +1119,7 @@ export default function HomePage() {
                   }}
                   eager={idx < 4}
                   setLoading={setLoading} 
+                  visibleHome={visibleHome}
                 />
               ))}
             </div>
